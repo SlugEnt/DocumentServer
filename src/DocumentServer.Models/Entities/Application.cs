@@ -23,6 +23,7 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// The name of the Application.  This can be full English Description
         /// </summary>
+        [MaxLength(75)]
         public string Name { get; set; }
 
 

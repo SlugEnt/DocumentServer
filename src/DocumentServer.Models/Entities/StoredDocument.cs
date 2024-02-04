@@ -39,16 +39,32 @@ namespace DocumentServer.Models.Entities
         /// When it was created.
         /// </summary>
         [Required]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAtUTC { get; set; }
 
         /// <summary>
         /// When it was last updated.
         /// </summary>
-        public DateTime ModifiedAt { get; set; }
+        public DateTime ModifiedAtUTC { get; set; }
+
+
+        public DateTime LastAccessedUTC { get; set; }
+
+        /// <summary>
+        /// The number of times this document has been accessed by an end-user.  Either read, write or edit.  Background service tasks are not counted.
+        /// </summary>
+        public ushort NumberOfTimesAccessed { get; set; }
+
 
         // Relationships
         // Each document is associated with a Document Type
         public uint DocumentTypeId { get; set; }
         [Required] public DocumentType DocumentType { get; set; }
+
+        /// <summary>
+        /// The node this document is stored on.
+        /// </summary>
+        public uint StorageNodeId { get; set; }
+
+        [Required] public StorageNode StorageNode { get; set; }
     }
 }

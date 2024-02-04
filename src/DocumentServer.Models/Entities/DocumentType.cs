@@ -22,11 +22,13 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         ///  Description of this Document Type
         /// </summary>
+        [MaxLength(75)]
         public string Name { get; set; }
 
         /// <summary>
         ///  Description of the Document
         /// </summary>
+        [MaxLength(250)]
         public string Description { get; set; }
 
 

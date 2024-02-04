@@ -75,7 +75,7 @@ public class DocumentServerEngine
                 Id             = fileGuid,
                 Description    = documentUploadDto.Description,
                 StorageFolder  = storageDirectory,
-                CreatedAt      = DateTime.UtcNow,
+                CreatedAtUTC   = DateTime.UtcNow,
                 sizeInKB       = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1,
                 DocumentTypeId = documentUploadDto.DocumentTypeId,
                 Status         = EnumDocumentStatus.InitialSave
