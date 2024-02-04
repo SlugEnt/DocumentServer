@@ -23,6 +23,9 @@ namespace DocumentServer.Db
 
         // Models 
         public DbSet<StoredDocument> StoredDocuments { get; set; }
+        public DbSet<Application> Applications { get; set; }
+        public DbSet<DocumentType> DocumentTypes { get; set; }
+
 
         // Reference / Lookup Models
 
@@ -60,6 +63,7 @@ namespace DocumentServer.Db
 
         protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
+            Console.WriteLine("Hello:  Configuring DB");
             if (!dbContextOptionsBuilder.IsConfigured)
             {
                 IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())

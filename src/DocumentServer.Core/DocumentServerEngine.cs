@@ -4,11 +4,17 @@ using System.Xml.Linq;
 using DocumentServer.Db;
 using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
+using DocumentServer.Models.Enums;
 using Microsoft.Extensions.Logging;
+using static System.Net.Mime.MediaTypeNames;
+using Application = DocumentServer.Models.Entities.Application;
 
 
 namespace DocumentServer.Core;
 
+/// <summary>
+/// Performs all core logic operations of the DocumentServer including database access and file access methods.
+/// </summary>
 public class DocumentServerEngine
 {
     private readonly IFileSystem        _fileSystem;
@@ -52,7 +58,7 @@ public class DocumentServerEngine
     /// <param name="documentUploadDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<DocumentOperationStatus> StoreDocumentAsync(DocumentUploadDTO documentUploadDto, string storageDirectory)
+    public async Task<DocumentOperationStatus> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto, string storageDirectory)
     {
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
@@ -60,14 +66,20 @@ public class DocumentServerEngine
 
         try
         {
-            // Generate File Name
-            Guid           fileGuid       = Guid.NewGuid();
-            string         fileName       = fileGuid.ToString() + documentUploadDto.FileExtension;
-            StoredDocument storedDocument = new();
-            storedDocument.Id            = fileGuid;
-            storedDocument.StorageFolder = storageDirectory;
-            documentOperationStatus      = new(storedDocument);
+            // Generate File Description
+            Guid   fileGuid = Guid.NewGuid();
+            string fileName = fileGuid.ToString() + documentUploadDto.FileExtension;
 
+            StoredDocument storedDocument = new()
+            {
+                Id             = fileGuid,
+                Description    = documentUploadDto.Description,
+                StorageFolder  = storageDirectory,
+                CreatedAt      = DateTime.UtcNow,
+                sizeInKB       = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1,
+                DocumentTypeId = documentUploadDto.DocumentTypeId,
+                Status         = EnumDocumentStatus.InitialSave
+            };
 
             // Decode the file bytes
             byte[] binaryFile;
@@ -91,7 +103,7 @@ public class DocumentServerEngine
             }
 
             string msg =
-                String.Format($"StoreDocument:  Failed to store the document:  Name: {documentUploadDto.Name}, Extension: {documentUploadDto.FileExtension}.  Error Was: {ex.Message}.  ");
+                String.Format($"StoreDocument:  Failed to store the document:  Description: {documentUploadDto.Description}, Extension: {documentUploadDto.FileExtension}.  Error Was: {ex.Message}.  ");
 
             StringBuilder sb = new StringBuilder();
             sb.Append(msg);
@@ -99,10 +111,106 @@ public class DocumentServerEngine
                 sb.Append(ex.InnerException.Message);
             msg = sb.ToString();
 
-            _logger.LogError("StoreDocument: Failed to store document.{Name}{Extension}Error:{Error}.  Inner Error: {Inner}", documentUploadDto.Name,
+            _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.  Inner Error: {Inner}",
+                             documentUploadDto.Description,
                              documentUploadDto.FileExtension, ex.Message, ex.InnerException.Message);
             documentOperationStatus.SetError(msg);
             return documentOperationStatus;
+        }
+    }
+
+
+    /// <summary>
+    /// Seeds the database with some preliminary values
+    /// </summary>
+    /// <returns></returns>
+    public async Task SeedDataAsync()
+    {
+        await SeedAbsenceMgtAsync();
+
+        // Load Unity Data
+        Application application = new Application
+        {
+            Name = "Unity"
+        };
+        _db.Add<Application>(application);
+        await _db.SaveChangesAsync();
+
+
+        application = new Application
+        {
+            Name = "Phoenix"
+        };
+        _db.Add<Application>(application);
+
+        // Save Changes
+        await _db.SaveChangesAsync();
+    }
+
+
+    /// <summary>
+    /// Seed Absence Mgt
+    /// </summary>
+    /// <returns></returns>
+    public async Task SeedAbsenceMgtAsync()
+    {
+        try
+        {
+            // Load MDOS Data
+            Application application = new Application
+            {
+                Name = "Modified Duty Off Site"
+            };
+            _db.Add<Application>(application);
+            await _db.SaveChangesAsync();
+
+
+            // Create Document Types
+            DocumentType docType = new()
+            {
+                Name        = "Referral Acceptance Form",
+                Description = "Signed Referral Acceptance Form",
+                StorageMode = EnumStorageMode.WriteOnceReadMany,
+                Application = application
+            };
+            _db.Add<DocumentType>(docType);
+
+
+            docType = new()
+            {
+                Name        = "Drug Results",
+                Description = "Official Drug Test Results",
+                StorageMode = EnumStorageMode.WriteOnceReadMany,
+                Application = application
+            };
+            _db.Add<DocumentType>(docType);
+
+
+            docType = new()
+            {
+                Name        = "Draft Work Plan",
+                Description = "Draft of a work plan",
+                StorageMode = EnumStorageMode.Editable,
+                Application = application
+            };
+            _db.Add<DocumentType>(docType);
+
+
+            docType = new()
+            {
+                Name        = "Temporary Notes",
+                Description = "Notes taken during a meeting",
+                StorageMode = EnumStorageMode.Temporary,
+                Application = application
+            };
+            _db.Add<DocumentType>(docType);
+
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("SeedAbsenceMgtAsync:  Error: {Error}  InnerError: {InnerError}", ex.Message,
+                             ex.InnerException != null ? ex.InnerException.Message : "N/A");
         }
     }
 }

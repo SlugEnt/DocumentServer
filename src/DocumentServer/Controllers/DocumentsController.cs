@@ -4,6 +4,7 @@ using DocumentServer.Db;
 using DocumentServer.Models;
 using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
+using DocumentServer.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -39,46 +40,10 @@ namespace DocumentServer.Controllers
         public async Task<ActionResult<StoredDocument>> GetStoredDocument(string id, string name)
         {
             // For testing
-            StoredDocument storedDocument = new StoredDocument()
-            {
-                AppAreaId     = "AbsMgt",
-                AppName       = "MDOS",
-                CreatedAt     = DateTime.Now,
-                Id            = new Guid(),
-                StorageFolder = @"C:\temp"
-            };
-            /*StoredDocument storedDocument = await _db.StoredDocuments.FindAsync(id);
-            if (storedDocument == null)
-            {
-                return NotFound();
-            }
-            */
+            StoredDocument storedDocument = new StoredDocument();
             return Ok(storedDocument);
         }
 
-
-        /*
-        // POST api/<DocumentsController>
-        [HttpPost]
-        public async Task<ActionResult<StoredDocument>> PostStoredDocument(StoredDocument storedDocument, IFormFile document)
-        {
-            // Generate File Name
-            string fileName = storedDocument.Id + ".txt";
-
-            // Save File on Storage
-            _docEngine.SaveFile(storedDocument.AppAreaId, fileName);
-
-            // Save Database Entry
-            _db.StoredDocuments.Add(storedDocument);
-            await _db.SaveChangesAsync();
-
-            return CreatedAtAction(
-                                   nameof(GetStoredDocument), new
-                                   {
-                                       id = storedDocument.Id
-                                   }, storedDocument);
-        }
-        */
 
 
         // POST api/<DocumentsController>
@@ -90,7 +55,7 @@ namespace DocumentServer.Controllers
         [HttpPost]
         public async Task<ActionResult<string>> PostStoredDocument(DocumentUploadDTO documentUploadDto)
         {
-            DocumentOperationStatus documentOperationStatus = await _docEngine.StoreDocumentAsync(documentUploadDto, _storageDirectory);
+            DocumentOperationStatus documentOperationStatus = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto, _storageDirectory);
             if (!documentOperationStatus.IsErrored)
             {
                 return Ok(documentOperationStatus.StoredDocument.Id);

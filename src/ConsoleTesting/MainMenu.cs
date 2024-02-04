@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using DocumentServer.Core;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace ConsoleTesting;
@@ -35,26 +37,27 @@ public class MainMenu
     internal async Task Start()
     {
         bool keepProcessing = true;
-
-        Console.WriteLine("Press S");
+        Display();
 
         while (keepProcessing)
         {
             if (Console.KeyAvailable)
             {
+                Display();
                 keepProcessing = await MainMenuUserInput();
             }
             else
                 Thread.Sleep(1000);
-
-
-            Display();
         }
     }
 
 
 
-    internal async Task Display() { }
+    internal async Task Display()
+    {
+        Console.WriteLine("Press:  ");
+        Console.WriteLine(" ( Z ) To Seed the database");
+    }
 
 
     internal async Task<bool> MainMenuUserInput()
@@ -77,15 +80,17 @@ public class MainMenu
 
                     case ConsoleKey.U:
                         FileInfo fileToSave = new FileInfo(Path.Combine(@"T:\RetarusFaxReport.pdf"));
-                        bool result = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
-                        if (result) Console.WriteLine("Document Stored");
-                        else Console.WriteLine("Document failed to be stored due to errors");
+                        bool     result     = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
+                        if (result)
+                            Console.WriteLine("Document Stored");
+                        else
+                            Console.WriteLine("Document failed to be stored due to errors");
                         break;
 
 
-                    case ConsoleKey.I:
-                        Console.WriteLine("Enter the number of minutes between flight creations");
-                        string interval = Console.ReadLine();
+                    case ConsoleKey.Z:
+                        Console.WriteLine("Seeding the Database...");
+                        await SeedData();
                         break;
 
                     case ConsoleKey.D: break;
@@ -101,6 +106,14 @@ public class MainMenu
             _logger.LogError("Error:  {Error}", ex);
         }
 
+        Display();
         return true;
+    }
+
+
+    internal async Task SeedData()
+    {
+        DocumentServerEngine documentServerEngine = _serviceProvider.GetService<DocumentServerEngine>();
+        await documentServerEngine.SeedDataAsync();
     }
 }

@@ -82,7 +82,7 @@ public class AccessDocumentServerHttpClient : IDisposable
     {
         DocumentUploadDTO documentUploadDto = new()
         {
-            Name          = name,
+            Description   = name,
             FileExtension = extension,
             FileBytes     = fileBytesInBase64
         };
@@ -105,7 +105,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
             DocumentUploadDTO documentUploadDto = new()
             {
-                Name          = fileToSave.Name,
+                Description   = fileToSave.Name,
                 FileExtension = fileToSave.Extension,
                 FileBytes     = file
             };
@@ -142,7 +142,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
             dynamic json = JsonNode.Parse(content);
             string  msg  = (string)json["detail"];
-            _logger.LogError("Failed to store document:   {Name} {Extension}  |  Error: {Error} - Detailed {Msg}", documentUploadDto.Name,
+            _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}", documentUploadDto.Description,
                              documentUploadDto.FileExtension,
                              exception, msg);
 

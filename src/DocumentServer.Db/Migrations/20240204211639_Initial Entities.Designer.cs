@@ -4,6 +4,7 @@ using DocumentServer.Db;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    partial class DocServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240204211639_Initial Entities")]
+    partial class InitialEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,7 +39,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Applications", (string)null);
+                    b.ToTable("Applications");
                 });
 
             modelBuilder.Entity("DocumentServer.Models.Entities.DocumentType", b =>
@@ -65,7 +68,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasIndex("ApplicationId");
 
-                    b.ToTable("DocumentTypes", (string)null);
+                    b.ToTable("DocumentTypes");
                 });
 
             modelBuilder.Entity("DocumentServer.Models.Entities.StoredDocument", b =>
@@ -102,7 +105,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasIndex("DocumentTypeId");
 
-                    b.ToTable("StoredDocuments", (string)null);
+                    b.ToTable("StoredDocuments");
                 });
 
             modelBuilder.Entity("DocumentServer.Models.Entities.DocumentType", b =>

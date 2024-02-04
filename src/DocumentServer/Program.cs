@@ -1,5 +1,6 @@
 #define SWAGGER
 
+using System.Reflection;
 using DocumentServer.Core;
 using DocumentServer.Db;
 using Microsoft.EntityFrameworkCore;
@@ -11,18 +12,45 @@ namespace DocumentServer
 {
     public class Program
     {
+        private static Serilog.ILogger _logger;
+
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add Serilog
-            var logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+            // 10 - Logging Setup
+            _logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
             builder.Logging.ClearProviders();
-            builder.Logging.AddSerilog(logger);
-            builder.Host.UseSerilog(logger);
+            builder.Logging.AddSerilog(_logger);
+            builder.Host.UseSerilog(_logger);
 
 
-            // Add services to the container.
+            // 20 - AppSettings File loading
+            IWebHostEnvironment environment          = builder.Environment;
+            string              versionPath          = Directory.GetCurrentDirectory();
+            DirectoryInfo       appRootDirectoryInfo = Directory.GetParent(versionPath);
+            string              appRoot              = appRootDirectoryInfo.FullName;
+            Console.WriteLine("Running from Directory:  " + appRoot);
+
+            // Get Sensitive Appsettings.json file location
+            string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+
+
+            // Load Environment Specific App Setting file
+            string appSettingFileName = $"appsettings." + environment.EnvironmentName + ".json";
+            string appSettingFile     = Path.Join(appRoot, appSettingFileName);
+            builder.Configuration.AddJsonFile(appSettingFile, true);
+            DisplayAppSettingStatus(appSettingFile);
+
+            // Load the Sensitive AppSettings.JSON file.
+            string sensitiveFileName = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+            appSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
+            builder.Configuration.AddJsonFile(appSettingFile, true);
+            DisplayAppSettingStatus(appSettingFile);
+
+
+            // 30 - Add Services to the container.
             builder.Services.AddTransient<DocumentServerEngine>();
             ;
 
@@ -80,6 +108,20 @@ namespace DocumentServer
             app.MapControllers();
 
             app.Run();
+        }
+
+
+
+        /// <summary>
+        /// Logs whether a given AppSettings file was found to exist.
+        /// </summary>
+        /// <param name="appSettingFileName"></param>
+        private static void DisplayAppSettingStatus(string appSettingFileName)
+        {
+            if (File.Exists(appSettingFileName))
+                _logger.Information("AppSettings File was located.  {AppSettingsFile}", appSettingFileName);
+            else
+                _logger.Warning("AppSettings File was not found.  {AppSettingsFile}", appSettingFileName);
         }
     }
 }
