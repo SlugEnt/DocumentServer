@@ -39,12 +39,37 @@ namespace DocumentServer.Models.Entities
         public EnumStorageMode StorageMode { get; set; }
 
 
+        /// <summary>
+        /// When it was created.
+        /// </summary>
+        [Required]
+        public DateTime CreatedAtUTC { get; set; }
+
+
+        /// <summary>
+        /// When it was last updated.
+        /// </summary>
+        [Required]
+        public DateTime ModifiedAtUTC { get; set; }
+
+
 
         // Relationships
+        public ushort ApplicationId { get; set; }
+        public ushort? ActiveStorageNode1Id { get; set; }
+        public ushort? ActiveStorageNode2Id { get; set; }
+        public ushort? ArchivalStorageNode1Id { get; set; }
+        public ushort? ArchivalStorageNode2Id { get; set; }
 
         /// <summary>
         /// The application this document type belongs to.
         /// </summary>
         public Application Application { get; set; }
+
+        // Storage Nodes 
+        public StorageNode ActiveStorageNode1 { get; set; }
+        public StorageNode ActiveStorageNode2 { get; set; }
+        public StorageNode ArchivalStorageNode1 { get; set; }
+        public StorageNode ArchivalStorageNode2 { get; set; }
     }
 }

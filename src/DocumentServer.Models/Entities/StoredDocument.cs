@@ -36,6 +36,11 @@ namespace DocumentServer.Models.Entities
         public int sizeInKB { get; set; } = 0;
 
         /// <summary>
+        /// Whether this document is stored on archival media
+        /// </summary>
+        public bool IsArchived { get; set; } = false;
+
+        /// <summary>
         /// When it was created.
         /// </summary>
         [Required]
@@ -55,16 +60,20 @@ namespace DocumentServer.Models.Entities
         public ushort NumberOfTimesAccessed { get; set; }
 
 
+
         // Relationships
+
+
         // Each document is associated with a Document Type
         public uint DocumentTypeId { get; set; }
         [Required] public DocumentType DocumentType { get; set; }
 
-        /// <summary>
-        /// The node this document is stored on.
-        /// </summary>
-        public uint StorageNodeId { get; set; }
 
-        [Required] public StorageNode StorageNode { get; set; }
+        // The nodes this document is stored on.
+        public ushort? PrimaryStorageNodeId { get; set; }
+        public ushort? SecondaryStorageNodeId { get; set; }
+
+        public StorageNode PrimaryStorageNode { get; set; }
+        public StorageNode SecondaryStorageNode { get; set; }
     }
 }

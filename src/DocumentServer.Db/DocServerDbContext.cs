@@ -25,6 +25,7 @@ namespace DocumentServer.Db
         public DbSet<StoredDocument> StoredDocuments { get; set; }
         public DbSet<Application> Applications { get; set; }
         public DbSet<DocumentType> DocumentTypes { get; set; }
+        public DbSet<StorageNode> StorageNodes { get; set; }
 
 
         // Reference / Lookup Models
@@ -52,6 +53,37 @@ namespace DocumentServer.Db
         /// <param name="modelBuilder"></param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Document Types have multiple fields pointing to StorageNode
+            modelBuilder.Entity<DocumentType>()
+                        .HasOne(x => x.ActiveStorageNode1)
+                        .WithMany(x => x.ActiveNode1DocumentTypes)
+                        .HasForeignKey(x => x.ActiveStorageNode1Id);
+
+            modelBuilder.Entity<DocumentType>()
+                        .HasOne(x => x.ActiveStorageNode2)
+                        .WithMany(x => x.ActiveNode2DocumentTypes)
+                        .HasForeignKey(x => x.ActiveStorageNode2Id);
+
+            modelBuilder.Entity<DocumentType>()
+                        .HasOne(x => x.ArchivalStorageNode1)
+                        .WithMany(x => x.ArchivalNode1DocumentTypes)
+                        .HasForeignKey(x => x.ArchivalStorageNode1Id);
+
+            modelBuilder.Entity<DocumentType>()
+                        .HasOne(x => x.ArchivalStorageNode2)
+                        .WithMany(x => x.ArchivalNode2DocumentTypes)
+                        .HasForeignKey(x => x.ArchivalStorageNode2Id);
+
+            // Stored Documents have multiple Fields for StorageNode
+            modelBuilder.Entity<StoredDocument>()
+                        .HasOne(x => x.PrimaryStorageNode)
+                        .WithMany(x => x.PrimaryNodeStoredDocuments)
+                        .HasForeignKey(x => x.PrimaryStorageNodeId);
+            modelBuilder.Entity<StoredDocument>()
+                        .HasOne(x => x.SecondaryStorageNode)
+                        .WithMany(x => x.SecondaryNodeStoredDocuments)
+                        .HasForeignKey(x => x.SecondaryStorageNodeId);
+
             /*
             modelBuilder.Entity<Employee>().HasOne(x => x.Person).WithOne(x => x.Employee).HasForeignKey<Employee>(x => x.PersonId);
             modelBuilder.Entity<Employee>().HasOne(x => x.LastModifiedByPerson);

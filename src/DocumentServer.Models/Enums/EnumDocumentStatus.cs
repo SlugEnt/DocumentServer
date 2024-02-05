@@ -26,17 +26,27 @@ public enum EnumDocumentStatus
     Updated = 105,
 
     /// <summary>
+    /// Document has reached archival time period and is awaiting being moved to archive locations
+    /// </summary>
+    AwaitingArchival = 199,
+
+    /// <summary>
+    /// Document has been moved to archival storage
+    /// </summary>
+    Archived = 200,
+
+    /// <summary>
     /// Document has been marked to be deleted, but is waiting for the deletion time out period.
     /// </summary>
-    AwaitingDeletion = 240,
+    AwaitingDeletion = 245,
 
     /// <summary>
     /// Document has been deleted from file system
     /// </summary>
-    Deleted = 241,
+    Deleted = 249,
 
     /// <summary>
-    /// Document has been archived, meaning it is no longer available and is waiting for the archival time period to elapse before removing it from the DocumentServer database
+    /// Document has been removed, meaning it is no longer available and is waiting for the archival time period to elapse before removing it from the DocumentServer database
     /// </summary>
-    Archived = 253
+    Removed = 253
 }
