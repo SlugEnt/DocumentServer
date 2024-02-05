@@ -1,7 +1,12 @@
-﻿using DocumentServer.Db;
+﻿#define RESET_DATABASE
+
+
+using DocumentServer.Db;
 using DocumentServer.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using NUnit.Framework;
+
+
 
 namespace DocumentServer_Test.SupportObjects;
 
@@ -23,6 +28,7 @@ public class DatabaseSetup_Test
     /// </summary>
     public void Setup()
     {
+#if RESET_DATABASE
         lock (_lock)
         {
             if (!_databaseInitialized)
@@ -45,6 +51,9 @@ public class DatabaseSetup_Test
                 _databaseInitialized = true;
             }
         }
+#else
+        CreateContext();
+#endif
     }
 
 
@@ -52,7 +61,7 @@ public class DatabaseSetup_Test
     /// Create the Database Context for testing
     /// </summary>
     /// <returns></returns>
-    private DocServerDbContext CreateContext()
+    public DocServerDbContext CreateContext()
     {
         DocServerDbContext = new DocServerDbContext(
                                                     new DbContextOptionsBuilder<DocServerDbContext>()

@@ -4,7 +4,7 @@ using DocumentServer.Models.Enums;
 
 namespace DocumentServer.Models.Entities;
 
-public class StorageNode
+public class StorageNode : AbstractBaseEntity
 {
     /// <summary>
     /// Constructor

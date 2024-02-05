@@ -10,7 +10,7 @@ using DocumentServer.Models.Enums;
 
 namespace DocumentServer.Models.Entities
 {
-    public class DocumentType
+    public class DocumentType : AbstractBaseEntity
     {
         /// <summary>
         /// ID of Document Type
@@ -37,21 +37,6 @@ namespace DocumentServer.Models.Entities
         /// </summary>
         [Column(TypeName = "tinyint")]
         public EnumStorageMode StorageMode { get; set; }
-
-
-        /// <summary>
-        /// When it was created.
-        /// </summary>
-        [Required]
-        public DateTime CreatedAtUTC { get; set; }
-
-
-        /// <summary>
-        /// When it was last updated.
-        /// </summary>
-        [Required]
-        public DateTime ModifiedAtUTC { get; set; }
-
 
 
         // Relationships

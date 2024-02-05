@@ -5,6 +5,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Data;
 using System;
 using DocumentServer.Models.Entities;
+using DocumentServer.Models.Interfaces;
 
 
 namespace DocumentServer.Db
@@ -35,14 +36,18 @@ namespace DocumentServer.Db
 
 
         // *********************************************************************************************
-        public DocServerDbContext() : base() { SetChangeTrackingBehaviour(); }
+        public DocServerDbContext() : base() { }
 
 
-        public DocServerDbContext(DbContextOptions<DocServerDbContext> options) : base(options) { SetChangeTrackingBehaviour(); }
+        public DocServerDbContext(DbContextOptions<DocServerDbContext> options) : base(options) { }
 
 
         // Disable Change Tracking for queries.
-        private void SetChangeTrackingBehaviour() { this.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking; }
+        private void SetChangeTrackingBehaviour()
+        {
+            // Do not do this unless you really know what you are doing!
+            this.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+        }
 
 
 
@@ -83,12 +88,6 @@ namespace DocumentServer.Db
                         .HasOne(x => x.SecondaryStorageNode)
                         .WithMany(x => x.SecondaryNodeStoredDocuments)
                         .HasForeignKey(x => x.SecondaryStorageNodeId);
-
-            /*
-            modelBuilder.Entity<Employee>().HasOne(x => x.Person).WithOne(x => x.Employee).HasForeignKey<Employee>(x => x.PersonId);
-            modelBuilder.Entity<Employee>().HasOne(x => x.LastModifiedByPerson);
-            modelBuilder.Entity<Employee>().HasOne(x => x.CreatedByPerson);
-            */
         }
 
 
@@ -165,30 +164,29 @@ namespace DocumentServer.Db
         private void CustomSaveChanges()
         {
             var tracker = ChangeTracker;
-            /*
+
             foreach (var entry in tracker.Entries())
             {
-                if (entry.State == EntityState.Unchanged) continue;
+                if (entry.State == EntityState.Unchanged)
+                    continue;
+
                 if (entry.Entity is AbstractBaseEntity)
                 {
-                    IAuditModel auditEntity = (IAuditModel)entry.Entity;
+                    IBaseEntity baseEntity = (IBaseEntity)entry.Entity;
 
                     switch (entry.State)
                     {
                         case EntityState.Added:
-                            auditEntity.CreatedDateTime = DateTime.Now;
+                            baseEntity.CreatedAtUTC = DateTime.UtcNow;
                             break;
                         case EntityState.Deleted:
                         case EntityState.Modified:
-                            auditEntity.LastModifiedDateTime = DateTime.Now;
+                            baseEntity.ModifiedAtUTC = DateTime.UtcNow;
                             break;
-                        default:
-                            break;
+                        default: break;
                     }
                 }
             }
-            */
-            //base.SaveChanges();
         }
     }
 }

@@ -12,7 +12,7 @@ namespace DocumentServer.Models.Entities
     /// <summary>
     /// An Application that needs to store documents
     /// </summary>
-    public class Application
+    public class Application : AbstractBaseEntity
     {
         /// <summary>
         /// Id

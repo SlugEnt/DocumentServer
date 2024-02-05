@@ -27,7 +27,7 @@ public class SupportMethods
     /// <param name="databaseSetupTest"></param>
     public SupportMethods(DatabaseSetup_Test databaseSetupTest)
     {
-        _docDbContext = databaseSetupTest.DocServerDbContext;
+        _docDbContext = databaseSetupTest.CreateContext();
 
         _fileSystem.Directory.CreateDirectory("test");
         _fileSystem.Directory.CreateDirectory(@"test\primary");

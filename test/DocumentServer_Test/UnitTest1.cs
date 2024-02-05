@@ -22,7 +22,7 @@ namespace DocumentServer_Test
 
 
         [Test]
-        public async Task Test1()
+        public async Task CreatedAtUTC_SetOnSave()
         {
             SupportMethods sm = new SupportMethods(databaseSetupTest);
 
@@ -32,7 +32,33 @@ namespace DocumentServer_Test
 
             IEnumerable<string> paths = sm.FileSystem.AllPaths;
 
-            Assert.Pass();
+
+            Application appNew = new()
+            {
+                Name = "A new app"
+            };
+            sm.DB.Add<Application>(appNew);
+            await sm.DB.SaveChangesAsync();
+
+            Assert.IsNotNull(appNew.CreatedAtUTC, "A10:");
+            Assert.IsNull(appNew.ModifiedAtUTC, "A20");
+        }
+
+
+        [Test]
+        public async Task ModifiedAtUTC_SetOnUpdate()
+        {
+            SupportMethods sm = new SupportMethods(databaseSetupTest);
+
+
+            Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
+
+            app.Name = "app_ad";
+
+            await sm.DB.SaveChangesAsync();
+
+            Assert.IsNotNull(app.CreatedAtUTC, "A10:");
+            Assert.IsNotNull(app.ModifiedAtUTC, "A20");
         }
     }
 }

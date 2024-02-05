@@ -9,7 +9,7 @@ using DocumentServer.Models.Enums;
 
 namespace DocumentServer.Models.Entities
 {
-    public class StoredDocument
+    public class StoredDocument : AbstractBaseEntity
     {
         [Key] public Guid Id { get; set; }
 
@@ -39,17 +39,6 @@ namespace DocumentServer.Models.Entities
         /// Whether this document is stored on archival media
         /// </summary>
         public bool IsArchived { get; set; } = false;
-
-        /// <summary>
-        /// When it was created.
-        /// </summary>
-        [Required]
-        public DateTime CreatedAtUTC { get; set; }
-
-        /// <summary>
-        /// When it was last updated.
-        /// </summary>
-        public DateTime ModifiedAtUTC { get; set; }
 
 
         public DateTime LastAccessedUTC { get; set; }
