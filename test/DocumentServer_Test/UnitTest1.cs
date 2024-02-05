@@ -60,5 +60,18 @@ namespace DocumentServer_Test
             Assert.IsNotNull(app.CreatedAtUTC, "A10:");
             Assert.IsNotNull(app.ModifiedAtUTC, "A20");
         }
+
+
+        [Test]
+        public async Task StoreDocument_Success()
+        {
+            SupportMethods sm = new SupportMethods(databaseSetupTest);
+
+            // A. Create A Document
+            string fileName = sm.WriteRandomFile(sm.FileSystem, sm.Folder_Test, "pdx", 3);
+            string fullPath = Path.Combine(sm.Folder_Test, fileName);
+            Assert.IsTrue(sm.FileSystem.FileExists(fullPath));
+            IEnumerable<string> files = sm.FileSystem.AllFiles;
+        }
     }
 }
