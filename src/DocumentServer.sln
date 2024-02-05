@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Db", "Docume
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Models", "DocumentServer.Models\DocumentServer.Models.csproj", "{DBE940EB-AD31-4F54-A524-571667135757}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentServer_Test", "..\test\DocumentServer_Test\DocumentServer_Test.csproj", "{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{DBE940EB-AD31-4F54-A524-571667135757}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBE940EB-AD31-4F54-A524-571667135757}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBE940EB-AD31-4F54-A524-571667135757}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

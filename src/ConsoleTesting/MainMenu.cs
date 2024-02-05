@@ -1,11 +1,12 @@
 ﻿using System.Text.Json;
 using DocumentServer.Core;
+using DocumentServer.Db;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace ConsoleTesting;
 
-public class MainMenu
+public partial class MainMenu
 {
     private readonly ILogger                        _logger;
     private          IServiceProvider               _serviceProvider;
@@ -13,15 +14,17 @@ public class MainMenu
     private          IHttpClientFactory             _httpClientFactory;
     private readonly JsonSerializerOptions          _options;
     private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
+    private readonly DocServerDbContext             _db;
 
 
     public MainMenu(ILogger<MainMenu> logger, IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory,
-                    AccessDocumentServerHttpClient documentServerHttpClient)
+                    AccessDocumentServerHttpClient documentServerHttpClient, DocServerDbContext db)
     {
         _logger                   = logger;
         _serviceProvider          = serviceProvider;
         _httpClientFactory        = httpClientFactory;
         _documentServerHttpClient = documentServerHttpClient;
+        _db                       = db;
 
 
         _options = new JsonSerializerOptions
@@ -90,7 +93,7 @@ public class MainMenu
 
                     case ConsoleKey.Z:
                         Console.WriteLine("Seeding the Database...");
-                        await SeedData();
+                        await SeedDataAsync();
                         break;
 
                     case ConsoleKey.D: break;
@@ -108,12 +111,5 @@ public class MainMenu
 
         Display();
         return true;
-    }
-
-
-    internal async Task SeedData()
-    {
-        DocumentServerEngine documentServerEngine = _serviceProvider.GetService<DocumentServerEngine>();
-        await documentServerEngine.SeedDataAsync();
     }
 }
