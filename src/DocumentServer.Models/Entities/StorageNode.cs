@@ -41,7 +41,7 @@ public class StorageNode : AbstractBaseEntity
 
 
     [MaxLength(400)] public string Description { get; set; }
-    [Key] public ushort Id { get; set; }
+    [Key] public int Id { get; set; }
 
     /// <summary>
     ///     If true the Node can be used for production use

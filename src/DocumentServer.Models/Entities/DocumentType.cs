@@ -16,7 +16,7 @@ namespace DocumentServer.Models.Entities
         /// ID of Document Type
         /// </summary>
         [Key]
-        public uint Id { get; set; }
+        public int Id { get; set; }
 
 
         /// <summary>
@@ -40,11 +40,11 @@ namespace DocumentServer.Models.Entities
 
 
         // Relationships
-        public ushort ApplicationId { get; set; }
-        public ushort? ActiveStorageNode1Id { get; set; }
-        public ushort? ActiveStorageNode2Id { get; set; }
-        public ushort? ArchivalStorageNode1Id { get; set; }
-        public ushort? ArchivalStorageNode2Id { get; set; }
+        public int ApplicationId { get; set; }
+        public int? ActiveStorageNode1Id { get; set; }
+        public int? ActiveStorageNode2Id { get; set; }
+        public int? ArchivalStorageNode1Id { get; set; }
+        public int? ArchivalStorageNode2Id { get; set; }
 
         /// <summary>
         /// The application this document type belongs to.

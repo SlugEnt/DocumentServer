@@ -16,6 +16,6 @@ namespace DocumentServer.Models.DTOS
         /// <summary>
         /// Type of Document This is
         /// </summary>
-        public uint DocumentTypeId { get; set; }
+        public int DocumentTypeId { get; set; }
     }
 }

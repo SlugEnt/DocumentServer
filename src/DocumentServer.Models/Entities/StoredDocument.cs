@@ -11,6 +11,35 @@ namespace DocumentServer.Models.Entities
 {
     public class StoredDocument : AbstractBaseEntity
     {
+        /// <summary>
+        /// Empty Constructor
+        /// </summary>
+        public StoredDocument() { Id = Guid.NewGuid(); }
+
+
+        /// <summary>
+        /// Normal Constructor
+        /// </summary>
+        public StoredDocument(string description,
+                              string storageFolder,
+                              int sizeInKB,
+                              int documentTypeId,
+                              int primaryStorageNodeId,
+                              int? secondaryStorageNodeId = null) : base()
+        {
+            Description    = description;
+            StorageFolder  = storageFolder;
+            SizeInKB       = sizeInKB;
+            DocumentTypeId = documentTypeId;
+
+
+            Status                 = EnumDocumentStatus.InitialSave;
+            NumberOfTimesAccessed  = 0;
+            PrimaryStorageNodeId   = primaryStorageNodeId;
+            SecondaryStorageNodeId = secondaryStorageNodeId;
+        }
+
+
         [Key] public Guid Id { get; set; }
 
         [Column(TypeName = "tinyint")]
@@ -33,7 +62,7 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// The size of the file in Kilo Bytes.  -
         /// </summary>
-        public int sizeInKB { get; set; } = 0;
+        public int SizeInKB { get; set; } = 0;
 
         /// <summary>
         /// Whether this document is stored on archival media
@@ -46,7 +75,7 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// The number of times this document has been accessed by an end-user.  Either read, write or edit.  Background service tasks are not counted.
         /// </summary>
-        public ushort NumberOfTimesAccessed { get; set; }
+        public int NumberOfTimesAccessed { get; set; }
 
 
 
@@ -54,13 +83,13 @@ namespace DocumentServer.Models.Entities
 
 
         // Each document is associated with a Document Type
-        public uint DocumentTypeId { get; set; }
+        public int DocumentTypeId { get; set; }
         [Required] public DocumentType DocumentType { get; set; }
 
 
         // The nodes this document is stored on.
-        public ushort? PrimaryStorageNodeId { get; set; }
-        public ushort? SecondaryStorageNodeId { get; set; }
+        public int? PrimaryStorageNodeId { get; set; }
+        public int? SecondaryStorageNodeId { get; set; }
 
         public StorageNode PrimaryStorageNode { get; set; }
         public StorageNode SecondaryStorageNode { get; set; }

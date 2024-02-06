@@ -1,6 +1,7 @@
 using System.IO.Abstractions.TestingHelpers;
 using DocumentServer.Core;
 using DocumentServer.Db;
+using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer_Test.SupportObjects;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ namespace DocumentServer_Test
 
 
 
+        // Tests that CreatedAT timestamp field is automatically saved on all entity saves.
         [Test]
         public async Task CreatedAtUTC_SetOnSave()
         {
@@ -45,11 +47,11 @@ namespace DocumentServer_Test
         }
 
 
+        // Tests that ModifiedAT timestamp field is automatically saved on all entity saves.
         [Test]
         public async Task ModifiedAtUTC_SetOnUpdate()
         {
             SupportMethods sm = new SupportMethods(databaseSetupTest);
-
 
             Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 
@@ -62,16 +64,45 @@ namespace DocumentServer_Test
         }
 
 
+
+        /// <summary>
+        /// Confirms we can upload a document to the DocumentServer
+        /// </summary>
+        /// <returns></returns>
         [Test]
         public async Task StoreDocument_Success()
         {
-            SupportMethods sm = new SupportMethods(databaseSetupTest);
+            // A. Setup
+            SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
+            DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-            // A. Create A Document
-            string fileName = sm.WriteRandomFile(sm.FileSystem, sm.Folder_Test, "pdx", 3);
+            // A10. Create A Document
+            string extension = "pdx";
+            string fileName = sm.WriteRandomFile(sm.FileSystem, sm.Folder_Test, extension,
+                                                 3);
             string fullPath = Path.Combine(sm.Folder_Test, fileName);
-            Assert.IsTrue(sm.FileSystem.FileExists(fullPath));
-            IEnumerable<string> files = sm.FileSystem.AllFiles;
+            Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "A10:");
+
+
+            // A20. Read the File
+            string file = Convert.ToBase64String(File.ReadAllBytes(fullPath));
+
+
+            // B.  Now Store it in the DocumentServer
+            DocumentUploadDTO upload = new DocumentUploadDTO()
+            {
+                Description    = "Some Description",
+                DocumentTypeId = sm.DocumentType_Test_Worm_A,
+                FileExtension  = extension,
+                FileBytes      = file,
+            };
+            documentServerEngine.StoreDocumentFirstTimeAsync(upload, "");
+
+
+            // Z. Validate
+            sm.DB.ChangeTracker.Clear();
+            Application app2 = sm.DB.Applications.Single(a => a.Name == "A new app");
+            Assert.AreEqual(app2.Name, app2.Name, "Z10:");
         }
     }
 }

@@ -17,7 +17,10 @@ namespace DocumentServer.Db.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(75)", maxLength: 75, nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(75)", maxLength: 75, nullable: false),
+                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -30,13 +33,15 @@ namespace DocumentServer.Db.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     IsTestNode = table.Column<bool>(type: "bit", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    NodePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     StorageNodeLocation = table.Column<byte>(type: "tinyint", nullable: false),
                     StorageSpeed = table.Column<byte>(type: "tinyint", nullable: false),
-                    NodePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -47,25 +52,27 @@ namespace DocumentServer.Db.Migrations
                 name: "DocumentTypes",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(75)", maxLength: 75, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     StorageMode = table.Column<byte>(type: "tinyint", nullable: false),
-                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ApplicationId = table.Column<int>(type: "int", nullable: false),
                     ActiveStorageNode1Id = table.Column<int>(type: "int", nullable: true),
                     ActiveStorageNode2Id = table.Column<int>(type: "int", nullable: true),
                     ArchivalStorageNode1Id = table.Column<int>(type: "int", nullable: true),
-                    ArchivalStorageNode2Id = table.Column<int>(type: "int", nullable: true)
+                    ArchivalStorageNode2Id = table.Column<int>(type: "int", nullable: true),
+                    ApplicationId1 = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DocumentTypes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_DocumentTypes_Applications_ApplicationId",
-                        column: x => x.ApplicationId,
+                        name: "FK_DocumentTypes_Applications_ApplicationId1",
+                        column: x => x.ApplicationId1,
                         principalTable: "Applications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -101,13 +108,14 @@ namespace DocumentServer.Db.Migrations
                     StorageFolder = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     sizeInKB = table.Column<int>(type: "int", nullable: false),
                     IsArchived = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastAccessedUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NumberOfTimesAccessed = table.Column<int>(type: "int", nullable: false),
-                    DocumentTypeId = table.Column<long>(type: "bigint", nullable: false),
+                    DocumentTypeId = table.Column<int>(type: "int", nullable: false),
                     PrimaryStorageNodeId = table.Column<int>(type: "int", nullable: true),
-                    SecondaryStorageNodeId = table.Column<int>(type: "int", nullable: true)
+                    SecondaryStorageNodeId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -141,9 +149,9 @@ namespace DocumentServer.Db.Migrations
                 column: "ActiveStorageNode2Id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DocumentTypes_ApplicationId",
+                name: "IX_DocumentTypes_ApplicationId1",
                 table: "DocumentTypes",
-                column: "ApplicationId");
+                column: "ApplicationId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DocumentTypes_ArchivalStorageNode1Id",

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240205165625_BasEentity UTC Added")]
-    partial class BasEentityUTCAdded
+    [Migration("20240205234110_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -54,11 +54,11 @@ namespace DocumentServer.Db.Migrations
 
             modelBuilder.Entity("DocumentServer.Models.Entities.DocumentType", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int?>("ActiveStorageNode1Id")
                         .HasColumnType("int");
@@ -67,6 +67,9 @@ namespace DocumentServer.Db.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("ApplicationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ApplicationId1")
                         .HasColumnType("int");
 
                     b.Property<int?>("ArchivalStorageNode1Id")
@@ -103,7 +106,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasIndex("ActiveStorageNode2Id");
 
-                    b.HasIndex("ApplicationId");
+                    b.HasIndex("ApplicationId1");
 
                     b.HasIndex("ArchivalStorageNode1Id");
 
@@ -172,8 +175,8 @@ namespace DocumentServer.Db.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
-                    b.Property<long>("DocumentTypeId")
-                        .HasColumnType("bigint");
+                    b.Property<int>("DocumentTypeId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -229,7 +232,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasOne("DocumentServer.Models.Entities.Application", "Application")
                         .WithMany()
-                        .HasForeignKey("ApplicationId")
+                        .HasForeignKey("ApplicationId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
