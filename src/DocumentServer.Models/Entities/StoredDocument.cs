@@ -9,6 +9,11 @@ using DocumentServer.Models.Enums;
 
 namespace DocumentServer.Models.Entities
 {
+    /// <summary>
+    /// The StoredDocument is the database entity that stores information about a single stored document.
+    /// The document itself is saved on a file system with the name  Id.FileExtension
+    /// It is thus vital that FileExtension and Id are never changed.  
+    /// </summary>
     public class StoredDocument : AbstractBaseEntity
     {
         /// <summary>
@@ -20,13 +25,15 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// Normal Constructor
         /// </summary>
-        public StoredDocument(string description,
+        public StoredDocument(string fileExtension,
+                              string description,
                               string storageFolder,
                               int sizeInKB,
                               int documentTypeId,
                               int primaryStorageNodeId,
                               int? secondaryStorageNodeId = null) : this()
         {
+            FileExtension  = fileExtension;
             Description    = description;
             StorageFolder  = storageFolder;
             SizeInKB       = sizeInKB;
@@ -58,6 +65,10 @@ namespace DocumentServer.Models.Entities
         /// </summary>
         public string StorageFolder { get; set; }
 
+        /// <summary>
+        /// The extension of the file
+        /// </summary>
+        public string FileExtension { get; set; }
 
         /// <summary>
         /// The size of the file in Kilo Bytes.  -
@@ -93,5 +104,21 @@ namespace DocumentServer.Models.Entities
 
         public StorageNode PrimaryStorageNode { get; set; }
         public StorageNode SecondaryStorageNode { get; set; }
+
+
+        /// <summary>
+        /// Returns the stored filename
+        /// </summary>
+        public string ComputedStoredFileName
+        {
+            get
+            {
+                if (FileExtension == string.Empty)
+                    return Id.ToString();
+
+                string value = Id + "." + FileExtension;
+                return value;
+            }
+        }
     }
 }

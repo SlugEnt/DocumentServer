@@ -155,12 +155,15 @@ public class Test_DocumentServerEngine
         // A. Setup
         SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
 
         // A10. Create A Document
-        string extension = "pdx";
+
         string fileName = sm.WriteRandomFile(sm.FileSystem,
                                              sm.Folder_Test,
-                                             extension,
+                                             expectedExtension,
                                              3);
         string fullPath = Path.Combine(sm.Folder_Test, fileName);
         Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "A10:");
@@ -173,20 +176,46 @@ public class Test_DocumentServerEngine
         // B.  Now Store it in the DocumentServer
         DocumentUploadDTO upload = new DocumentUploadDTO()
         {
-            Description    = "Some Description",
-            DocumentTypeId = sm.DocumentType_Test_Worm_A,
-            FileExtension  = extension,
+            Description    = expectedDescription,
+            DocumentTypeId = expectedDocTypeId,
+            FileExtension  = expectedExtension,
             FileBytes      = file,
         };
 
-        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(upload);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(upload);
+        StoredDocument         storedDocument = result.Value;
 
+
+        // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
+        //     you need to carefully consider why it failed.  
+        // Calculate the full storage node path that the file should have been written at.
+        DocumentType a          = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == expectedDocTypeId);
+        StorageNode  b          = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
+        string       modeLetter = ModeLetter(a.StorageMode);
+
+        string expectedPath = Path.Join(b.NodePath,
+                                        a.StorageFolderName,
+                                        modeLetter,
+                                        DatePath());
 
         // Z. Validate
+        // Z.10 - Validate the Database entry
+
+        Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(expectedDocTypeId), "Z20:");
+        Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30");
+        Assert.That(storedDocument.StorageFolder, Is.EqualTo(expectedPath), "Z40:");
+
+        // Make sure it was stored on the drive.
+        string fullFileName = Path.Join(expectedPath, storedDocument.Id.ToString() + "." + storedDocument.FileExtension);
+        Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
 
 
-
+    /// <summary>
+    /// Internal function to match the calculated date portion of a stored files path.
+    /// </summary>
+    /// <returns></returns>
     private string DatePath()
     {
         DateTime currentUtc = DateTime.UtcNow;
@@ -195,5 +224,19 @@ public class Test_DocumentServerEngine
 
         //string   day        = currentUtc.ToString("dd");
         return Path.Combine(year, month);
+    }
+
+
+    private string ModeLetter(EnumStorageMode storageMode)
+    {
+        // Z. Validate - Now verify string is correct.
+        string modeLetter = storageMode switch
+        {
+            EnumStorageMode.WriteOnceReadMany => "W",
+            EnumStorageMode.Editable          => "E",
+            EnumStorageMode.Temporary         => "T",
+            EnumStorageMode.Versioned         => "V"
+        };
+        return modeLetter;
     }
 }

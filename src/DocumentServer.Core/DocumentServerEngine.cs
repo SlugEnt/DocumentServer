@@ -94,36 +94,43 @@ public class DocumentServerEngine
             // We always use the primary node for initial storage.
             // TODO Storage Folder...?
             int fileSize = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1;
-            StoredDocument storedDocument = new(documentUploadDto.Description,
+            StoredDocument storedDocument = new(documentUploadDto.FileExtension,
+                                                documentUploadDto.Description,
                                                 "",
                                                 fileSize,
                                                 documentUploadDto.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
 
             // Generate File Description
-            string         fileName = storedDocument.Id.ToString() + documentUploadDto.FileExtension;
-            Result<string> result   = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, fileName);
+            string fileName = storedDocument.ComputedStoredFileName;
+
+            Result<string> result = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, fileName);
             if (result.IsFailed)
             {
                 Result merged = Result.Merge(opResults, result);
                 return merged;
             }
 
-            // TODO result has the path - Figure out where to store it.  
+            // Store the path and make sure all the paths exist.
             string storeAtPath = result.Value;
+            _fileSystem.Directory.CreateDirectory(storeAtPath);
+
 
             // Decode the file bytes
             byte[] binaryFile;
 
             binaryFile   = Convert.FromBase64String(documentUploadDto.FileBytes);
-            fullFileName = Path.Combine(storeAtPath, fileName.ToString());
-            File.WriteAllBytesAsync(fullFileName, binaryFile);
+            fullFileName = Path.Combine(storeAtPath, fileName);
+            _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
             fileSavedToStorage = true;
 
             // Save Database Entry
+            storedDocument.StorageFolder = storeAtPath;
+
             _db.StoredDocuments.Add(storedDocument);
             await _db.SaveChangesAsync();
-            return documentOperationStatus;
+            Result<StoredDocument> finalResult = Result.Ok(storedDocument);
+            return finalResult;
         }
         catch (Exception ex)
         {
@@ -204,8 +211,7 @@ public class DocumentServerEngine
                                        modePath,
                                        documentType.StorageFolderName,
                                        year,
-                                       month,
-                                       fileName);
+                                       month);
             return Result.Ok(path);
         }
         catch (InvalidOperationException ex)
