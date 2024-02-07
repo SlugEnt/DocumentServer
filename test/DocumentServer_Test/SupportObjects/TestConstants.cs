@@ -28,5 +28,6 @@ namespace DocumentServer_Test.SupportObjects
         public const string DOCTYPE_TEST_C = "DocC";
         public const string DOCTYPE_PROD_X = "DocX";
         public const string DOCTYPE_PROD_Y = "DocY";
+        public const string DOCTYPE_PROD_Z = "DocZ";
     }
 }

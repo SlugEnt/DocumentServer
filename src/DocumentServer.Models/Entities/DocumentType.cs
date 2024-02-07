@@ -12,6 +12,32 @@ namespace DocumentServer.Models.Entities
 {
     public class DocumentType : AbstractBaseEntity
     {
+        public DocumentType() { }
+
+
+        public DocumentType(string name,
+                            string description,
+                            string storageFolder,
+                            EnumStorageMode storageMode,
+                            int applicationId,
+                            int activeStorageNodeId)
+        {
+/*            if (storageFolder.Contains(" "))
+                throw new ArgumentException("Storage Folder Name cannot contain a space.");*/
+            if (storageFolder.Length > 10)
+                throw new ArgumentException("Storage Folder Name must be less than 10 characters");
+            if (!storageFolder.All(c => char.IsLetterOrDigit(c)))
+                throw new ArgumentException("Storage Folder Name can only contain a single word with only letters or digits");
+
+            Name                 = name;
+            Description          = description;
+            StorageFolderName    = storageFolder;
+            StorageMode          = storageMode;
+            ApplicationId        = applicationId;
+            ActiveStorageNode1Id = activeStorageNodeId;
+        }
+
+
         /// <summary>
         /// ID of Document Type
         /// </summary>
@@ -31,6 +57,14 @@ namespace DocumentServer.Models.Entities
         [MaxLength(250)]
         public string Description { get; set; }
 
+        /// <summary>
+        /// Each document type can be stored in a custom folder location. Or you can leave blank.
+        /// This just adds another subfolder into the path.
+        /// For example as blank:  /storage/parent/yyyy/mm/dd/file.pdf
+        /// With value set: /storage/parent/xyz/yyyy/mm/dd/file/pdf
+        /// </summary>
+        [MaxLength(10)]
+        public string StorageFolderName { get; set; } = "";
 
         /// <summary>
         /// Default Storage mode for documents of this type.

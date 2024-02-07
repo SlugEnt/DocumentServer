@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240205234110_Initial")]
+    [Migration("20240207182024_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -69,9 +69,6 @@ namespace DocumentServer.Db.Migrations
                     b.Property<int>("ApplicationId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ApplicationId1")
-                        .HasColumnType("int");
-
                     b.Property<int?>("ArchivalStorageNode1Id")
                         .HasColumnType("int");
 
@@ -97,6 +94,11 @@ namespace DocumentServer.Db.Migrations
                         .HasMaxLength(75)
                         .HasColumnType("nvarchar(75)");
 
+                    b.Property<string>("StorageFolderName")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<byte>("StorageMode")
                         .HasColumnType("tinyint");
 
@@ -106,7 +108,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasIndex("ActiveStorageNode2Id");
 
-                    b.HasIndex("ApplicationId1");
+                    b.HasIndex("ApplicationId");
 
                     b.HasIndex("ArchivalStorageNode1Id");
 
@@ -199,15 +201,15 @@ namespace DocumentServer.Db.Migrations
                     b.Property<int?>("SecondaryStorageNodeId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SizeInKB")
+                        .HasColumnType("int");
+
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
                     b.Property<string>("StorageFolder")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("sizeInKB")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -232,7 +234,7 @@ namespace DocumentServer.Db.Migrations
 
                     b.HasOne("DocumentServer.Models.Entities.Application", "Application")
                         .WithMany()
-                        .HasForeignKey("ApplicationId1")
+                        .HasForeignKey("ApplicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

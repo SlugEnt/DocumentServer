@@ -71,6 +71,11 @@ public class Test_DocumentServerEngine
 
 
 
+    /// <summary>
+    /// Validates that the system creates the valid storage path for a file.
+    /// </summary>
+    /// <param name="storageMode"></param>
+    /// <returns></returns>
     [Test]
     [TestCase(EnumStorageMode.Editable)]
     [TestCase(EnumStorageMode.WriteOnceReadMany)]
@@ -96,7 +101,7 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
-        // Create a random DocumentType
+        // Create a random DocumentType.  These document types all will have a custom folder name
         DocumentType randomDocType = new DocumentType()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
@@ -104,6 +109,7 @@ public class Test_DocumentServerEngine
             ActiveStorageNode1Id = storageNode.Id,
             ApplicationId        = 1,
             StorageMode          = storageMode,
+            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
         };
         sm.DB.AddAsync(randomDocType);
         await sm.DB.SaveChangesAsync();
@@ -127,9 +133,11 @@ public class Test_DocumentServerEngine
         };
 
 
+        // Paths should be:  NodePath\ModeLetter\DocTypeFolder\ymd\filename
         string ymdPath = DatePath();
         string expected = Path.Combine(storageNode.NodePath,
                                        modeLetter,
+                                       randomDocType.StorageFolderName,
                                        ymdPath,
                                        fileName);
         Assert.That(result.Value, Is.EqualTo(expected), "Z10:");
@@ -184,7 +192,8 @@ public class Test_DocumentServerEngine
         DateTime currentUtc = DateTime.UtcNow;
         string   year       = currentUtc.ToString("yyyy");
         string   month      = currentUtc.ToString("MM");
-        string   day        = currentUtc.ToString("dd");
-        return Path.Combine(year, month, day);
+
+        //string   day        = currentUtc.ToString("dd");
+        return Path.Combine(year, month);
     }
 }

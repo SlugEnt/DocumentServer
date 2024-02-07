@@ -56,13 +56,13 @@ namespace DocumentServer.Db.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(75)", maxLength: 75, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
+                    StorageFolderName = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     StorageMode = table.Column<byte>(type: "tinyint", nullable: false),
                     ApplicationId = table.Column<int>(type: "int", nullable: false),
                     ActiveStorageNode1Id = table.Column<int>(type: "int", nullable: true),
                     ActiveStorageNode2Id = table.Column<int>(type: "int", nullable: true),
                     ArchivalStorageNode1Id = table.Column<int>(type: "int", nullable: true),
                     ArchivalStorageNode2Id = table.Column<int>(type: "int", nullable: true),
-                    ApplicationId1 = table.Column<int>(type: "int", nullable: false),
                     CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false)
@@ -71,8 +71,8 @@ namespace DocumentServer.Db.Migrations
                 {
                     table.PrimaryKey("PK_DocumentTypes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_DocumentTypes_Applications_ApplicationId1",
-                        column: x => x.ApplicationId1,
+                        name: "FK_DocumentTypes_Applications_ApplicationId",
+                        column: x => x.ApplicationId,
                         principalTable: "Applications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -106,7 +106,7 @@ namespace DocumentServer.Db.Migrations
                     Status = table.Column<byte>(type: "tinyint", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     StorageFolder = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    sizeInKB = table.Column<int>(type: "int", nullable: false),
+                    SizeInKB = table.Column<int>(type: "int", nullable: false),
                     IsArchived = table.Column<bool>(type: "bit", nullable: false),
                     LastAccessedUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NumberOfTimesAccessed = table.Column<int>(type: "int", nullable: false),
@@ -149,9 +149,9 @@ namespace DocumentServer.Db.Migrations
                 column: "ActiveStorageNode2Id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DocumentTypes_ApplicationId1",
+                name: "IX_DocumentTypes_ApplicationId",
                 table: "DocumentTypes",
-                column: "ApplicationId1");
+                column: "ApplicationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DocumentTypes_ArchivalStorageNode1Id",

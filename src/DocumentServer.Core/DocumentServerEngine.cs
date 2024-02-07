@@ -180,7 +180,6 @@ public class DocumentServerEngine
             DateTime currentUtc = DateTime.UtcNow;
             string   year       = currentUtc.ToString("yyyy");
             string   month      = currentUtc.ToString("MM");
-            string   day        = currentUtc.ToString("dd");
 
 
             // TODO this needs to be  replaced with in memory lookup
@@ -203,9 +202,9 @@ public class DocumentServerEngine
 
             string path = Path.Combine(storageNode.NodePath,
                                        modePath,
+                                       documentType.StorageFolderName,
                                        year,
                                        month,
-                                       day,
                                        fileName);
             return Result.Ok(path);
         }
