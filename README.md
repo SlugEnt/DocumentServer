@@ -1,5 +1,18 @@
 # DocumentServer
 
+## Document Categories
+DocumentServer stores documents via Document Types, each of which has a category that indicates some general storage rules about how the document is stored and what happens to it after bieng stored. 
+### Category - WORM
+These documents are Write Once Read Many.  Meaning the first time they are written is the only time they can be written.  Overwrite or updates to the same document is not allowed.  
+
+### Category - Temporary 
+These documents are considered transitory and only have a limited lifetime.  Onece their lifetime is up they are automatically deleted.  The supporting app does not need to worry about them after sending them for storage, cleanup automatically happens by the DocumentServer engines.
+
+### Category - Editable 
+These documents can be overwritten.  Versioning of the documents does not happen.  It is simply if the supporting application sends an update to this document with the document Id the one will be replaced with this new one.
+
+### Category - Versioned???
+
 ## Unit Testing
 ### ENABLE_TRANSACTIONS
 There are a few things to understand about the unit tests.  By default all unit tests are run in a transaction.  This means they can operate on the same base data and tables without affecting each other.  Also, the transaction is never committed.  The downside to this is if you want to see what the database tables look like you will be unable.  

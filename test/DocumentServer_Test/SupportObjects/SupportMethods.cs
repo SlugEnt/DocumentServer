@@ -1,5 +1,12 @@
-﻿using System.IO.Abstractions;
+﻿// This should normally be defined.  This allows unit tests to run without colliding into each other as everything happens in 
+// a transaction that is never committed.  
+//  - Undef it for specialized cases where you need to see what happened with a particular unit test case by looking at the 
+//    database.
+#define ENABLE_TRANSACTIONS
+
+using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Bogus;
 using DocumentServer.Core;
 using DocumentServer.Db;
 using DocumentServer.Models.Entities;
@@ -19,6 +26,7 @@ namespace DocumentServer_Test.SupportObjects;
 public class SupportMethods
 {
     private readonly MockLogger<DocumentServerEngine> _logger = Substitute.For<MockLogger<DocumentServerEngine>>();
+    private static   Faker                            _faker  = null;
 
 
     /// <summary>
@@ -28,6 +36,9 @@ public class SupportMethods
     public SupportMethods(DatabaseSetup_Test databaseSetupTest,
                           EnumFolderCreation createFolders = EnumFolderCreation.None)
     {
+        if (_faker == null)
+            _faker = new("en");
+
         FileSystem = new MockFileSystem();
 
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
@@ -63,6 +74,15 @@ public class SupportMethods
     ///     Return the DocumentServerEngine
     /// </summary>
     public DocumentServerEngine DocumentServerEngine { get; }
+
+
+    /// <summary>
+    /// Returns the faker instance
+    /// </summary>
+    public Faker Faker
+    {
+        get { return _faker; }
+    }
 
 
     /// <summary>

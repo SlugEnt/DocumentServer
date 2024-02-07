@@ -1,6 +1,7 @@
 ﻿#define RESET_DATABASE
 
 
+
 using DocumentServer.Db;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
@@ -84,23 +85,37 @@ public class DatabaseSetup_Test
 
 
         // Add Storage Nodes
-        StorageNode testA = new StorageNode(TestConstants.STORAGE_NODE_TEST_A, "Test Node A - Primary", true,
-                                            EnumStorageNodeLocation.HostedSMB, EnumStorageNodeSpeed.Hot,
+        StorageNode testA = new StorageNode(TestConstants.STORAGE_NODE_TEST_A,
+                                            "Test Node A - Primary",
+                                            true,
+                                            EnumStorageNodeLocation.HostedSMB,
+                                            EnumStorageNodeSpeed.Hot,
                                             TestConstants.FOLDER_TEST_PRIMARY);
 
-        StorageNode testB = new StorageNode(TestConstants.STORAGE_NODE_TEST_B, "Test Node B - Secondary", true,
-                                            EnumStorageNodeLocation.HostedSMB, EnumStorageNodeSpeed.Hot,
+        StorageNode testB = new StorageNode(TestConstants.STORAGE_NODE_TEST_B,
+                                            "Test Node B - Secondary",
+                                            true,
+                                            EnumStorageNodeLocation.HostedSMB,
+                                            EnumStorageNodeSpeed.Hot,
                                             TestConstants.FOLDER_TEST_SECONDARY);
 
         // True Production Nodes
-        StorageNode prodX = new StorageNode(TestConstants.STORAGE_NODE_PROD_X, "Production Node X - Primary", false,
-                                            EnumStorageNodeLocation.HostedSMB, EnumStorageNodeSpeed.Hot,
+        StorageNode prodX = new StorageNode(TestConstants.STORAGE_NODE_PROD_X,
+                                            "Production Node X - Primary",
+                                            false,
+                                            EnumStorageNodeLocation.HostedSMB,
+                                            EnumStorageNodeSpeed.Hot,
                                             TestConstants.FOLDER_PROD_PRIMARY);
 
-        StorageNode prodY = new StorageNode(TestConstants.STORAGE_NODE_PROD_Y, "Production Node Y - Secondary", false,
-                                            EnumStorageNodeLocation.HostedSMB, EnumStorageNodeSpeed.Hot,
+        StorageNode prodY = new StorageNode(TestConstants.STORAGE_NODE_PROD_Y,
+                                            "Production Node Y - Secondary",
+                                            false,
+                                            EnumStorageNodeLocation.HostedSMB,
+                                            EnumStorageNodeSpeed.Hot,
                                             TestConstants.FOLDER_PROD_SECONDARY);
-        db.AddRange(testA, testB, prodX,
+        db.AddRange(testA,
+                    testB,
+                    prodX,
                     prodY);
         db.SaveChanges();
 
@@ -157,8 +172,11 @@ public class DatabaseSetup_Test
             IsActive           = true
         };
 
-        db.AddRange(docA, docB, docC,
-                    docX, docY);
+        db.AddRange(docA,
+                    docB,
+                    docC,
+                    docX,
+                    docY);
         db.SaveChanges();
     }
 }

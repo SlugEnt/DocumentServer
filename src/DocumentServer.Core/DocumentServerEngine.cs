@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using SlugEnt.FluentResults;
 
 
-[assembly: InternalsVisibleTo("DocumentServer_Test")]
+[assembly: InternalsVisibleTo("Test_DocumentServer")]
 
 namespace DocumentServer.Core;
 
@@ -67,13 +67,8 @@ public class DocumentServerEngine
     /// <param name="documentUploadDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto,
-                                                                          string storageDirectory)
+    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto)
     {
-        // TODO change return to Result
-        //TODO is stoageDirectory parameter needed?
-
-
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
@@ -92,17 +87,15 @@ public class DocumentServerEngine
                 _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
 
                 opResults.WithError(msg);
-
-//                documentOperationStatus.WithError(msg);
-                //              return documentOperationStatus;
                 return opResults;
             }
 
 
             // We always use the primary node for initial storage.
+            // TODO Storage Folder...?
             int fileSize = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1;
             StoredDocument storedDocument = new(documentUploadDto.Description,
-                                                storageDirectory,
+                                                "",
                                                 fileSize,
                                                 documentUploadDto.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
@@ -123,7 +116,7 @@ public class DocumentServerEngine
             byte[] binaryFile;
 
             binaryFile   = Convert.FromBase64String(documentUploadDto.FileBytes);
-            fullFileName = Path.Combine(storageDirectory, fileName.ToString());
+            fullFileName = Path.Combine(storeAtPath, fileName.ToString());
             File.WriteAllBytesAsync(fullFileName, binaryFile);
             fileSavedToStorage = true;
 
@@ -172,6 +165,7 @@ public class DocumentServerEngine
 
     /// <summary>
     /// Computes the complete path including the actual file name.
+    /// All files are stored in a folder by yyyy/mm/dd
     /// </summary>
     /// <param name="documentType">The DocumentType</param>
     /// <param name="storageNodeId">The StorageNode Id to store on</param>
@@ -183,6 +177,12 @@ public class DocumentServerEngine
     {
         try
         {
+            DateTime currentUtc = DateTime.UtcNow;
+            string   year       = currentUtc.ToString("yyyy");
+            string   month      = currentUtc.ToString("MM");
+            string   day        = currentUtc.ToString("dd");
+
+
             // TODO this needs to be  replaced with in memory lookup
             StorageNode storageNode = await _db.StorageNodes.SingleAsync(n => n.Id == storageNodeId);
 
@@ -192,12 +192,21 @@ public class DocumentServerEngine
                 EnumStorageMode.WriteOnceReadMany => "W",
                 EnumStorageMode.Temporary         => "T",
                 EnumStorageMode.Editable          => "E",
-                _ => throw new ArgumentOutOfRangeException(nameof(documentType.StorageMode),
-                                                           $"Unknown StorageMode value: {documentType.StorageMode}"),
+                EnumStorageMode.Versioned         => "V",
+                _                                 => ""
             };
+            if (modePath == string.Empty)
+            {
+                return Result.Fail("Unknown StorageMode Value [ " + documentType.StorageMode.ToString() + " ] for DocumentType: " + documentType.Id);
+            }
 
 
-            string path = Path.Combine(storageNode.NodePath, modePath, fileName);
+            string path = Path.Combine(storageNode.NodePath,
+                                       modePath,
+                                       year,
+                                       month,
+                                       day,
+                                       fileName);
             return Result.Ok(path);
         }
         catch (InvalidOperationException ex)

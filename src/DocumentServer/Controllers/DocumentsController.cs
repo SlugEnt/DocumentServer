@@ -58,7 +58,7 @@ namespace DocumentServer.Controllers
         [HttpPost]
         public async Task<ActionResult<string>> PostStoredDocument(DocumentUploadDTO documentUploadDto)
         {
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto, _storageDirectory);
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto);
 
             if (result.IsSuccess)
             {

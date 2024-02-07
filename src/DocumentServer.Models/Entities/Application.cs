@@ -18,7 +18,7 @@ namespace DocumentServer.Models.Entities
         /// Id
         /// </summary>
         [Key]
-        public ushort Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// The name of the Application.  This can be full English Description
