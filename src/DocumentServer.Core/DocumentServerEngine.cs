@@ -78,7 +78,12 @@ public class DocumentServerEngine
         {
             // Retrieve the DocumentType
             // TODO this db call needs to be replaced with in memory hashset or something
-            DocumentType docType = _db.DocumentTypes.Single(d => d.Id == documentUploadDto.DocumentTypeId);
+            DocumentType docType = await _db.DocumentTypes.SingleOrDefaultAsync(d => d.Id == documentUploadDto.DocumentTypeId);
+            if (docType == null)
+            {
+                string msg = "StoreDocumentFirst:  Unable to locate a DocumentType with the Id [ " + documentUploadDto.DocumentTypeId + " ]";
+                return Result.Fail(msg);
+            }
 
             // TODO Need to implement logic to try 2nd active node.
             if (docType.ActiveStorageNode1Id == null)
@@ -92,7 +97,6 @@ public class DocumentServerEngine
 
 
             // We always use the primary node for initial storage.
-            // TODO Storage Folder...?
             int fileSize = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1;
             StoredDocument storedDocument = new(documentUploadDto.FileExtension,
                                                 documentUploadDto.Description,
@@ -152,8 +156,7 @@ public class DocumentServerEngine
             _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.  Inner Error: {Inner}",
                              documentUploadDto.Description,
                              documentUploadDto.FileExtension,
-                             ex.Message,
-                             ex.InnerException.Message);
+                             ex.Message);
             opResults.WithError(msg);
             return opResults;
         }

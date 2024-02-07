@@ -15,7 +15,7 @@ namespace DocumentServer.Db
         public DocServerDbContext CreateDbContext(string[] args)
         {
             string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
-            string sensitiveFileName    = "SlugEnt.DocumentServer.DocumentServer_AppSettingsSensitive.json";
+            string sensitiveFileName    = "SlugEnt.DocumentServer.DocumentServer.API_AppSettingsSensitive.json";
             string sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
 
 

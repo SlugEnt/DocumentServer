@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using SlugEnt.FluentResults;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 
@@ -24,7 +25,8 @@ public class AccessDocumentServerHttpClient : IDisposable
     private JsonSerializerOptions                   _options;
 
 
-    public AccessDocumentServerHttpClient(HttpClient httpClient, ILogger<AccessDocumentServerHttpClient> logger)
+    public AccessDocumentServerHttpClient(HttpClient httpClient,
+                                          ILogger<AccessDocumentServerHttpClient> logger)
     {
         _httpClient = httpClient;
         _logger     = logger;
@@ -78,7 +80,9 @@ public class AccessDocumentServerHttpClient : IDisposable
     /// <param name="extension">The extension the file has.</param>
     /// <param name="fileBytesInBase64">String of bytes.  MUST BE IN BASE64 format</param>
     /// <returns></returns>
-    public async Task<bool> SaveDocumentAsync(string name, string extension, string fileBytesInBase64)
+    public async Task<Result<string>> SaveDocumentAsync(string name,
+                                                        string extension,
+                                                        string fileBytesInBase64)
     {
         DocumentUploadDTO documentUploadDto = new()
         {
@@ -97,7 +101,7 @@ public class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="fileToSave">The FileInfo of the file you wish to save into storage.</param>
     /// <returns></returns>
-    public async Task<bool> SaveDocumentAsync(FileInfo fileToSave)
+    public async Task<Result<string>> SaveDocumentAsync(FileInfo fileToSave)
     {
         try
         {
@@ -105,9 +109,10 @@ public class AccessDocumentServerHttpClient : IDisposable
 
             DocumentUploadDTO documentUploadDto = new()
             {
-                Description   = fileToSave.Name,
-                FileExtension = fileToSave.Extension,
-                FileBytes     = file
+                DocumentTypeId = 1,
+                Description    = fileToSave.Name,
+                FileExtension  = fileToSave.Extension,
+                FileBytes      = file
             };
 
             return await SaveDocumentInternalAsync(documentUploadDto);
@@ -115,7 +120,7 @@ public class AccessDocumentServerHttpClient : IDisposable
         catch (Exception exception)
         {
             _logger.LogError("Failed to save Document:  {FileToSave}", fileToSave.FullName);
-            return false;
+            return Result.Fail(exception.ToString());
         }
     }
 
@@ -126,27 +131,33 @@ public class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="documentUploadDto"></param>
     /// <returns></returns>
-    private async Task<bool> SaveDocumentInternalAsync(DocumentUploadDTO documentUploadDto)
+    private async Task<Result<string>> SaveDocumentInternalAsync(DocumentUploadDTO documentUploadDto)
     {
         HttpResponseMessage response = null;
+        string              content  = "";
+        dynamic             json     = null;
         try
         {
             // Call API
             response = await _httpClient.PostAsJsonAsync("documents", documentUploadDto);
+            content  = await response.Content.ReadAsStringAsync();
+            json     = JsonNode.Parse(content);
+
             response.EnsureSuccessStatusCode();
-            return true;
+
+            string id = (string)json["id"];
+            return Result.Ok(id);
         }
         catch (Exception exception)
         {
-            string content = await response.Content.ReadAsStringAsync();
-
-            dynamic json = JsonNode.Parse(content);
-            string  msg  = (string)json["detail"];
-            _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}", documentUploadDto.Description,
+            string msg = (string)json["detail"];
+            _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",
+                             documentUploadDto.Description,
                              documentUploadDto.FileExtension,
-                             exception, msg);
+                             exception,
+                             msg);
 
-            return false;
+            return Result.Fail(msg);
         }
     }
 

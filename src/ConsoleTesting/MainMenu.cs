@@ -3,6 +3,7 @@ using DocumentServer.Core;
 using DocumentServer.Db;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SlugEnt.FluentResults;
 
 namespace ConsoleTesting;
 
@@ -17,8 +18,11 @@ public partial class MainMenu
     private readonly DocServerDbContext             _db;
 
 
-    public MainMenu(ILogger<MainMenu> logger, IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory,
-                    AccessDocumentServerHttpClient documentServerHttpClient, DocServerDbContext db)
+    public MainMenu(ILogger<MainMenu> logger,
+                    IServiceProvider serviceProvider,
+                    IHttpClientFactory httpClientFactory,
+                    AccessDocumentServerHttpClient documentServerHttpClient,
+                    DocServerDbContext db)
     {
         _logger                   = logger;
         _serviceProvider          = serviceProvider;
@@ -59,6 +63,7 @@ public partial class MainMenu
     internal async Task Display()
     {
         Console.WriteLine("Press:  ");
+        Console.WriteLine(" ( U ) To Upload a randonly generated file");
         Console.WriteLine(" ( Z ) To Seed the database");
     }
 
@@ -82,12 +87,15 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.U:
-                        FileInfo fileToSave = new FileInfo(Path.Combine(@"T:\RetarusFaxReport.pdf"));
-                        bool     result     = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
-                        if (result)
-                            Console.WriteLine("Document Stored");
+                        FileInfo       fileToSave = new FileInfo(Path.Combine(@"T:\RetarusFaxReport.pdf"));
+                        Result<string> result     = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
+                        if (result.IsSuccess)
+                            Console.WriteLine("Document Stored   |   ID = " + result.Value);
                         else
-                            Console.WriteLine("Document failed to be stored due to errors");
+                            Console.WriteLine("Document failed to be stored due to errors:  ");
+                        foreach (IError resultError in result.Errors)
+                            Console.WriteLine("Error: " + resultError);
+
                         break;
 
 

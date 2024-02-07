@@ -24,7 +24,7 @@
     <ProjectReference Include="..\DocumentServer.Core\DocumentServer.Core.csproj" />
     <ProjectReference Include="..\DocumentServer.Db\DocumentServer.Db.csproj" />
     <ProjectReference Include="..\DocumentServer.Models\DocumentServer.Models.csproj" />
-    <ProjectReference Include="..\DocumentServer\DocumentServer.csproj" />
+    <ProjectReference Include="..\DocumentServer\DocumentServer.API.csproj" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@ VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTesting", "ConsoleTesting\ConsoleTesting.csproj", "{DDD6DC79-C15A-4FEF-8A8D-71A4CEA08484}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer", "DocumentServer\DocumentServer.csproj", "{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.API", "DocumentServer\DocumentServer.API.csproj", "{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Core", "DocumentServer.Core\DocumentServer.Core.csproj", "{ABE0F304-807F-49E7-AB0F-195892F2432E}"
 EndProject

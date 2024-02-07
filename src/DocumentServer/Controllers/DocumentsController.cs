@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text;
 using DocumentServer.Core;
 using DocumentServer.Db;
 using DocumentServer.Models;
@@ -62,13 +63,21 @@ namespace DocumentServer.Controllers
 
             if (result.IsSuccess)
             {
-                return Ok(result.Value.Id);
+                Guid id = result.Value.Id;
+                var val = new
+                {
+                    Id = id
+                };
+                return Ok(val);
             }
 
 
             // TODO - return the errors from the Result
+            StringBuilder sb = new StringBuilder();
+            foreach (IError resultError in result.Errors)
+                sb.Append(resultError + Environment.NewLine);
             return Problem(
-                           detail: "Something Wrong",
+                           detail: sb.ToString(),
                            title: "Error Storing the Document"
                           );
         }
