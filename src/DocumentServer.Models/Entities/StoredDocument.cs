@@ -25,7 +25,7 @@ namespace DocumentServer.Models.Entities
                               int sizeInKB,
                               int documentTypeId,
                               int primaryStorageNodeId,
-                              int? secondaryStorageNodeId = null) : base()
+                              int? secondaryStorageNodeId = null) : this()
         {
             Description    = description;
             StorageFolder  = storageFolder;

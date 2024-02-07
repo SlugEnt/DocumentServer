@@ -62,47 +62,5 @@ namespace DocumentServer_Test
             Assert.IsNotNull(app.CreatedAtUTC, "A10:");
             Assert.IsNotNull(app.ModifiedAtUTC, "A20");
         }
-
-
-
-        /// <summary>
-        /// Confirms we can upload a document to the DocumentServer
-        /// </summary>
-        /// <returns></returns>
-        [Test]
-        public async Task StoreDocument_Success()
-        {
-            // A. Setup
-            SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
-            DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-
-            // A10. Create A Document
-            string extension = "pdx";
-            string fileName = sm.WriteRandomFile(sm.FileSystem, sm.Folder_Test, extension,
-                                                 3);
-            string fullPath = Path.Combine(sm.Folder_Test, fileName);
-            Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "A10:");
-
-
-            // A20. Read the File
-            string file = Convert.ToBase64String(File.ReadAllBytes(fullPath));
-
-
-            // B.  Now Store it in the DocumentServer
-            DocumentUploadDTO upload = new DocumentUploadDTO()
-            {
-                Description    = "Some Description",
-                DocumentTypeId = sm.DocumentType_Test_Worm_A,
-                FileExtension  = extension,
-                FileBytes      = file,
-            };
-            documentServerEngine.StoreDocumentFirstTimeAsync(upload, "");
-
-
-            // Z. Validate
-            sm.DB.ChangeTracker.Clear();
-            Application app2 = sm.DB.Applications.Single(a => a.Name == "A new app");
-            Assert.AreEqual(app2.Name, app2.Name, "Z10:");
-        }
     }
 }

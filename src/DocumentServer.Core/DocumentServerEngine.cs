@@ -67,8 +67,8 @@ public class DocumentServerEngine
     /// <param name="documentUploadDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<DocumentOperationStatus> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto,
-                                                                           string storageDirectory)
+    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto,
+                                                                          string storageDirectory)
     {
         // TODO change return to Result
         //TODO is stoageDirectory parameter needed?
@@ -76,7 +76,8 @@ public class DocumentServerEngine
 
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
-        DocumentOperationStatus documentOperationStatus = null;
+        DocumentOperationStatus documentOperationStatus = new();
+        Result<StoredDocument>  opResults               = new();
 
         try
         {
@@ -87,38 +88,36 @@ public class DocumentServerEngine
             // TODO Need to implement logic to try 2nd active node.
             if (docType.ActiveStorageNode1Id == null)
             {
-                string msg = string.Format("The Document Type requested does not have a storage node specified.  DocType = " +
-                                           docType.Id);
-                _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}",
-                                 docType.Id);
-                documentOperationStatus = new DocumentOperationStatus(null)
-                {
-                    IsErrored    = true,
-                    ErrorMessage = msg,
-                };
-                return documentOperationStatus;
+                string msg = string.Format("The DocumentType requested does not have a storage node specified.  DocType = " + docType.Id);
+                _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
+
+                opResults.WithError(msg);
+
+//                documentOperationStatus.WithError(msg);
+                //              return documentOperationStatus;
+                return opResults;
             }
 
 
-            // Build StoredDocument record
             // We always use the primary node for initial storage.
-            StoredDocument storedDocument = new(documentUploadDto.Description, storageDirectory,
-                                                documentUploadDto.FileBytes.Length > 1024
-                                                    ? documentUploadDto.FileBytes.Length / 1024
-                                                    : 1,
-                                                documentUploadDto.DocumentTypeId, (int)docType.ActiveStorageNode1Id);
+            int fileSize = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1;
+            StoredDocument storedDocument = new(documentUploadDto.Description,
+                                                storageDirectory,
+                                                fileSize,
+                                                documentUploadDto.DocumentTypeId,
+                                                (int)docType.ActiveStorageNode1Id);
 
             // Generate File Description
             string         fileName = storedDocument.Id.ToString() + documentUploadDto.FileExtension;
             Result<string> result   = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, fileName);
             if (result.IsFailed)
             {
-                // TODO fix this.  It is not correct.
-                return new DocumentOperationStatus(null);
+                Result merged = Result.Merge(opResults, result);
+                return merged;
             }
 
             // TODO result has the path - Figure out where to store it.  
-
+            string storeAtPath = result.Value;
 
             // Decode the file bytes
             byte[] binaryFile;
@@ -152,9 +151,11 @@ public class DocumentServerEngine
 
             _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.  Inner Error: {Inner}",
                              documentUploadDto.Description,
-                             documentUploadDto.FileExtension, ex.Message, ex.InnerException.Message);
-            documentOperationStatus.SetError(msg);
-            return documentOperationStatus;
+                             documentUploadDto.FileExtension,
+                             ex.Message,
+                             ex.InnerException.Message);
+            opResults.WithError(msg);
+            return opResults;
         }
     }
 
@@ -202,20 +203,26 @@ public class DocumentServerEngine
         catch (InvalidOperationException ex)
         {
             _logger.LogError("ComputeStorageFolder:  Invalid Storage Node Id:  {StorageNode} for DocumentType: {DocumentType}",
-                             storageNodeId, documentType.Id);
+                             storageNodeId,
+                             documentType.Id);
             string msg =
                 String.Format("ComputeStorageFolder:  Invalid Storage Node Id:  {0} for DocumentType: {1}",
-                              storageNodeId, documentType.Id);
+                              storageNodeId,
+                              documentType.Id);
             return Result.Fail(msg);
         }
         catch (Exception ex)
         {
             _logger.LogError("ComputeStorageFolder error for {DocumentType} - Storage Node Id: {StorageNode} -   {Error}",
-                             documentType.Id, storageNodeId, ex.Message);
+                             documentType.Id,
+                             storageNodeId,
+                             ex.Message);
 
             string msg =
                 String.Format("ComputeStorageFolder error for {0} - Storage Node Id: {1} -   {2}",
-                              documentType.Id, storageNodeId, ex.Message);
+                              documentType.Id,
+                              storageNodeId,
+                              ex.Message);
             return Result.Fail(msg);
         }
     }

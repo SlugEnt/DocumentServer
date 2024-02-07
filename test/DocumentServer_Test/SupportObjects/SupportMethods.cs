@@ -28,6 +28,8 @@ public class SupportMethods
     public SupportMethods(DatabaseSetup_Test databaseSetupTest,
                           EnumFolderCreation createFolders = EnumFolderCreation.None)
     {
+        FileSystem = new MockFileSystem();
+
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
         DB = databaseSetupTest.CreateContext();
         LoadDatabaseInfo();
@@ -37,7 +39,7 @@ public class SupportMethods
 
         switch (createFolders)
         {
-            case EnumFolderCreation.None:
+            case EnumFolderCreation.Test:
                 CreateTestFolders();
                 break;
             case EnumFolderCreation.Prod:
@@ -72,7 +74,7 @@ public class SupportMethods
     /// <summary>
     ///     Returns the Mocked File System
     /// </summary>
-    public MockFileSystem FileSystem { get; } = new();
+    public MockFileSystem FileSystem { get; private set; }
 
 
     /// <summary>

@@ -13,7 +13,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Db", "Docume
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Models", "DocumentServer.Models\DocumentServer.Models.csproj", "{DBE940EB-AD31-4F54-A524-571667135757}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentServer_Test", "..\test\DocumentServer_Test\DocumentServer_Test.csproj", "{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer_Test", "..\test\DocumentServer_Test\DocumentServer_Test.csproj", "{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NewFolder1", "NewFolder1", "{0C41F923-BDFD-4BD4-995D-FF92E40AD4D3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution ITems", "Solution ITems", "{BDE19127-A55A-4EE1-B6D8-86C44B3ECC8F}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

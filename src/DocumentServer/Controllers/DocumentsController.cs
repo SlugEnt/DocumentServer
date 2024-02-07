@@ -6,6 +6,7 @@ using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
+using SlugEnt.FluentResults;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -24,7 +25,8 @@ namespace DocumentServer.Controllers
         /// Public constructor
         /// </summary>
         /// <param name="db"></param>
-        public DocumentsController(DocServerDbContext db, DocumentServerEngine documentServerEngine)
+        public DocumentsController(DocServerDbContext db,
+                                   DocumentServerEngine documentServerEngine)
         {
             _db        = db;
             _docEngine = documentServerEngine;
@@ -37,7 +39,8 @@ namespace DocumentServer.Controllers
 
         // GET api/<DocumentsController>/5
         [HttpGet("{id}/{name}")]
-        public async Task<ActionResult<StoredDocument>> GetStoredDocument(string id, string name)
+        public async Task<ActionResult<StoredDocument>> GetStoredDocument(string id,
+                                                                          string name)
         {
             // For testing
             StoredDocument storedDocument = new StoredDocument();
@@ -55,15 +58,17 @@ namespace DocumentServer.Controllers
         [HttpPost]
         public async Task<ActionResult<string>> PostStoredDocument(DocumentUploadDTO documentUploadDto)
         {
-            DocumentOperationStatus documentOperationStatus = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto, _storageDirectory);
-            if (!documentOperationStatus.IsErrored)
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto, _storageDirectory);
+
+            if (result.IsSuccess)
             {
-                return Ok(documentOperationStatus.StoredDocument.Id);
+                return Ok(result.Value.Id);
             }
 
 
+            // TODO - return the errors from the Result
             return Problem(
-                           detail: documentOperationStatus.ErrorMessage,
+                           detail: "Something Wrong",
                            title: "Error Storing the Document"
                           );
         }
@@ -144,7 +149,8 @@ namespace DocumentServer.Controllers
 
         // PUT api/<DocumentsController>/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value) { }
+        public void Put(int id,
+                        [FromBody] string value) { }
 
 
         // DELETE api/<DocumentsController>/5
