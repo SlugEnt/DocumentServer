@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using System.Text;
+using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using DocumentServer.Db;
 using DocumentServer.Models;
-using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -54,12 +54,12 @@ namespace DocumentServer.Controllers
         /// <summary>
         /// Stores a passed in document to the storage engine
         /// </summary>
-        /// <param name="documentUploadDto">The DocumentUploadDTO that contains a document and the documents information to be stored.</param>
+        /// <param name="transferDocumentDto">The TransferDocumentDto that contains a document and the documents information to be stored.</param>
         /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
         [HttpPost]
-        public async Task<ActionResult<string>> PostStoredDocument(DocumentUploadDTO documentUploadDto)
+        public async Task<ActionResult<string>> PostStoredDocument(TransferDocumentDto transferDocumentDto)
         {
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(documentUploadDto);
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(transferDocumentDto);
 
             if (result.IsSuccess)
             {

@@ -1,7 +1,6 @@
 using System.IO.Abstractions.TestingHelpers;
 using DocumentServer.Core;
 using DocumentServer.Db;
-using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer_Test.SupportObjects;
 using Microsoft.EntityFrameworkCore;

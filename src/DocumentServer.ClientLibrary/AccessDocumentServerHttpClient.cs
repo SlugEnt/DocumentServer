@@ -6,7 +6,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using DocumentServer.Models.DTOS;
+using DocumentServer.ClientLibrary;
 using DocumentServer.Models.Entities;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
@@ -84,14 +84,14 @@ public class AccessDocumentServerHttpClient : IDisposable
                                                         string extension,
                                                         string fileBytesInBase64)
     {
-        DocumentUploadDTO documentUploadDto = new()
+        TransferDocumentDto transferDocumentDto = new()
         {
-            Description   = name,
-            FileExtension = extension,
-            FileBytes     = fileBytesInBase64
+            Description        = name,
+            FileExtension      = extension,
+            FileInBase64Format = fileBytesInBase64
         };
 
-        return await SaveDocumentInternalAsync(documentUploadDto);
+        return await SaveDocumentInternalAsync(transferDocumentDto);
     }
 
 
@@ -107,15 +107,15 @@ public class AccessDocumentServerHttpClient : IDisposable
         {
             string file = Convert.ToBase64String(File.ReadAllBytes(fileToSave.FullName));
 
-            DocumentUploadDTO documentUploadDto = new()
+            TransferDocumentDto transferDocumentDto = new()
             {
-                DocumentTypeId = 1,
-                Description    = fileToSave.Name,
-                FileExtension  = fileToSave.Extension,
-                FileBytes      = file
+                DocumentTypeId     = 1,
+                Description        = fileToSave.Name,
+                FileExtension      = fileToSave.Extension,
+                FileInBase64Format = file
             };
 
-            return await SaveDocumentInternalAsync(documentUploadDto);
+            return await SaveDocumentInternalAsync(transferDocumentDto);
         }
         catch (Exception exception)
         {
@@ -129,9 +129,9 @@ public class AccessDocumentServerHttpClient : IDisposable
     /// <summary>
     /// Saves the given document to storage.  This is the internal method that does the actual saving.
     /// </summary>
-    /// <param name="documentUploadDto"></param>
+    /// <param name="transferDocumentDto"></param>
     /// <returns></returns>
-    private async Task<Result<string>> SaveDocumentInternalAsync(DocumentUploadDTO documentUploadDto)
+    private async Task<Result<string>> SaveDocumentInternalAsync(TransferDocumentDto transferDocumentDto)
     {
         HttpResponseMessage response = null;
         string              content  = "";
@@ -139,7 +139,7 @@ public class AccessDocumentServerHttpClient : IDisposable
         try
         {
             // Call API
-            response = await _httpClient.PostAsJsonAsync("documents", documentUploadDto);
+            response = await _httpClient.PostAsJsonAsync("documents", transferDocumentDto);
             content  = await response.Content.ReadAsStringAsync();
             json     = JsonNode.Parse(content);
 
@@ -152,8 +152,8 @@ public class AccessDocumentServerHttpClient : IDisposable
         {
             string msg = (string)json["detail"];
             _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",
-                             documentUploadDto.Description,
-                             documentUploadDto.FileExtension,
+                             transferDocumentDto.Description,
+                             transferDocumentDto.FileExtension,
                              exception,
                              msg);
 

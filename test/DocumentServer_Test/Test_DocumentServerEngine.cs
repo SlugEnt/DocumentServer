@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Bogus;
+using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
-using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
 using DocumentServer_Test.SupportObjects;
@@ -64,7 +64,7 @@ public class Test_DocumentServerEngine
 
         string         fileName = uniqueKeys.GetKey();
         DocumentType   docType  = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == sm.DocumentType_Test_Edit_C);
-        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID, fileName);
+        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID);
 
         Assert.That(result.IsFailed, Is.True, "Z10:");
     }
@@ -118,7 +118,7 @@ public class Test_DocumentServerEngine
         // B.
         string         fileName = sm.Faker.Random.Word();
         DocumentType   docType  = randomDocType;
-        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, fileName);
+        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
 
         Assert.That(result.IsSuccess, Is.True, "B10: " + result.Errors);
 
@@ -138,8 +138,7 @@ public class Test_DocumentServerEngine
         string expected = Path.Combine(storageNode.NodePath,
                                        modeLetter,
                                        randomDocType.StorageFolderName,
-                                       ymdPath,
-                                       fileName);
+                                       ymdPath);
         Assert.That(result.Value, Is.EqualTo(expected), "Z10:");
     }
 
@@ -152,10 +151,10 @@ public class Test_DocumentServerEngine
     /// <param name="expectedExtension"></param>
     /// <param name="expectedDocTypeId"></param>
     /// <returns></returns>
-    private Result<DocumentUploadDTO> TFX_GenerateUploadFile(SupportMethods sm,
-                                                             string expectedDescription,
-                                                             string expectedExtension,
-                                                             int expectedDocTypeId)
+    private Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
+                                                               string expectedDescription,
+                                                               string expectedExtension,
+                                                               int expectedDocTypeId)
     {
         // A10. Create A Document
 
@@ -172,14 +171,14 @@ public class Test_DocumentServerEngine
 
 
         // B.  Now Store it in the DocumentServer
-        DocumentUploadDTO upload = new DocumentUploadDTO()
+        TransferDocumentDto upload = new TransferDocumentDto()
         {
-            Description    = expectedDescription,
-            DocumentTypeId = expectedDocTypeId,
-            FileExtension  = expectedExtension,
-            FileBytes      = file,
+            Description        = expectedDescription,
+            DocumentTypeId     = expectedDocTypeId,
+            FileExtension      = expectedExtension,
+            FileInBase64Format = file,
         };
-        return Result.Ok<DocumentUploadDTO>(upload);
+        return Result.Ok<TransferDocumentDto>(upload);
     }
 
 
@@ -198,10 +197,13 @@ public class Test_DocumentServerEngine
         string               expectedExtension    = sm.Faker.Random.String2(3);
         string               expectedDescription  = sm.Faker.Random.String2(32);
 
-        Result<DocumentUploadDTO> genFileResult = TFX_GenerateUploadFile(sm,
-                                                                         expectedDescription,
-                                                                         expectedExtension,
-                                                                         expectedDocTypeId);
+        // TODO - for test only.  DElete please now!
+        sm.DB.ChangeTracker.Clear();
+
+        Result<TransferDocumentDto> genFileResult = TFX_GenerateUploadFile(sm,
+                                                                           expectedDescription,
+                                                                           expectedExtension,
+                                                                           expectedDocTypeId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -249,16 +251,16 @@ public class Test_DocumentServerEngine
         string expectedDescription = sm.Faker.Random.String2(32);
 
         // A.  Generate File and store it
-        Result<DocumentUploadDTO> genFileResult = TFX_GenerateUploadFile(sm,
-                                                                         expectedDescription,
-                                                                         expectedExtension,
-                                                                         expectedDocTypeId);
+        Result<TransferDocumentDto> genFileResult = TFX_GenerateUploadFile(sm,
+                                                                           expectedDescription,
+                                                                           expectedExtension,
+                                                                           expectedDocTypeId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
         Result<string> readResult = await documentServerEngine.ReadStoredDocumentAsync(storedDocument.Id);
-        Assert.That(readResult.Value, Is.EqualTo(genFileResult.Value.FileBytes), "Z10:");
+        Assert.That(readResult.Value, Is.EqualTo(genFileResult.Value.FileInBase64Format), "Z10:");
     }
 
 

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DocumentServer.ClientLibrary\DocumentServer.ClientLibrary.csproj" />
     <ProjectReference Include="..\DocumentServer.Db\DocumentServer.Db.csproj" />
     <ProjectReference Include="..\DocumentServer.Models\DocumentServer.Models.csproj" />
   </ItemGroup>

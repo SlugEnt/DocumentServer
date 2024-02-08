@@ -3,13 +3,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 using DocumentServer.Db;
-using DocumentServer.Models.DTOS;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
 using Microsoft.Extensions.Logging;
 using static System.Net.Mime.MediaTypeNames;
 using Application = DocumentServer.Models.Entities.Application;
 using System.Runtime.CompilerServices;
+using DocumentServer.ClientLibrary;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt.FluentResults;
 
@@ -64,10 +64,10 @@ public class DocumentServerEngine
     /// <summary>
     /// Stores a document to the Storage Engine and database
     /// </summary>
-    /// <param name="documentUploadDto">The file info to be stored</param>
+    /// <param name="transferDocumentDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(DocumentUploadDTO documentUploadDto)
+    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentDto transferDocumentDto)
     {
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
@@ -78,10 +78,14 @@ public class DocumentServerEngine
         {
             // Retrieve the DocumentType
             // TODO this db call needs to be replaced with in memory hashset or something
-            DocumentType docType = await _db.DocumentTypes.SingleOrDefaultAsync(d => d.Id == documentUploadDto.DocumentTypeId);
+            DocumentType docType = await _db.DocumentTypes
+                                            .Include(i => i.ActiveStorageNode1)
+                                            .Include(i => i.ActiveStorageNode2)
+                                            .SingleOrDefaultAsync(d => d.Id == transferDocumentDto.DocumentTypeId);
+
             if (docType == null)
             {
-                string msg = "StoreDocumentFirst:  Unable to locate a DocumentType with the Id [ " + documentUploadDto.DocumentTypeId + " ]";
+                string msg = "StoreDocumentFirst:  Unable to locate a DocumentType with the Id [ " + transferDocumentDto.DocumentTypeId + " ]";
                 return Result.Fail(msg);
             }
 
@@ -97,18 +101,18 @@ public class DocumentServerEngine
 
 
             // We always use the primary node for initial storage.
-            int fileSize = documentUploadDto.FileBytes.Length > 1024 ? documentUploadDto.FileBytes.Length / 1024 : 1;
-            StoredDocument storedDocument = new(documentUploadDto.FileExtension,
-                                                documentUploadDto.Description,
+            int fileSize = transferDocumentDto.FileInBase64Format.Length > 1024 ? transferDocumentDto.FileInBase64Format.Length / 1024 : 1;
+            StoredDocument storedDocument = new(transferDocumentDto.FileExtension,
+                                                transferDocumentDto.Description,
                                                 "",
                                                 fileSize,
-                                                documentUploadDto.DocumentTypeId,
+                                                transferDocumentDto.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
 
             // Generate File Description
             string fileName = storedDocument.ComputedStoredFileName;
 
-            Result<string> result = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, fileName);
+            Result<string> result = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
             if (result.IsFailed)
             {
                 Result merged = Result.Merge(opResults, result);
@@ -123,7 +127,7 @@ public class DocumentServerEngine
             // Decode the file bytes
             byte[] binaryFile;
 
-            binaryFile   = Convert.FromBase64String(documentUploadDto.FileBytes);
+            binaryFile   = Convert.FromBase64String(transferDocumentDto.FileInBase64Format);
             fullFileName = Path.Combine(storeAtPath, fileName);
             _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
             fileSavedToStorage = true;
@@ -145,7 +149,7 @@ public class DocumentServerEngine
             }
 
             string msg =
-                String.Format($"StoreDocument:  Failed to store the document:  Description: {documentUploadDto.Description}, Extension: {documentUploadDto.FileExtension}.  Error Was: {ex.Message}.  ");
+                String.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentDto.Description}, Extension: {transferDocumentDto.FileExtension}.  Error Was: {ex.Message}.  ");
 
             StringBuilder sb = new StringBuilder();
             sb.Append(msg);
@@ -154,8 +158,8 @@ public class DocumentServerEngine
             msg = sb.ToString();
 
             _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.  Inner Error: {Inner}",
-                             documentUploadDto.Description,
-                             documentUploadDto.FileExtension,
+                             transferDocumentDto.Description,
+                             transferDocumentDto.FileExtension,
                              ex.Message);
             opResults.WithError(msg);
             return opResults;
@@ -213,8 +217,7 @@ public class DocumentServerEngine
     /// <param name="fileName">The complete filename including extension</param>
     /// <returns>Result</returns>
     internal async Task<Result<string>> ComputeStorageFullNameAsync(DocumentType documentType,
-                                                                    int storageNodeId,
-                                                                    string fileName)
+                                                                    int storageNodeId)
     {
         try
         {
@@ -223,7 +226,17 @@ public class DocumentServerEngine
             string   month      = currentUtc.ToString("MM");
 
 
-            // TODO this needs to be  replaced with in memory lookup
+#if DEBUG
+
+            // Displays the Change Tracker Cache
+            Console.WriteLine("Displaying ChangeTracker Cache");
+            foreach (var entityEntry in _db.ChangeTracker.Entries())
+            {
+                Console.WriteLine($"Found {entityEntry.Metadata.Name} entity with ID {entityEntry.Property("Id").CurrentValue}");
+            }
+#endif
+
+            // Retrieve Storage Node
             StorageNode storageNode = await _db.StorageNodes.SingleAsync(n => n.Id == storageNodeId);
 
 
