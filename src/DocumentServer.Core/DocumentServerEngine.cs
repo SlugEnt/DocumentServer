@@ -163,6 +163,37 @@ public class DocumentServerEngine
     }
 
 
+
+    /// <summary>
+    /// Reads a document from the library and returns it to the caller.
+    /// </summary>
+    /// <param name="Id"></param>
+    /// <returns>Result.Success and the file in Base64  or returns Result.Fail with error message</returns>
+    public async Task<Result<string>> ReadStoredDocumentAsync(Guid Id)
+    {
+        try
+        {
+            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == Id);
+            if (storedDocument == null)
+                return Result.Fail("Unable to find a Stored Document with that Id");
+
+
+            // Now Load the Stored Document.
+            string fileName     = storedDocument.ComputedStoredFileName;
+            string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
+            string file         = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
+
+            // TODO update the number of times accessed
+            return Result.Ok(file);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("ReadStoredDocumentAsync:  Exception:  {Error}", ex.Message);
+            return Result.Fail("Unable to read document from library.  Error - " + ex.Message);
+        }
+    }
+
+
     /// <summary>
     ///  Loads / Reloads the master data tables.
     /// </summary>

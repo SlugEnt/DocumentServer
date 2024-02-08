@@ -144,6 +144,45 @@ public class Test_DocumentServerEngine
     }
 
 
+    /// <summary>
+    /// Generates a random upload file
+    /// </summary>
+    /// <param name="sm"></param>
+    /// <param name="expectedDescription"></param>
+    /// <param name="expectedExtension"></param>
+    /// <param name="expectedDocTypeId"></param>
+    /// <returns></returns>
+    private Result<DocumentUploadDTO> TFX_GenerateUploadFile(SupportMethods sm,
+                                                             string expectedDescription,
+                                                             string expectedExtension,
+                                                             int expectedDocTypeId)
+    {
+        // A10. Create A Document
+
+        string fileName = sm.WriteRandomFile(sm.FileSystem,
+                                             sm.Folder_Test,
+                                             expectedExtension,
+                                             3);
+        string fullPath = Path.Combine(sm.Folder_Test, fileName);
+        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
+
+
+        // A20. Read the File
+        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
+
+
+        // B.  Now Store it in the DocumentServer
+        DocumentUploadDTO upload = new DocumentUploadDTO()
+        {
+            Description    = expectedDescription,
+            DocumentTypeId = expectedDocTypeId,
+            FileExtension  = expectedExtension,
+            FileBytes      = file,
+        };
+        return Result.Ok<DocumentUploadDTO>(upload);
+    }
+
+
 
     /// <summary>
     /// Confirms we can upload a document to the DocumentServer
@@ -159,30 +198,11 @@ public class Test_DocumentServerEngine
         string               expectedExtension    = sm.Faker.Random.String2(3);
         string               expectedDescription  = sm.Faker.Random.String2(32);
 
-        // A10. Create A Document
-
-        string fileName = sm.WriteRandomFile(sm.FileSystem,
-                                             sm.Folder_Test,
-                                             expectedExtension,
-                                             3);
-        string fullPath = Path.Combine(sm.Folder_Test, fileName);
-        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "A10:");
-
-
-        // A20. Read the File
-        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
-
-
-        // B.  Now Store it in the DocumentServer
-        DocumentUploadDTO upload = new DocumentUploadDTO()
-        {
-            Description    = expectedDescription,
-            DocumentTypeId = expectedDocTypeId,
-            FileExtension  = expectedExtension,
-            FileBytes      = file,
-        };
-
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(upload);
+        Result<DocumentUploadDTO> genFileResult = TFX_GenerateUploadFile(sm,
+                                                                         expectedDescription,
+                                                                         expectedExtension,
+                                                                         expectedDocTypeId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -210,6 +230,37 @@ public class Test_DocumentServerEngine
         string fullFileName = Path.Join(expectedPath, storedDocument.Id.ToString() + "." + storedDocument.FileExtension);
         Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
+
+
+
+    /// <summary>
+    /// Validates we can read a document from the library
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task ReadDocument_Success()
+    {
+        // A. Setup
+        SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+        int    expectedDocTypeId   = sm.DocumentType_Test_Worm_A;
+        string expectedExtension   = sm.Faker.Random.String2(3);
+        string expectedDescription = sm.Faker.Random.String2(32);
+
+        // A.  Generate File and store it
+        Result<DocumentUploadDTO> genFileResult = TFX_GenerateUploadFile(sm,
+                                                                         expectedDescription,
+                                                                         expectedExtension,
+                                                                         expectedDocTypeId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        StoredDocument         storedDocument = result.Value;
+
+        // B. Now lets read it.
+        Result<string> readResult = await documentServerEngine.ReadStoredDocumentAsync(storedDocument.Id);
+        Assert.That(readResult.Value, Is.EqualTo(genFileResult.Value.FileBytes), "Z10:");
+    }
+
 
 
     /// <summary>

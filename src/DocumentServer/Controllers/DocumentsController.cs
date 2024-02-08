@@ -83,61 +83,6 @@ namespace DocumentServer.Controllers
         }
 
 
-
-        //(************************************************************************
-        //(************************************************************************
-        /*
-        [HttpPost]
-        public async Task<ActionResult> SaveDocumentToFilePath([FromQuery] string fullFilePath, IFormFile file)
-        {
-            string linuxFilePath = WindowsPathToLinuxPath(fullFilePath);
-
-            FileInfo fileInfo = new(linuxFilePath);
-            if (!Directory.Exists(fileInfo.DirectoryName))
-                Directory.CreateDirectory(fileInfo.DirectoryName);
-
-            Exception latestException = null;
-
-            byte fileLockedTries = 0;
-            while (fileLockedTries < 10)
-            {
-                try
-                {
-                    await using FileStream fileStream = new(linuxFilePath, FileMode.OpenOrCreate, FileAccess.Write);
-
-                    fileStream.SetLength(0); // Set to 0 so we don't leave extra data on an overwrite
-
-                    await file.CopyToAsync(fileStream);
-
-                    return Ok();
-                }
-                catch (Exception e)
-                {
-                    latestException = e;
-
-                    if (e is UnauthorizedAccessException or IOException)
-                    {
-                        await Task.Delay(50); // Wait 50 milliseconds
-                        fileLockedTries++;
-                        continue;
-                    }
-
-                    _logger.LogSystemException(LogLevel.Error, e, e.Message);
-
-                    return BadRequest();
-                }
-            }
-
-            if (latestException != null)
-            {
-                _logger.LogSystemException(LogLevel.Error, latestException, latestException.Message);
-            }
-
-            return BadRequest();
-        }
-        */
-
-
         //(************************************************************************
         /// <summary>
         /// &&&&&&&
