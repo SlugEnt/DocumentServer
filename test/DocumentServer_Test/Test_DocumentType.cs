@@ -122,5 +122,45 @@ namespace Test_DocumentServer
 
             Assert.That(foundMsg, Is.False, "Z30:");
         }
+
+
+
+        /// <summary>
+        /// Runs thru the DocumentType IsActive change process.
+        /// </summary>
+        /// <returns></returns>
+        [Test]
+        public async Task SetDocumentTypeIsActiveStatus_Success()
+        {
+            // A. Setup
+            SupportMethods       sm                  = new SupportMethods(databaseSetupTest, EnumFolderCreation.None);
+            DocumentServerEngine dse                 = sm.DocumentServerEngine;
+            string               folderName          = sm.Faker.Random.AlphaNumeric(6);
+            string               expectedExtension   = sm.Faker.Random.String2(3);
+            string               expectedDescription = sm.Faker.Random.String2(32);
+
+
+            // B. Createa A new Document Type.
+            DocumentType documentType = new DocumentType(sm.Faker.Random.AlphaNumeric(7),
+                                                         sm.Faker.Name.FullName(),
+                                                         folderName,
+                                                         EnumStorageMode.WriteOnceReadMany,
+                                                         1,
+                                                         1);
+            Assert.That(documentType.IsActive, Is.False, "B10:  Document Type ActiveStatus should always be False upon creation");
+            sm.DB.Add(documentType);
+            await sm.DB.SaveChangesAsync();
+
+            // Change the Status to true.
+            documentType.IsActive = true;
+            await sm.DB.SaveChangesAsync();
+
+            Assert.That(documentType.IsActive, Is.True, "Z10:");
+
+            // Change the Status to false
+            documentType.IsActive = false;
+            await sm.DB.SaveChangesAsync();
+            Assert.That(documentType.IsActive, Is.False, "Z20:");
+        }
     }
 }

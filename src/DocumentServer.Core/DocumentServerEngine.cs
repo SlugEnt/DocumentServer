@@ -90,7 +90,7 @@ public class DocumentServerEngine
 
             if (!docType.IsActive)
             {
-                string msg = String.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Description);
+                string msg = String.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Name);
                 return Result.Fail(msg);
             }
 
@@ -289,6 +289,41 @@ public class DocumentServerEngine
                               storageNodeId,
                               ex.Message);
             return Result.Fail(msg);
+        }
+    }
+
+
+    /// <summary>
+    /// Changes the IsActive status of a DocumentType
+    /// </summary>
+    /// <param name="documentTypeId"></param>
+    /// <param name="isActiveValue"></param>
+    /// <returns></returns>
+    public async Task<Result> SetDocumentTypeActiveStatus(int documentTypeId,
+                                                          bool isActiveValue)
+    {
+        try
+        {
+            DocumentType documentType = await _db.DocumentTypes.SingleAsync(d => d.Id == documentTypeId);
+            if (documentType == null)
+            {
+                return Result.Fail("Unable to find a DocumentType with the Id of " + documentTypeId);
+            }
+
+            if (documentType.IsActive == isActiveValue)
+            {
+                return Result.Ok();
+            }
+
+            // Change it 
+            documentType.IsActive = isActiveValue;
+            await _db.SaveChangesAsync();
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("FAiled to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
+            return Result.Fail(new Error("Failed to change DocumentType IsActive Status due to error.").CausedBy(ex));
         }
     }
 }
