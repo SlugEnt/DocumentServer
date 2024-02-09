@@ -143,45 +143,6 @@ public class Test_DocumentServerEngine
     }
 
 
-    /// <summary>
-    /// Generates a random upload file
-    /// </summary>
-    /// <param name="sm"></param>
-    /// <param name="expectedDescription"></param>
-    /// <param name="expectedExtension"></param>
-    /// <param name="expectedDocTypeId"></param>
-    /// <returns></returns>
-    private Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
-                                                               string expectedDescription,
-                                                               string expectedExtension,
-                                                               int expectedDocTypeId)
-    {
-        // A10. Create A Document
-
-        string fileName = sm.WriteRandomFile(sm.FileSystem,
-                                             sm.Folder_Test,
-                                             expectedExtension,
-                                             3);
-        string fullPath = Path.Combine(sm.Folder_Test, fileName);
-        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
-
-
-        // A20. Read the File
-        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
-
-
-        // B.  Now Store it in the DocumentServer
-        TransferDocumentDto upload = new TransferDocumentDto()
-        {
-            Description        = expectedDescription,
-            DocumentTypeId     = expectedDocTypeId,
-            FileExtension      = expectedExtension,
-            FileInBase64Format = file,
-        };
-        return Result.Ok<TransferDocumentDto>(upload);
-    }
-
-
 
     /// <summary>
     /// Confirms we can upload a document to the DocumentServer
@@ -198,12 +159,12 @@ public class Test_DocumentServerEngine
         string               expectedDescription  = sm.Faker.Random.String2(32);
 
         // TODO - for test only.  DElete please now!
-        sm.DB.ChangeTracker.Clear();
+//        sm.DB.ChangeTracker.Clear();
 
-        Result<TransferDocumentDto> genFileResult = TFX_GenerateUploadFile(sm,
-                                                                           expectedDescription,
-                                                                           expectedExtension,
-                                                                           expectedDocTypeId);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -251,10 +212,10 @@ public class Test_DocumentServerEngine
         string expectedDescription = sm.Faker.Random.String2(32);
 
         // A.  Generate File and store it
-        Result<TransferDocumentDto> genFileResult = TFX_GenerateUploadFile(sm,
-                                                                           expectedDescription,
-                                                                           expectedExtension,
-                                                                           expectedDocTypeId);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 

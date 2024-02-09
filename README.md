@@ -13,6 +13,32 @@ These documents can be overwritten.  Versioning of the documents does not happen
 
 ### Category - Versioned???
 
+
+## The DocumentServer Solution
+The DocumentServer consists of the following projects
+
+### Console Testing
+Purely for testing out the basic functionality of the server.  Can be used as a sample for your own access to the DocumentServer.
+
+### DocmentServer.API
+Serves as the public API for the document server.  All external program access to the DocumentServer is via the API.
+
+### DocumentServer.ClientLibrary
+This is all the interfaces to calling the API that a client application would need.  Simplifies the code that a client app needs to implement.
+
+### DocumentServer.Core
+Contains the core business logic of the DocumentServer.  No business logic is in the API.
+
+### DocumentServer.Db
+Contains the EF Core DatabaseContext, Database Migrations, etc.
+
+### DocumentServer.Models
+Contains the EF Core Models and some other common data objects.
+
+### Test_DocumentServer 
+All of the Unit Tests
+
+
 ## Unit Testing
 ### ENABLE_TRANSACTIONS
 There are a few things to understand about the unit tests.  By default all unit tests are run in a transaction.  This means they can operate on the same base data and tables without affecting each other.  Also, the transaction is never committed.  The downside to this is if you want to see what the database tables look like you will be unable.  

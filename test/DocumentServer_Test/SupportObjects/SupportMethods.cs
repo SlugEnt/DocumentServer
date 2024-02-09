@@ -7,12 +7,14 @@
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using Bogus;
+using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using DocumentServer.Db;
 using DocumentServer.Models.Entities;
 using Microsoft.Identity.Client.Extensions.Msal;
 using NSubstitute;
 using SlugEnt;
+using SlugEnt.FluentResults;
 
 namespace DocumentServer_Test.SupportObjects;
 
@@ -234,5 +236,45 @@ public class SupportMethods
         }
 
         return fileName;
+    }
+
+
+
+    /// <summary>
+    /// Generates a random upload file
+    /// </summary>
+    /// <param name="sm"></param>
+    /// <param name="expectedDescription"></param>
+    /// <param name="expectedExtension"></param>
+    /// <param name="expectedDocTypeId"></param>
+    /// <returns></returns>
+    public Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
+                                                              string expectedDescription,
+                                                              string expectedExtension,
+                                                              int expectedDocTypeId)
+    {
+        // A10. Create A Document
+
+        string fileName = sm.WriteRandomFile(sm.FileSystem,
+                                             sm.Folder_Test,
+                                             expectedExtension,
+                                             3);
+        string fullPath = Path.Combine(sm.Folder_Test, fileName);
+        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
+
+
+        // A20. Read the File
+        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
+
+
+        // B.  Now Store it in the DocumentServer
+        TransferDocumentDto upload = new TransferDocumentDto()
+        {
+            Description        = expectedDescription,
+            DocumentTypeId     = expectedDocTypeId,
+            FileExtension      = expectedExtension,
+            FileInBase64Format = file,
+        };
+        return Result.Ok<TransferDocumentDto>(upload);
     }
 }

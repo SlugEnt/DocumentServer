@@ -72,7 +72,6 @@ public class DocumentServerEngine
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
-        Result<StoredDocument>  opResults               = new();
 
         try
         {
@@ -85,9 +84,16 @@ public class DocumentServerEngine
 
             if (docType == null)
             {
-                string msg = "StoreDocumentFirst:  Unable to locate a DocumentType with the Id [ " + transferDocumentDto.DocumentTypeId + " ]";
+                string msg = "Unable to locate a DocumentType with the Id [ " + transferDocumentDto.DocumentTypeId + " ]";
                 return Result.Fail(msg);
             }
+
+            if (!docType.IsActive)
+            {
+                string msg = String.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Description);
+                return Result.Fail(msg);
+            }
+
 
             // TODO Need to implement logic to try 2nd active node.
             if (docType.ActiveStorageNode1Id == null)
@@ -95,8 +101,8 @@ public class DocumentServerEngine
                 string msg = string.Format("The DocumentType requested does not have a storage node specified.  DocType = " + docType.Id);
                 _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
 
-                opResults.WithError(msg);
-                return opResults;
+                Result<StoredDocument> resultA = Result.Fail(new Error(msg));
+                return resultA;
             }
 
 
@@ -112,15 +118,13 @@ public class DocumentServerEngine
             // Generate File Description
             string fileName = storedDocument.ComputedStoredFileName;
 
-            Result<string> result = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
-            if (result.IsFailed)
-            {
-                Result merged = Result.Merge(opResults, result);
-                return merged;
-            }
+            Result<string>         resultB = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
+            Result<StoredDocument> resultC = Result.Fail("Cannot save Document.");
+            Result                 merged  = Result.Merge(resultB, resultC);
+
 
             // Store the path and make sure all the paths exist.
-            string storeAtPath = result.Value;
+            string storeAtPath = resultB.Value;
             _fileSystem.Directory.CreateDirectory(storeAtPath);
 
 
@@ -161,8 +165,8 @@ public class DocumentServerEngine
                              transferDocumentDto.Description,
                              transferDocumentDto.FileExtension,
                              ex.Message);
-            opResults.WithError(msg);
-            return opResults;
+            Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
+            return errorResult;
         }
     }
 
@@ -192,8 +196,8 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError("ReadStoredDocumentAsync:  Exception:  {Error}", ex.Message);
-            return Result.Fail("Unable to read document from library.  Error - " + ex.Message);
+            _logger.LogError("ReadStoredDocumentAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", Id, ex.Message);
+            return Result.Fail(new Error("Unable to read document from library.").CausedBy(ex));
         }
     }
 
