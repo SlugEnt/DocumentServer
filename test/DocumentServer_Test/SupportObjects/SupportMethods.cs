@@ -35,8 +35,7 @@ public class SupportMethods
     ///     Constructore.  Builds Mock Filesystem, Mock Logger, and the DocServerEngine
     /// </summary>
     /// <param name="databaseSetupTest"></param>
-    public SupportMethods(DatabaseSetup_Test databaseSetupTest,
-                          EnumFolderCreation createFolders = EnumFolderCreation.None)
+    public SupportMethods(EnumFolderCreation createFolders = EnumFolderCreation.None)
     {
         if (_faker == null)
             _faker = new("en");
@@ -44,7 +43,7 @@ public class SupportMethods
         FileSystem = new MockFileSystem();
 
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
-        DB = databaseSetupTest.CreateContext();
+        DB = DatabaseSetup_Test.CreateContext();
         LoadDatabaseInfo();
         DB.Database.BeginTransaction();
 

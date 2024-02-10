@@ -13,9 +13,6 @@ namespace DocumentServer_Test
 {
     public class Tests
     {
-        private DatabaseSetup_Test databaseSetupTest = new DatabaseSetup_Test();
-
-
         [SetUp]
         public void Setup() { }
 
@@ -25,7 +22,7 @@ namespace DocumentServer_Test
         [Test]
         public async Task CreatedAtUTC_SetOnSave()
         {
-            SupportMethods sm = new SupportMethods(databaseSetupTest);
+            SupportMethods sm = new SupportMethods();
 
 
             Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
@@ -50,7 +47,7 @@ namespace DocumentServer_Test
         [Test]
         public async Task ModifiedAtUTC_SetOnUpdate()
         {
-            SupportMethods sm = new SupportMethods(databaseSetupTest);
+            SupportMethods sm = new SupportMethods();
 
             Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 

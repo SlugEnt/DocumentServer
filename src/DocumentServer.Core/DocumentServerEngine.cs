@@ -116,12 +116,15 @@ public class DocumentServerEngine
                                                 (int)docType.ActiveStorageNode1Id);
 
             // Generate File Description
-            string fileName = storedDocument.ComputedStoredFileName;
+            //string fileName = storedDocument.ComputedStoredFileName;
 
-            Result<string>         resultB = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
-            Result<StoredDocument> resultC = Result.Fail("Cannot save Document.");
-            Result                 merged  = Result.Merge(resultB, resultC);
-
+            Result<string> resultB = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
+            if (resultB.IsFailed)
+            {
+                Result<StoredDocument> resultC = Result.Fail("Cannot save Document.");
+                Result                 merged  = Result.Merge(resultB, resultC);
+                return merged;
+            }
 
             // Store the path and make sure all the paths exist.
             string storeAtPath = resultB.Value;
@@ -132,7 +135,7 @@ public class DocumentServerEngine
             byte[] binaryFile;
 
             binaryFile   = Convert.FromBase64String(transferDocumentDto.FileInBase64Format);
-            fullFileName = Path.Combine(storeAtPath, fileName);
+            fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
             _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
             fileSavedToStorage = true;
 
@@ -149,7 +152,7 @@ public class DocumentServerEngine
             // Delete the file from storage if we successfully saved it, but failed afterward.
             if (fileSavedToStorage)
             {
-                File.Delete(fullFileName);
+                _fileSystem.File.Delete(fullFileName);
             }
 
             string msg =
@@ -177,7 +180,7 @@ public class DocumentServerEngine
     /// </summary>
     /// <param name="Id"></param>
     /// <returns>Result.Success and the file in Base64  or returns Result.Fail with error message</returns>
-    public async Task<Result<string>> ReadStoredDocumentAsync(Guid Id)
+    public async Task<Result<string>> ReadStoredDocumentAsync(long Id)
     {
         try
         {

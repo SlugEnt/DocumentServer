@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentServer.Models.Enums;
@@ -17,9 +18,9 @@ namespace DocumentServer.Models.Entities
     public class StoredDocument : AbstractBaseEntity
     {
         /// <summary>
-        /// Empty Constructor
+        /// Empty Constructor - Prefer the normal 
         /// </summary>
-        public StoredDocument() { Id = Guid.NewGuid(); }
+        public StoredDocument() { }
 
 
         /// <summary>
@@ -33,7 +34,10 @@ namespace DocumentServer.Models.Entities
                               int primaryStorageNodeId,
                               int? secondaryStorageNodeId = null) : this()
         {
-            FileExtension  = fileExtension;
+            SetFileName(fileExtension);
+
+            //FileName = new Guid().ToString() + fileExtension == string.Empty ? string.Empty : "." + fileExtension;
+            //FileExtension  = fileExtension;
             Description    = description;
             StorageFolder  = storageFolder;
             SizeInKB       = sizeInKB;
@@ -47,12 +51,19 @@ namespace DocumentServer.Models.Entities
         }
 
 
-        [Key] public Guid Id { get; set; }
+        [Key] public long Id { get; set; }
+
+        /// <summary>
+        /// Filename that document is stored as on the file system.
+        /// </summary>
+        public string FileName { get; set; } = "";
+
+//        [Key] public Guid Id { get; set; }
+
 
         [Column(TypeName = "tinyint")]
         [Required]
         public EnumDocumentStatus Status { get; set; }
-
 
         /// <summary>
         /// A readable name or description for the document.. Maximum length of 250
@@ -65,10 +76,6 @@ namespace DocumentServer.Models.Entities
         /// </summary>
         public string StorageFolder { get; set; }
 
-        /// <summary>
-        /// The extension of the file
-        /// </summary>
-        public string FileExtension { get; set; }
 
         /// <summary>
         /// The size of the file in Kilo Bytes.  -
@@ -109,15 +116,33 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// Returns the stored filename
         /// </summary>
+        [Obsolete]
         public string ComputedStoredFileName
         {
             get
             {
+                return FileName;
+                /*
                 if (FileExtension == string.Empty)
                     return Id.ToString();
 
                 string value = Id + "." + FileExtension;
                 return value;
+                */
+            }
+        }
+
+
+        /// <summary>
+        /// Will set the filename for the document IF it is blank.  If it already has a value then it is not changed.
+        /// </summary>
+        /// <param name="fileExtension"></param>
+        public void SetFileName(string fileExtension)
+        {
+            if (FileName == string.Empty)
+            {
+                string ext = fileExtension == string.Empty ? string.Empty : "." + fileExtension;
+                FileName = Guid.NewGuid().ToString() + ext;
             }
         }
     }

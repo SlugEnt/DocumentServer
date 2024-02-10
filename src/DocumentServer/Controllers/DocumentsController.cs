@@ -63,7 +63,7 @@ namespace DocumentServer.Controllers
 
             if (result.IsSuccess)
             {
-                Guid id = result.Value.Id;
+                long id = result.Value.Id;
                 var val = new
                 {
                     Id = id

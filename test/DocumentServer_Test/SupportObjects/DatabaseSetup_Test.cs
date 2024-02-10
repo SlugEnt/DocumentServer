@@ -14,7 +14,7 @@ using NUnit.Framework;
 namespace DocumentServer_Test.SupportObjects;
 
 [TestFixture]
-public class DatabaseSetup_Test
+public static class DatabaseSetup_Test
 {
     private const string ConnectionString =
         @"server=podmanb.slug.local;Database=UT_DocumentServer;User Id=TestSA;Password=vyja6XVQcPJ2d9bq8g7;TrustServerCertificate=True;";
@@ -23,13 +23,13 @@ public class DatabaseSetup_Test
     private static          bool   _databaseInitialized;
 
 
-    public DatabaseSetup_Test() { Setup(); }
+    static DatabaseSetup_Test() { Setup(); }
 
 
     /// <summary>
     /// Creates unit test DB, Seeds data
     /// </summary>
-    public void Setup()
+    static void Setup()
     {
 #if RESET_DATABASE
         lock (_lock)
@@ -55,7 +55,7 @@ public class DatabaseSetup_Test
     /// Create the Database Context for testing
     /// </summary>
     /// <returns></returns>
-    public DocServerDbContext CreateContext()
+    public static DocServerDbContext CreateContext()
     {
         DocServerDbContext = new DocServerDbContext(
                                                     new DbContextOptionsBuilder<DocServerDbContext>()
@@ -65,10 +65,10 @@ public class DatabaseSetup_Test
     }
 
 
-    public DocServerDbContext DocServerDbContext { get; private set; }
+    public static DocServerDbContext DocServerDbContext { get; private set; }
 
 
-    private void SeedData(DocServerDbContext db)
+    static void SeedData(DocServerDbContext db)
     {
         // Add Applications
         Application appA = new Application()

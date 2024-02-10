@@ -15,10 +15,7 @@ namespace DocumentServer_Test;
 [TestFixture]
 public class Test_DocumentServerEngine
 {
-    private DatabaseSetup_Test databaseSetupTest = new DatabaseSetup_Test();
-
-
-    [SetUp]
+    [OneTimeSetUp]
     public void Setup() { }
 
 
@@ -31,7 +28,7 @@ public class Test_DocumentServerEngine
     public async Task ComputeStorageFolder_ReturnsFailure_On_InvalidNode()
     {
         // A. Setup
-        SupportMethods       sm                     = new SupportMethods(databaseSetupTest);
+        SupportMethods       sm                     = new SupportMethods();
         DocumentServerEngine dse                    = sm.DocumentServerEngine;
         UniqueKeys           uniqueKeys             = new("");
         string               filePart               = uniqueKeys.GetKey("fn");
@@ -84,7 +81,7 @@ public class Test_DocumentServerEngine
     public async Task ComputeStorageFolder_CorrectPath_Generated(EnumStorageMode storageMode)
     {
         // A. Setup
-        SupportMethods       sm         = new SupportMethods(databaseSetupTest);
+        SupportMethods       sm         = new SupportMethods();
         DocumentServerEngine dse        = sm.DocumentServerEngine;
         UniqueKeys           uniqueKeys = new("");
         string               filePart   = uniqueKeys.GetKey("fn");
@@ -152,7 +149,7 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
         int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
         string               expectedExtension    = sm.Faker.Random.String2(3);
@@ -184,13 +181,14 @@ public class Test_DocumentServerEngine
         // Z. Validate
         // Z.10 - Validate the Database entry
 
-        Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+        //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(storedDocument.FileName, Does.EndWith(expectedExtension), "Z10: File Extensions do not match");
         Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(expectedDocTypeId), "Z20:");
         Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30");
         Assert.That(storedDocument.StorageFolder, Is.EqualTo(expectedPath), "Z40:");
 
         // Make sure it was stored on the drive.
-        string fullFileName = Path.Join(expectedPath, storedDocument.Id.ToString() + "." + storedDocument.FileExtension);
+        string fullFileName = Path.Join(expectedPath, storedDocument.FileName);
         Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
 
@@ -204,7 +202,7 @@ public class Test_DocumentServerEngine
     public async Task ReadDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new SupportMethods(databaseSetupTest, EnumFolderCreation.Test);
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         int    expectedDocTypeId   = sm.DocumentType_Test_Worm_A;

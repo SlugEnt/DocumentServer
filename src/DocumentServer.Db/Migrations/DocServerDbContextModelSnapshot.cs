@@ -162,9 +162,11 @@ namespace DocumentServer.Db.Migrations
 
             modelBuilder.Entity("DocumentServer.Models.Entities.StoredDocument", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAtUTC")
                         .HasColumnType("datetime2");
@@ -178,6 +180,10 @@ namespace DocumentServer.Db.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

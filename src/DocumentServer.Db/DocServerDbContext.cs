@@ -39,7 +39,14 @@ namespace DocumentServer.Db
         public DocServerDbContext() : base() { }
 
 
-        public DocServerDbContext(DbContextOptions<DocServerDbContext> options) : base(options) { }
+        public DocServerDbContext(DbContextOptions<DocServerDbContext> options) : base(options)
+        {
+            // TODO Change to optional value or move back to 30 seconds.
+            Database.SetCommandTimeout(new TimeSpan(0,
+                                                    0,
+                                                    0,
+                                                    5));
+        }
 
 
         // Disable Change Tracking for queries.

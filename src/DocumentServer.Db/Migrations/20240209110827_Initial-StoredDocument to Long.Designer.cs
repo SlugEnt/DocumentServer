@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240207223726_FileExtension")]
-    partial class FileExtension
+    [Migration("20240209110827_Initial-StoredDocument to Long")]
+    partial class InitialStoredDocumenttoLong
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -165,9 +165,11 @@ namespace DocumentServer.Db.Migrations
 
             modelBuilder.Entity("DocumentServer.Models.Entities.StoredDocument", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAtUTC")
                         .HasColumnType("datetime2");
@@ -181,6 +183,10 @@ namespace DocumentServer.Db.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("FileExtension")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

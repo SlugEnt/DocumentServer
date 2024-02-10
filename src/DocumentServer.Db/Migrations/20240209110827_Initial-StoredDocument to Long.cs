@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DocumentServer.Db.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialStoredDocumenttoLong : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -102,10 +102,13 @@ namespace DocumentServer.Db.Migrations
                 name: "StoredDocuments",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Status = table.Column<byte>(type: "tinyint", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     StorageFolder = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileExtension = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SizeInKB = table.Column<int>(type: "int", nullable: false),
                     IsArchived = table.Column<bool>(type: "bit", nullable: false),
                     LastAccessedUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
