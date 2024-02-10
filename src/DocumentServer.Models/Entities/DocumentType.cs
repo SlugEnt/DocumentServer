@@ -7,9 +7,16 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentServer.Models.Enums;
+using SlugEnt.FluentResults;
 
 namespace DocumentServer.Models.Entities
 {
+    /// <summary>
+    /// Represents a Type of Document that can be stored.  Most importantly a Document Type determines a few things about a document:
+    /// <para>1. Where it is stored.</para>
+    /// <para>2. How it is stored.  Temporary, permanent, editable</para>
+    /// <para>3. How long it is stored for</para>
+    /// </summary>
     public class DocumentType : AbstractBaseEntity
     {
         public DocumentType() { }
@@ -20,14 +27,11 @@ namespace DocumentServer.Models.Entities
                             string storageFolder,
                             EnumStorageMode storageMode,
                             int applicationId,
-                            int activeStorageNodeId)
+                            int activeStorageNodeId,
+                            EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
         {
 /*            if (storageFolder.Contains(" "))
                 throw new ArgumentException("Storage Folder Name cannot contain a space.");*/
-            if (storageFolder.Length > 10)
-                throw new ArgumentException("Storage Folder Name must be less than 10 characters");
-            if (!storageFolder.All(c => char.IsLetterOrDigit(c)))
-                throw new ArgumentException("Storage Folder Name can only contain a single word with only letters or digits");
 
             Name                 = name;
             Description          = description;
@@ -35,6 +39,31 @@ namespace DocumentServer.Models.Entities
             StorageMode          = storageMode;
             ApplicationId        = applicationId;
             ActiveStorageNode1Id = activeStorageNodeId;
+            InActiveLifeTime     = lifeTime;
+
+            Result result = IsValid();
+            if (result.IsSuccess)
+                return;
+
+            StringBuilder sb = new StringBuilder("Errors during creation of DocumentType object:");
+            foreach (IError resultError in result.Errors)
+            {
+                sb.Append(Environment.NewLine + resultError);
+            }
+
+            throw new ArgumentException(sb.ToString());
+        }
+
+
+        public Result IsValid()
+        {
+            Result result = new Result();
+            if (StorageFolderName.Length > 10)
+                result.WithError(new Error("Storage Folder Name must be less than 10 characters"));
+
+            if (!StorageFolderName.All(c => char.IsLetterOrDigit(c)))
+                result.WithError(new Error("Storage Folder Name can only contain a single word with only letters or digits"));
+            return result;
         }
 
 
@@ -71,6 +100,13 @@ namespace DocumentServer.Models.Entities
         /// </summary>
         [Column(TypeName = "tinyint")]
         public EnumStorageMode StorageMode { get; set; }
+
+
+        /// <summary>
+        /// How long after the document is considered closed or InActive it should remain in system.
+        /// </summary>
+        [Column(TypeName = "tinyint")]
+        public EnumDocumentLifetimes InActiveLifeTime { get; set; } = EnumDocumentLifetimes.Never;
 
 
         // Relationships

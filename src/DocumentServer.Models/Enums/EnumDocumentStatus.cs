@@ -8,7 +8,7 @@ public enum EnumDocumentStatus
     /// <summary>
     /// Set when the document is first stored in the server
     /// </summary>
-    InitialSave = 0,
+    InitialSave = 1,
 
     /// <summary>
     /// Indicates the document is waiting to be security checked before being released

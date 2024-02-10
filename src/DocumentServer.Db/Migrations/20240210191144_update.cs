@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DocumentServer.Db.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialStoredDocumenttoLong : Migration
+    public partial class update : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -25,6 +25,18 @@ namespace DocumentServer.Db.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Applications", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ExpiringDocuments",
+                columns: table => new
+                {
+                    StoredDocumentId = table.Column<long>(type: "bigint", nullable: false),
+                    ExpirationDateUtcDateTime = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ExpiringDocuments", x => x.StoredDocumentId);
                 });
 
             migrationBuilder.CreateTable(
@@ -58,6 +70,7 @@ namespace DocumentServer.Db.Migrations
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     StorageFolderName = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     StorageMode = table.Column<byte>(type: "tinyint", nullable: false),
+                    InActiveLifeTime = table.Column<byte>(type: "tinyint", nullable: false),
                     ApplicationId = table.Column<int>(type: "int", nullable: false),
                     ActiveStorageNode1Id = table.Column<int>(type: "int", nullable: true),
                     ActiveStorageNode2Id = table.Column<int>(type: "int", nullable: true),
@@ -108,9 +121,9 @@ namespace DocumentServer.Db.Migrations
                     Status = table.Column<byte>(type: "tinyint", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(250)", maxLength: 250, nullable: false),
                     StorageFolder = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FileExtension = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SizeInKB = table.Column<int>(type: "int", nullable: false),
                     IsArchived = table.Column<bool>(type: "bit", nullable: false),
+                    IsAlive = table.Column<bool>(type: "bit", nullable: false),
                     LastAccessedUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     NumberOfTimesAccessed = table.Column<int>(type: "int", nullable: false),
                     DocumentTypeId = table.Column<int>(type: "int", nullable: false),
@@ -185,6 +198,9 @@ namespace DocumentServer.Db.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ExpiringDocuments");
+
             migrationBuilder.DropTable(
                 name: "StoredDocuments");
 

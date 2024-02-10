@@ -62,6 +62,7 @@ public class Test_DocumentType
     }
 
 
+
     /// <summary>
     /// Validates that a document cannot be stored that has a DocumentType that is inactive.
     /// </summary>
@@ -134,7 +135,7 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Runs thru the DocumentType IsActive change process.
+    /// Runs thru the DocumentType IsAlive change process.
     /// </summary>
     /// <returns></returns>
     [Test]
@@ -169,5 +170,42 @@ public class Test_DocumentType
         documentType.IsActive = false;
         await sm.DB.SaveChangesAsync();
         Assert.That(documentType.IsActive, Is.False, "Z20:");
+    }
+
+
+
+    /// <summary>
+    /// Validates the default settings of a DocumentType Object are correct.  If these ever fail, very carefully consider the
+    /// changes you made, it could affect existing data.
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task Validate_DocumentTypeDefaultValues()
+    {
+        // A. Setup
+        SupportMethods       sm                  = new SupportMethods(EnumFolderCreation.None);
+        DocumentServerEngine dse                 = sm.DocumentServerEngine;
+        string               folderName          = sm.Faker.Random.AlphaNumeric(6);
+        string               expectedExtension   = sm.Faker.Random.String2(3);
+        string               expectedDescription = sm.Faker.Random.String2(32);
+
+
+        // B. Createa A new Document Type.
+        DocumentType documentType = new DocumentType(sm.Faker.Random.AlphaNumeric(7),
+                                                     sm.Faker.Name.FullName(),
+                                                     folderName,
+                                                     EnumStorageMode.WriteOnceReadMany,
+                                                     1,
+                                                     1);
+        sm.DB.Add(documentType);
+        await sm.DB.SaveChangesAsync();
+
+
+        // Z.  Validate
+        Assert.That(documentType.IsActive, Is.False, "Z10:  Document Type ActiveStatus should always be False upon creation");
+        Assert.That(documentType.ActiveStorageNode2Id, Is.Null, "Z20:");
+        Assert.That(documentType.ArchivalStorageNode1Id, Is.Null, "Z20:");
+        Assert.That(documentType.ArchivalStorageNode2Id, Is.Null, "Z30:");
+        Assert.That(documentType.InActiveLifeTime, Is.EqualTo(EnumDocumentLifetimes.Never), "Z40:");
     }
 }

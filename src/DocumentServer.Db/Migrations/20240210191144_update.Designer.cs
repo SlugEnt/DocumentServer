@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240209110827_Initial-StoredDocument to Long")]
-    partial class InitialStoredDocumenttoLong
+    [Migration("20240210191144_update")]
+    partial class update
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -83,6 +83,9 @@ namespace DocumentServer.Db.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+                    b.Property<byte>("InActiveLifeTime")
+                        .HasColumnType("tinyint");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -115,6 +118,19 @@ namespace DocumentServer.Db.Migrations
                     b.HasIndex("ArchivalStorageNode2Id");
 
                     b.ToTable("DocumentTypes");
+                });
+
+            modelBuilder.Entity("DocumentServer.Models.Entities.ExpiringDocument", b =>
+                {
+                    b.Property<long>("StoredDocumentId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ExpirationDateUtcDateTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("StoredDocumentId");
+
+                    b.ToTable("ExpiringDocuments");
                 });
 
             modelBuilder.Entity("DocumentServer.Models.Entities.StorageNode", b =>
@@ -182,15 +198,14 @@ namespace DocumentServer.Db.Migrations
                     b.Property<int>("DocumentTypeId")
                         .HasColumnType("int");
 
-                    b.Property<string>("FileExtension")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAlive")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsArchived")

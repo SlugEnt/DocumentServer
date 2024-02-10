@@ -63,7 +63,7 @@ namespace DocumentServer.Models.Entities
 
         [Column(TypeName = "tinyint")]
         [Required]
-        public EnumDocumentStatus Status { get; set; }
+        public EnumDocumentStatus Status { get; set; } = 0;
 
         /// <summary>
         /// A readable name or description for the document.. Maximum length of 250
@@ -86,6 +86,14 @@ namespace DocumentServer.Models.Entities
         /// Whether this document is stored on archival media
         /// </summary>
         public bool IsArchived { get; set; } = false;
+
+
+        /// <summary>
+        /// Whether this document is considered a Live document.  A Live document is one who's expiration counter has not yet started.
+        /// <para>For Temporary documents it is set immediately after creation.  For other documents it is when the parent system tells us it is not alive.</para>
+        /// <para>Typicall unalive documents are part of claims, referrals, etc that are considered closed and experiencing no activity on them and are moving towards an eventual archiving</para>
+        /// </summary>
+        public bool IsAlive { get; set; } = true;
 
 
         public DateTime LastAccessedUTC { get; set; }
@@ -112,6 +120,11 @@ namespace DocumentServer.Models.Entities
         public StorageNode PrimaryStorageNode { get; set; }
         public StorageNode SecondaryStorageNode { get; set; }
 
+
+        /// <summary>
+        /// This is a 0:1 relationship.
+        /// </summary>
+        //public List<ExpiringDocument> ExpiringDocuments { get; set; }
 
         /// <summary>
         /// Returns the stored filename

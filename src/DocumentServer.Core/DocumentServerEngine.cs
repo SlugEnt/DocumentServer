@@ -11,6 +11,7 @@ using Application = DocumentServer.Models.Entities.Application;
 using System.Runtime.CompilerServices;
 using DocumentServer.ClientLibrary;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using SlugEnt.FluentResults;
 
 
@@ -62,14 +63,17 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Stores a document to the Storage Engine and database
+    /// Stores a document to the Storage Engine and database, if it is a new document
     /// </summary>
     /// <param name="transferDocumentDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
     public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentDto transferDocumentDto)
     {
+        IDbContextTransaction   transaction             = null;
+        bool                    priorDBTransaction      = false;
         bool                    fileSavedToStorage      = false;
+        bool                    isInTransaction         = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
 
@@ -115,8 +119,6 @@ public class DocumentServerEngine
                                                 transferDocumentDto.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
 
-            // Generate File Description
-            //string fileName = storedDocument.ComputedStoredFileName;
 
             Result<string> resultB = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
             if (resultB.IsFailed)
@@ -139,16 +141,40 @@ public class DocumentServerEngine
             _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
             fileSavedToStorage = true;
 
+
             // Save Database Entry
             storedDocument.StorageFolder = storeAtPath;
 
+            // Determine if we are in a transaction already or not.  If we are, we use save points
+            transaction = _db.Database.CurrentTransaction;
+            if (transaction == null)
+                transaction = _db.Database.BeginTransaction();
+            else
+            {
+                priorDBTransaction = true;
+                await transaction.CreateSavepointAsync("SDOC");
+            }
+
+
             _db.StoredDocuments.Add(storedDocument);
-            await _db.SaveChangesAsync();
+
+            await transaction.CreateSavepointAsync("SDOC2");
+            await PreSaveEdits(docType, storedDocument);
+
+            if (!priorDBTransaction)
+                _db.Database.CommitTransaction();
+
             Result<StoredDocument> finalResult = Result.Ok(storedDocument);
             return finalResult;
         }
         catch (Exception ex)
         {
+            if (!priorDBTransaction)
+                await _db.Database.RollbackTransactionAsync();
+            else
+                await transaction.RollbackToSavepointAsync("SDOC");
+
+
             // Delete the file from storage if we successfully saved it, but failed afterward.
             if (fileSavedToStorage)
             {
@@ -164,12 +190,52 @@ public class DocumentServerEngine
                 sb.Append(ex.InnerException.Message);
             msg = sb.ToString();
 
-            _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.  Inner Error: {Inner}",
+            _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.",
                              transferDocumentDto.Description,
                              transferDocumentDto.FileExtension,
-                             ex.Message);
+                             msg);
             Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
             return errorResult;
+        }
+    }
+
+
+
+    /// <summary>
+    /// This is logic that is called before saving a StoredDocument, either first save or subsequent update saves.
+    ///  The StoredDocument is saved in this method.
+    /// </summary>
+    /// <param name="documentType"></param>
+    /// <param name="storedDocument"></param>
+    /// <param name="isFirstSave"></param>
+    /// <returns></returns>
+    private async Task PreSaveEdits(DocumentType documentType,
+                                    StoredDocument storedDocument,
+                                    bool isFirstSave = true)
+    {
+        ExpiringDocument expiring = null;
+
+        if (isFirstSave)
+        {
+            if (documentType.StorageMode == EnumStorageMode.Temporary)
+            {
+                // Since this is a temporary document we immediately mark it as inactive to start its lifetime counter.
+                storedDocument.IsAlive = false;
+
+                // Need to add an entry to the ExpiringDocuments table
+                expiring = new ExpiringDocument(documentType.InActiveLifeTime);
+            }
+        }
+
+        // Save the StoredDocument so we can get id to set for Expiring
+        await _db.SaveChangesAsync();
+
+        // Set Expiring Id to the storeddocuments Id.
+        if (expiring != null)
+        {
+            expiring.StoredDocumentId = storedDocument.Id;
+            _db.Add(expiring);
+            await _db.SaveChangesAsync();
         }
     }
 
@@ -190,7 +256,7 @@ public class DocumentServerEngine
 
 
             // Now Load the Stored Document.
-            string fileName     = storedDocument.ComputedStoredFileName;
+            string fileName     = storedDocument.FileName;
             string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
             string file         = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
 
@@ -297,7 +363,7 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Changes the IsActive status of a DocumentType
+    /// Changes the IsAlive status of a DocumentType
     /// </summary>
     /// <param name="documentTypeId"></param>
     /// <param name="isActiveValue"></param>
@@ -326,7 +392,7 @@ public class DocumentServerEngine
         catch (Exception ex)
         {
             _logger.LogError("FAiled to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
-            return Result.Fail(new Error("Failed to change DocumentType IsActive Status due to error.").CausedBy(ex));
+            return Result.Fail(new Error("Failed to change DocumentType IsAlive Status due to error.").CausedBy(ex));
         }
     }
 }

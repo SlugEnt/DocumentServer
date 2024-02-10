@@ -1,14 +1,17 @@
 ﻿using System.Diagnostics;
 using Bogus;
+using Bogus.DataSets;
 using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using DocumentServer.Models.Entities;
 using DocumentServer.Models.Enums;
 using DocumentServer_Test.SupportObjects;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute.ExceptionExtensions;
 using NUnit.Framework;
 using SlugEnt;
 using SlugEnt.FluentResults;
+using Test_DocumentServer.SupportObjects;
 
 namespace DocumentServer_Test;
 
@@ -220,6 +223,173 @@ public class Test_DocumentServerEngine
         // B. Now lets read it.
         Result<string> readResult = await documentServerEngine.ReadStoredDocumentAsync(storedDocument.Id);
         Assert.That(readResult.Value, Is.EqualTo(genFileResult.Value.FileInBase64Format), "Z10:");
+    }
+
+
+
+    /// <summary>
+    /// Validates that temporary documents:
+    ///   - Have an expiringDocuments entry
+    ///   - That the entry is correct
+    ///   - That the StoredDocuments IsAlive flag is set to False
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    [TestCase(EnumDocumentLifetimes.Never)]
+    [TestCase(EnumDocumentLifetimes.HoursOne)]
+    [TestCase(EnumDocumentLifetimes.HoursTwelve)]
+    [TestCase(EnumDocumentLifetimes.HoursFour)]
+    [TestCase(EnumDocumentLifetimes.DayOne)]
+    [TestCase(EnumDocumentLifetimes.MonthOne)]
+    [TestCase(EnumDocumentLifetimes.MonthsThree)]
+    [TestCase(EnumDocumentLifetimes.MonthsSix)]
+    [TestCase(EnumDocumentLifetimes.WeekOne)]
+    [TestCase(EnumDocumentLifetimes.YearOne)]
+    [TestCase(EnumDocumentLifetimes.YearsTwo)]
+    [TestCase(EnumDocumentLifetimes.YearsThree)]
+    [TestCase(EnumDocumentLifetimes.YearsFour)]
+    [TestCase(EnumDocumentLifetimes.YearsSeven)]
+    [TestCase(EnumDocumentLifetimes.YearsTen)]
+    public async Task SaveTemporaryDocument(EnumDocumentLifetimes lifeTime)
+    {
+        // A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, false);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+        string expectedExtension   = sm.Faker.Random.String2(3);
+        string expectedDescription = sm.Faker.Random.String2(32);
+
+        // B. Create a random DocumentType.  These document types all will have a custom folder name
+        DocumentType randomDocType = new DocumentType()
+        {
+            Name                 = sm.Faker.Commerce.ProductName(),
+            Description          = sm.Faker.Lorem.Sentence(),
+            ActiveStorageNode1Id = 1,
+            ApplicationId        = 1,
+            StorageMode          = EnumStorageMode.Temporary,
+            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
+            InActiveLifeTime     = lifeTime,
+            IsActive             = true,
+        };
+        Result r1 = randomDocType.IsValid();
+        Console.WriteLine(r1.ToString());
+        if (r1.IsFailed)
+            throw new ApplicationException(r1.Errors.ToString());
+
+        sm.DB.AddAsync(randomDocType);
+        await sm.DB.SaveChangesAsync();
+
+
+        // C.  Generate File and store it
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              randomDocType.Id);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        StoredDocument         storedDocument = result.Value;
+
+
+        // Y. Validate
+
+        Assert.That(storedDocument.IsAlive, Is.False, "Y10:");
+
+        // Read the ExpiredDocument
+        ExpiringDocument expired = await sm.DB.ExpiringDocuments.SingleOrDefaultAsync(e => e.StoredDocumentId == storedDocument.Id);
+        Assert.That(expired, Is.Not.Null, "Y20:");
+
+        // z. Datetime Checks
+        DateTime min = DateTime.MinValue;
+        DateTime max = DateTime.MaxValue;
+
+        bool wasAsserted = true;
+
+        switch (lifeTime)
+        {
+            case EnumDocumentLifetimes.Never:
+                Assert.That(expired.ExpirationDateUtcDateTime.IsInRange(min, max), "Z10:");
+
+                break;
+            case EnumDocumentLifetimes.HoursOne:
+                min = DateTime.UtcNow.AddMinutes(59);
+                max = DateTime.UtcNow.AddHours(1);
+                break;
+            case EnumDocumentLifetimes.HoursFour:
+                min = DateTime.UtcNow.AddHours(3).AddMinutes(59);
+                max = DateTime.UtcNow.AddHours(4);
+                break;
+            case EnumDocumentLifetimes.HoursTwelve:
+                min = DateTime.UtcNow.AddHours(11).AddMinutes(59);
+                max = DateTime.UtcNow.AddHours(12);
+                break;
+
+            case EnumDocumentLifetimes.DayOne:
+                min = DateTime.UtcNow.AddDays(1).AddMinutes(-1);
+                max = DateTime.UtcNow.AddDays(1);
+                break;
+
+            case EnumDocumentLifetimes.WeekOne:
+                min = DateTime.UtcNow.AddDays(7).AddMinutes(-1);
+                max = DateTime.UtcNow.AddDays(7);
+                break;
+
+            case EnumDocumentLifetimes.MonthOne:
+                min = DateTime.UtcNow.AddDays(31).AddMinutes(-1);
+                max = DateTime.UtcNow.AddDays(31);
+                break;
+
+            case EnumDocumentLifetimes.MonthsThree:
+                min = DateTime.UtcNow.AddDays(91).AddMinutes(-1);
+                max = DateTime.UtcNow.AddDays(91);
+                break;
+
+            case EnumDocumentLifetimes.MonthsSix:
+                min = DateTime.UtcNow.AddDays(183).AddMinutes(-1);
+                max = DateTime.UtcNow.AddDays(183);
+                break;
+
+            case EnumDocumentLifetimes.YearOne:
+                min = DateTime.UtcNow.AddYears(1).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(1);
+                break;
+
+            case EnumDocumentLifetimes.YearsTwo:
+                min = DateTime.UtcNow.AddYears(2).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(2);
+                break;
+
+            case EnumDocumentLifetimes.YearsThree:
+                min = DateTime.UtcNow.AddYears(3).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(3);
+                break;
+
+            case EnumDocumentLifetimes.YearsFour:
+                min = DateTime.UtcNow.AddYears(4).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(4);
+                break;
+
+            case EnumDocumentLifetimes.YearsSeven:
+                min = DateTime.UtcNow.AddYears(7).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(7);
+                break;
+
+            case EnumDocumentLifetimes.YearsTen:
+                min = DateTime.UtcNow.AddYears(10).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(10);
+                break;
+
+            case EnumDocumentLifetimes.ParentDetermined:
+                // TODO fix this, but how?
+                min = DateTime.UtcNow.AddHours(3).AddMinutes(59);
+                max = DateTime.UtcNow.AddHours(4);
+                break;
+            default:
+                wasAsserted = false;
+                break;
+        }
+
+
+        Assert.That(wasAsserted, Is.True, "Z10: The Lifetime check never entered a valid Case statement.  Missing a case value?");
+        Console.WriteLine("Asserted that the document with lifetime setting: {0} was in expected range ", lifeTime.ToString());
     }
 
 
