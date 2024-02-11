@@ -70,10 +70,10 @@ public class Test_DocumentType
     [Test]
     [TestCase(true)]
     [TestCase(false)]
-    public async Task DocumentServerMustBeActive_ToStoreADocument(bool markDocumentTypeActive)
+    public async Task DocumentTypeMustBeActive_ToStoreADocument(bool markDocumentTypeActive)
     {
-        // A. Setup
-        SupportMethods       sm         = new SupportMethods(EnumFolderCreation.Test);
+        //***  A. Setup
+        SupportMethods       sm         = new SupportMethods(EnumFolderCreation.Test, false);
         DocumentServerEngine dse        = sm.DocumentServerEngine;
         string               folderName = sm.Faker.Random.AlphaNumeric(6);
 
@@ -81,7 +81,7 @@ public class Test_DocumentType
         string expectedDescription = sm.Faker.Random.String2(32);
 
 
-        // B. Createa A new Document Type.
+        //***  B. Createa A new Document Type.
         DocumentType documentType = new DocumentType(sm.Faker.Random.AlphaNumeric(7),
                                                      sm.Faker.Name.FullName(),
                                                      folderName,
@@ -105,7 +105,7 @@ public class Test_DocumentType
         await sm.DB.SaveChangesAsync();
         Console.WriteLine("Saved Step 1!");
 
-        // C. Create a document
+        //***  C. Create a document
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
@@ -113,8 +113,12 @@ public class Test_DocumentType
         Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value);
 
 
-        // Z. Validate
-        Assert.That(result.IsSuccess, Is.EqualTo(markDocumentTypeActive), "Z10:");
+        //***  Z. Validate
+        Console.WriteLine("1st Line" + Environment.NewLine + "2nd Line" + Environment.NewLine + "3rd Line");
+
+        Console.WriteLine(result.ToStringWithLineFeeds());
+
+        Assert.That(result.IsSuccess, Is.EqualTo(markDocumentTypeActive), "Z10: " + result.ToStringWithLineFeeds());
 
         // If we marked the document type active (true) then nothing else to test.
         if (markDocumentTypeActive)

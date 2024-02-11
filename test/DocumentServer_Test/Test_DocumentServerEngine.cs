@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using Bogus;
 using Bogus.DataSets;
 using DocumentServer.ClientLibrary;
@@ -18,6 +19,12 @@ namespace DocumentServer_Test;
 [TestFixture]
 public class Test_DocumentServerEngine
 {
+    /// <summary>
+    /// DocumentServerEngine uses transactions internally.  You cannot have nested transactions, so they must be disabled for these tests.
+    /// </summary>
+    private bool _useDatabaseTransactions = false;
+
+
     [OneTimeSetUp]
     public void Setup() { }
 
@@ -120,7 +127,7 @@ public class Test_DocumentServerEngine
         DocumentType   docType  = randomDocType;
         Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
 
-        Assert.That(result.IsSuccess, Is.True, "B10: " + result.Errors);
+        Assert.That(result.IsSuccess, Is.True, "B10: " + result.ToString());
 
 
         // Z. Validate - Now verify string is correct.
@@ -134,7 +141,7 @@ public class Test_DocumentServerEngine
 
 
         // Paths should be:  NodePath\ModeLetter\DocTypeFolder\ymd\filename
-        string ymdPath = DatePath();
+        string ymdPath = DatePath(storageMode, randomDocType.InActiveLifeTime);
         string expected = Path.Combine(storageNode.NodePath,
                                        modeLetter,
                                        randomDocType.StorageFolderName,
@@ -152,7 +159,7 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test);
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
         int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
         string               expectedExtension    = sm.Faker.Random.String2(3);
@@ -179,7 +186,7 @@ public class Test_DocumentServerEngine
         string expectedPath = Path.Join(b.NodePath,
                                         a.StorageFolderName,
                                         modeLetter,
-                                        DatePath());
+                                        DatePath(a.StorageMode, a.InActiveLifeTime));
 
         // Z. Validate
         // Z.10 - Validate the Database entry
@@ -205,7 +212,7 @@ public class Test_DocumentServerEngine
     public async Task ReadDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test);
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         int    expectedDocTypeId   = sm.DocumentType_Test_Worm_A;
@@ -227,11 +234,17 @@ public class Test_DocumentServerEngine
 
 
 
+    [Test]
+    public async Task TemporaryDocumentsSaveInTempFolder() { }
+
+
+
     /// <summary>
     /// Validates that temporary documents:
     ///   - Have an expiringDocuments entry
     ///   - That the entry is correct
     ///   - That the StoredDocuments IsAlive flag is set to False
+    ///   - That the document is stored in the Tempoary folder space
     /// </summary>
     /// <returns></returns>
     [Test]
@@ -252,14 +265,15 @@ public class Test_DocumentServerEngine
     [TestCase(EnumDocumentLifetimes.YearsTen)]
     public async Task SaveTemporaryDocument(EnumDocumentLifetimes lifeTime)
     {
-        // A. Setup
-        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, false);
+        //***  A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         string expectedExtension   = sm.Faker.Random.String2(3);
         string expectedDescription = sm.Faker.Random.String2(32);
 
-        // B. Create a random DocumentType.  These document types all will have a custom folder name
+
+        //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         DocumentType randomDocType = new DocumentType()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
@@ -280,7 +294,7 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
-        // C.  Generate File and store it
+        //***  C.  Generate File and store it
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
@@ -289,15 +303,29 @@ public class Test_DocumentServerEngine
         StoredDocument         storedDocument = result.Value;
 
 
-        // Y. Validate
+        //***  W.  Validate document is stored in temporary folder path
+        StorageNode storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(s => s.Id == randomDocType.ActiveStorageNode1Id);
+        Assert.That(storageNode, Is.Not.Null, "W10:");
+        string expectedBeginPath = Path.Join(storageNode.NodePath, "T");
+        Assert.That(storedDocument.StorageFolder.StartsWith(expectedBeginPath), Is.True, "W20:");
 
+        // Verify it is actually stored where it is supposed to be.
+        DateTime currentUtc = DateTime.UtcNow;
+        string fileName = Path.Join(expectedBeginPath,
+                                    randomDocType.StorageFolderName,
+                                    DatePath(randomDocType.StorageMode, randomDocType.InActiveLifeTime),
+                                    storedDocument.FileName);
+        Assert.That(sm.FileSystem.File.Exists(fileName), "W30: Could not find file in filesystem");
+
+
+        //***  Y. Validate
         Assert.That(storedDocument.IsAlive, Is.False, "Y10:");
 
         // Read the ExpiredDocument
         ExpiringDocument expired = await sm.DB.ExpiringDocuments.SingleOrDefaultAsync(e => e.StoredDocumentId == storedDocument.Id);
         Assert.That(expired, Is.Not.Null, "Y20:");
 
-        // z. Datetime Checks
+        //***  Z. Datetime Checks
         DateTime min = DateTime.MinValue;
         DateTime max = DateTime.MaxValue;
 
@@ -398,11 +426,34 @@ public class Test_DocumentServerEngine
     /// Internal function to match the calculated date portion of a stored files path.
     /// </summary>
     /// <returns></returns>
-    private string DatePath()
+    private string DatePath(EnumStorageMode storageMode,
+                            EnumDocumentLifetimes inActiveLifeTime)
     {
-        DateTime currentUtc = DateTime.UtcNow;
-        string   year       = currentUtc.ToString("yyyy");
-        string   month      = currentUtc.ToString("MM");
+        DateTime folderDatetime = DateTime.UtcNow;
+        if (storageMode == EnumStorageMode.Temporary)
+        {
+            folderDatetime = inActiveLifeTime switch
+            {
+                EnumDocumentLifetimes.HoursOne    => folderDatetime.AddHours(1),
+                EnumDocumentLifetimes.HoursFour   => folderDatetime.AddHours(4),
+                EnumDocumentLifetimes.HoursTwelve => folderDatetime.AddHours(12),
+                EnumDocumentLifetimes.DayOne      => folderDatetime.AddDays(1),
+                EnumDocumentLifetimes.MonthOne    => folderDatetime.AddMonths(1),
+                EnumDocumentLifetimes.MonthsThree => folderDatetime.AddMonths(3),
+                EnumDocumentLifetimes.MonthsSix   => folderDatetime.AddMonths(6),
+                EnumDocumentLifetimes.WeekOne     => folderDatetime.AddDays(7),
+                EnumDocumentLifetimes.YearOne     => folderDatetime.AddYears(1),
+                EnumDocumentLifetimes.YearsTwo    => folderDatetime.AddYears(2),
+                EnumDocumentLifetimes.YearsThree  => folderDatetime.AddYears(3),
+                EnumDocumentLifetimes.YearsFour   => folderDatetime.AddYears(4),
+                EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
+                EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
+                EnumDocumentLifetimes.Never       => DateTime.MaxValue,
+            };
+        }
+
+        string year  = folderDatetime.ToString("yyyy");
+        string month = folderDatetime.ToString("MM");
 
         //string   day        = currentUtc.ToString("dd");
         return Path.Combine(year, month);

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using DocumentServer.Models.Enums;
 
 namespace DocumentServer.Models.Entities
@@ -156,6 +157,24 @@ namespace DocumentServer.Models.Entities
             {
                 string ext = fileExtension == string.Empty ? string.Empty : "." + fileExtension;
                 FileName = Guid.NewGuid().ToString() + ext;
+            }
+        }
+
+
+        /// <summary>
+        /// For displaying information about this in an error type message
+        /// </summary>
+        [NotMapped]
+        public string ErrorMessage
+        {
+            get
+            {
+                string className = this.GetType().Name;
+                string msg = String.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                           className,
+                                           Id,
+                                           FileName);
+                return msg;
             }
         }
     }

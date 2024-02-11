@@ -145,34 +145,21 @@ public class DocumentServerEngine
             // Save Database Entry
             storedDocument.StorageFolder = storeAtPath;
 
-            // Determine if we are in a transaction already or not.  If we are, we use save points
-            transaction = _db.Database.CurrentTransaction;
-            if (transaction == null)
-                transaction = _db.Database.BeginTransaction();
-            else
-            {
-                priorDBTransaction = true;
-                await transaction.CreateSavepointAsync("SDOC");
-            }
-
+            transaction = _db.Database.BeginTransaction();
 
             _db.StoredDocuments.Add(storedDocument);
 
-            await transaction.CreateSavepointAsync("SDOC2");
+            //await transaction.CreateSavepointAsync("SDOC2");
             await PreSaveEdits(docType, storedDocument);
 
-            if (!priorDBTransaction)
-                _db.Database.CommitTransaction();
+            _db.Database.CommitTransaction();
 
             Result<StoredDocument> finalResult = Result.Ok(storedDocument);
             return finalResult;
         }
         catch (Exception ex)
         {
-            if (!priorDBTransaction)
-                await _db.Database.RollbackTransactionAsync();
-            else
-                await transaction.RollbackToSavepointAsync("SDOC");
+            await _db.Database.RollbackTransactionAsync();
 
 
             // Delete the file from storage if we successfully saved it, but failed afterward.
@@ -283,20 +270,45 @@ public class DocumentServerEngine
 
     /// <summary>
     /// Computes the complete path including the actual file name.
-    /// All files are stored in a folder by yyyy/mm/dd
+    /// All files are stored in a folder by
+    ///   storageNodePath\StorageModeLetter\DocumentTypePath\year\month
     /// </summary>
     /// <param name="documentType">The DocumentType</param>
     /// <param name="storageNodeId">The StorageNode Id to store on</param>
-    /// <param name="fileName">The complete filename including extension</param>
     /// <returns>Result</returns>
     internal async Task<Result<string>> ComputeStorageFullNameAsync(DocumentType documentType,
                                                                     int storageNodeId)
     {
         try
         {
-            DateTime currentUtc = DateTime.UtcNow;
-            string   year       = currentUtc.ToString("yyyy");
-            string   month      = currentUtc.ToString("MM");
+            DateTime folderDatetime = DateTime.UtcNow;
+
+            // For most of the documents we store them in a folder based upon the date we write them.
+            // But for Temporary we write based upon the date they expire.
+            if (documentType.StorageMode == EnumStorageMode.Temporary)
+            {
+                folderDatetime = documentType.InActiveLifeTime switch
+                {
+                    EnumDocumentLifetimes.HoursOne    => folderDatetime.AddHours(1),
+                    EnumDocumentLifetimes.HoursFour   => folderDatetime.AddHours(4),
+                    EnumDocumentLifetimes.HoursTwelve => folderDatetime.AddHours(12),
+                    EnumDocumentLifetimes.DayOne      => folderDatetime.AddDays(1),
+                    EnumDocumentLifetimes.MonthOne    => folderDatetime.AddMonths(1),
+                    EnumDocumentLifetimes.MonthsThree => folderDatetime.AddMonths(3),
+                    EnumDocumentLifetimes.MonthsSix   => folderDatetime.AddMonths(6),
+                    EnumDocumentLifetimes.WeekOne     => folderDatetime.AddDays(7),
+                    EnumDocumentLifetimes.YearOne     => folderDatetime.AddYears(1),
+                    EnumDocumentLifetimes.YearsTwo    => folderDatetime.AddYears(2),
+                    EnumDocumentLifetimes.YearsThree  => folderDatetime.AddYears(3),
+                    EnumDocumentLifetimes.YearsFour   => folderDatetime.AddYears(4),
+                    EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
+                    EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
+                    EnumDocumentLifetimes.Never       => DateTime.MaxValue,
+                };
+            }
+
+            string year  = folderDatetime.ToString("yyyy");
+            string month = folderDatetime.ToString("MM");
 
 
 #if DEBUG
@@ -336,13 +348,8 @@ public class DocumentServerEngine
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError("ComputeStorageFolder:  Invalid Storage Node Id:  {StorageNode} for DocumentType: {DocumentType}",
-                             storageNodeId,
-                             documentType.Id);
-            string msg =
-                String.Format("ComputeStorageFolder:  Invalid Storage Node Id:  {0} for DocumentType: {1}",
-                              storageNodeId,
-                              documentType.Id);
+            string msg = string.Format("ComputeStorageFolder Error for: {0}  -  had exception:{1}", documentType.ErrorMessage, ex);
+            _logger.LogError("ComputeStorageFolder Error for {DocumentType}  - had exception:  {Exception}", documentType.ErrorMessage, ex);
             return Result.Fail(msg);
         }
         catch (Exception ex)

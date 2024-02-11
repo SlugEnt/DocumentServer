@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentServer.Models.Enums;
@@ -126,5 +127,23 @@ namespace DocumentServer.Models.Entities
         public StorageNode ActiveStorageNode2 { get; set; }
         public StorageNode ArchivalStorageNode1 { get; set; }
         public StorageNode ArchivalStorageNode2 { get; set; }
+
+
+        /// <summary>
+        /// For displaying information about this in an error type message
+        /// </summary>
+        [NotMapped]
+        public string ErrorMessage
+        {
+            get
+            {
+                string className = this.GetType().Name;
+                string msg = String.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                           className,
+                                           Id,
+                                           Name);
+                return msg;
+            }
+        }
     }
 }

@@ -31,5 +31,23 @@ namespace DocumentServer.Models.Entities
 
         // Each App has 1 or more Document Types it manages.
         public ICollection<DocumentType> DocumentTypes;
+
+
+        /// <summary>
+        /// For displaying information about this in an error type message
+        /// </summary>
+        [NotMapped]
+        public string ErrorMessage
+        {
+            get
+            {
+                string className = this.GetType().Name;
+                string msg = String.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                           className,
+                                           Id,
+                                           Name);
+                return msg;
+            }
+        }
     }
 }
