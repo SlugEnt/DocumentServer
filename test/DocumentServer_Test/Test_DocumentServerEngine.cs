@@ -84,6 +84,7 @@ public class Test_DocumentServerEngine
     /// <param name="storageMode"></param>
     /// <returns></returns>
     [Test]
+    [TestCase(EnumStorageMode.Replaceable)]
     [TestCase(EnumStorageMode.Editable)]
     [TestCase(EnumStorageMode.WriteOnceReadMany)]
     [TestCase(EnumStorageMode.Temporary)]
@@ -136,6 +137,7 @@ public class Test_DocumentServerEngine
             EnumStorageMode.WriteOnceReadMany => "W",
             EnumStorageMode.Editable          => "E",
             EnumStorageMode.Temporary         => "T",
+            EnumStorageMode.Replaceable       => "R",
             EnumStorageMode.Versioned         => "V"
         };
 
@@ -179,9 +181,11 @@ public class Test_DocumentServerEngine
         // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
         //     you need to carefully consider why it failed.  
         // Calculate the full storage node path that the file should have been written at.
-        DocumentType a          = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == expectedDocTypeId);
-        StorageNode  b          = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
-        string       modeLetter = ModeLetter(a.StorageMode);
+        DocumentType   a          = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == expectedDocTypeId);
+        StorageNode    b          = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
+        Result<string> modeResult = documentServerEngine.GetModeLetter(a.StorageMode);
+        Assert.That(modeResult.IsSuccess, Is.True, "Y10:");
+        string modeLetter = modeResult.Value;
 
         string expectedPath = Path.Join(b.NodePath,
                                         a.StorageFolderName,
@@ -460,16 +464,185 @@ public class Test_DocumentServerEngine
     }
 
 
-    private string ModeLetter(EnumStorageMode storageMode)
+    [Test]
+    [TestCase(EnumStorageMode.Versioned)]
+    [TestCase(EnumStorageMode.Replaceable)]
+    [TestCase(EnumStorageMode.Editable)]
+    [TestCase(EnumStorageMode.Temporary)]
+    [TestCase(EnumStorageMode.WriteOnceReadMany)]
+    public void ModeLetter_Is_Correct(EnumStorageMode storageMode)
     {
+        //***  A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+
         // Z. Validate - Now verify string is correct.
-        string modeLetter = storageMode switch
+        string expectedModeLetter = storageMode switch
         {
             EnumStorageMode.WriteOnceReadMany => "W",
             EnumStorageMode.Editable          => "E",
             EnumStorageMode.Temporary         => "T",
-            EnumStorageMode.Versioned         => "V"
+            EnumStorageMode.Versioned         => "V",
+            EnumStorageMode.Replaceable       => "R",
         };
-        return modeLetter;
+
+        Result<string> actualResult = documentServerEngine.GetModeLetter(storageMode);
+        Assert.That(actualResult.IsSuccess, Is.True, "Z10:");
+        Assert.That(actualResult.Value, Is.EqualTo(expectedModeLetter), "Z20: Invalid mode letter returned");
+    }
+
+
+    [Test]
+    public async Task StoreFileOnStorageMedia_Success()
+    {
+        //***  A. Setup
+        SupportMethods       sm                    = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine  = sm.DocumentServerEngine;
+        string               expectedExtension     = sm.Faker.Random.String2(3);
+        string               expectedDescription   = sm.Faker.Random.String2(32);
+        string               expectedStorageFolder = sm.Faker.Random.String2(6);
+
+        byte[] fileBytes = sm.Faker.Random.Bytes(20);
+
+
+        // Load a Document Type
+        DocumentType documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
+
+        // Create a dummy StoredDocument
+        StoredDocument storedDocument = new StoredDocument(fileExtension: expectedExtension,
+                                                           description: expectedDescription,
+                                                           expectedStorageFolder,
+                                                           1,
+                                                           sm.DocumentType_Test_Worm_A,
+                                                           sm.StorageNode_Test_A);
+
+        string fileBytes64 = Convert.ToBase64String(fileBytes);
+        Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
+                                                                                                 documentType,
+                                                                                                 sm.StorageNode_Test_A,
+                                                                                                 fileBytes64);
+
+        //***  Z. Validate
+        Assert.That(storeFileResult.IsSuccess, Is.True, "Z10: StoreFileResult returned false");
+
+        // Make sure it was stored on the drive.
+        string fullFileName = Path.Join(storedDocument.StorageFolder, storedDocument.FileName);
+        Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
+    }
+
+
+    // If a Bad Storage Node is used, then the file can not be saved.
+    [Test]
+    public async Task StoreFileOnStorageMedia_BadStorageNode_Failure()
+    {
+        //***  A. Setup
+        SupportMethods       sm                    = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine  = sm.DocumentServerEngine;
+        string               expectedExtension     = sm.Faker.Random.String2(3);
+        string               expectedDescription   = sm.Faker.Random.String2(32);
+        string               expectedStorageFolder = sm.Faker.Random.String2(6);
+
+        byte[] fileBytes = sm.Faker.Random.Bytes(20);
+
+
+        // Load a Document Type
+        DocumentType documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
+
+        // Create a dummy StoredDocument
+        int badStorageNode = 999999;
+        StoredDocument storedDocument = new StoredDocument(fileExtension: expectedExtension,
+                                                           description: expectedDescription,
+                                                           expectedStorageFolder,
+                                                           1,
+                                                           sm.DocumentType_Test_Worm_A,
+                                                           badStorageNode);
+
+        string fileBytes64 = Convert.ToBase64String(fileBytes);
+        Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
+                                                                                                 documentType,
+                                                                                                 badStorageNode,
+                                                                                                 fileBytes64);
+
+        //***  Z. Validate
+        Assert.That(storeFileResult.IsFailed, Is.True, "Z10: StoreFileResult should have been false");
+    }
+
+
+    // Confirms that a Replacement Document is successfully saved and the old document is deleted.
+    [Test]
+    public async Task ReplacementFileStorage_Success()
+    {
+        //***  A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        int                  expectedDocTypeId    = sm.DocumentType_Prod_Replaceable_A;
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
+
+
+        //***  B. Generate a file and store it
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        StoredDocument         storedDocument = result.Value;
+
+        string originalStoredFileName = storedDocument.FileNameAndPath;
+        long   originalId             = storedDocument.Id;
+        string originalFileName       = storedDocument.FileName;
+
+        //***  C.  Confirm the file is stored.
+
+        Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.True, "C10:  Original Stored File could not be found");
+        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(2), "C20:");
+
+
+        //***  D.  Generate and store a replacement file
+        string replaceDescription = "Replaced Description";
+        Result<TransferDocumentDto> genNewFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                 replaceDescription,
+                                                                                 expectedExtension,
+                                                                                 expectedDocTypeId);
+
+        // Create the ReplacementDTO
+        ReplacementDto replacementDto = new ReplacementDto()
+        {
+            CurrentId          = storedDocument.Id,
+            FileInBase64Format = genNewFileResult.Value.FileInBase64Format,
+            Description        = replaceDescription,
+            FileExtension      = expectedExtension,
+        };
+
+
+        Result<StoredDocument> replaceResult       = await documentServerEngine.StoreReplacementDocumentAsync(replacementDto);
+        StoredDocument         replacementDocument = replaceResult.Value;
+
+        // Z. Validate
+
+        //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(replacementDocument.FileName, Does.EndWith(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(replacementDocument.DocumentType.Id, Is.EqualTo(expectedDocTypeId), "Z20:");
+        Assert.That(replacementDocument.Description, Is.EqualTo(replaceDescription), "Z30");
+
+        // Make sure the StoredDocument and ReplacementDocument have different FileNames, but same Id
+        Assert.That(replacementDocument.Id, Is.EqualTo(originalId), "Z40:");
+        Assert.That(replacementDocument.FileName, Is.Not.EqualTo(originalFileName), "Z50:");
+
+        // Make sure the replacement doc was stored on the drive.
+        Assert.That(sm.FileSystem.FileExists(replacementDocument.FileNameAndPath), Is.True, "Z80:");
+
+        // Make sure the original file is deleted.
+        Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.False, "Z90:");
+
+        // 2 generated files and the one new stored file.
+        if (sm.FileSystem.AllFiles.Count() == 2)
+        {
+            int j = 3;
+            j++;
+        }
+
+        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(3), "Z91:");
     }
 }

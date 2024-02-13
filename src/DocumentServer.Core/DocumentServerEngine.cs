@@ -1,4 +1,5 @@
-﻿using System.IO.Abstractions;
+﻿using System.Diagnostics;
+using System.IO.Abstractions;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
@@ -63,6 +64,98 @@ public class DocumentServerEngine
 
 
     /// <summary>
+    /// Loads the specified DocumentType and validates some values before returning.  
+    /// </summary>
+    /// <param name="documentTypeId"></param>
+    /// <returns>Result.Success if good, Result.Fail if bad</returns>
+    internal async Task<Result<DocumentType>> LoadDocumentType_ForSavingStoredDocument(int documentTypeId)
+    {
+        // Retrieve the DocumentType
+        // TODO this db call needs to be replaced with in memory hashset or something
+        DocumentType docType = await _db.DocumentTypes
+                                        .Include(i => i.ActiveStorageNode1)
+                                        .Include(i => i.ActiveStorageNode2)
+                                        .SingleOrDefaultAsync(d => d.Id == documentTypeId);
+
+        if (docType == null)
+        {
+            string msg = "Unable to locate a DocumentType with the Id [ " + documentTypeId + " ]";
+            return Result.Fail(new Error(msg));
+        }
+
+        if (!docType.IsActive)
+        {
+            string msg = String.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Name);
+            return Result.Fail(new Error(msg));
+        }
+
+
+        // TODO Need to implement logic to try 2nd active node.
+        if (docType.ActiveStorageNode1Id == null)
+        {
+            string msg = string.Format("The DocumentType requested does not have a storage node specified.  DocType [ " + docType.Id) + " ]";
+            _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
+
+            return Result.Fail(new Error(msg));
+        }
+
+        return Result.Ok(docType);
+    }
+
+
+
+    /// <summary>
+    /// Determines where to store the file and then stores it.
+    /// </summary>
+    /// <param name="storedDocument">The StoredDocument that will be updated with path info</param>
+    /// <param name="documentType">DocumentType this document is</param>
+    /// <param name="storageNodeId">Node Id to store file at</param>
+    /// <param name="fileInBase64Format">Contents of the file</param>
+    /// <returns>Result string where string is the full file name </returns>
+    internal async Task<Result<string>> StoreFileOnStorageMediaAsync(StoredDocument storedDocument,
+                                                                     DocumentType documentType,
+                                                                     int storageNodeId,
+                                                                     string fileInBase64Format)
+    {
+        string         fullFileName = "";
+        Result<string> result       = new Result();
+
+        try
+        {
+            Result<string> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
+            if (resultB.IsFailed)
+            {
+                resultB.WithError("Failed to compute Where the document should be stored.");
+                return resultB;
+            }
+
+            // Store the path and make sure all the paths exist.
+            string storeAtPath = resultB.Value;
+            _fileSystem.Directory.CreateDirectory(storeAtPath);
+
+
+            // Decode the file bytes
+            byte[] binaryFile;
+
+            binaryFile   = Convert.FromBase64String(fileInBase64Format);
+            fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
+            _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
+
+//            fileSavedToStorage = true;
+
+            // Save the path in the StoredDocument
+            storedDocument.StorageFolder = storeAtPath;
+            return Result.Ok(fullFileName);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
+        }
+    }
+
+
+
+    /// <summary>
     /// Stores a document to the Storage Engine and database, if it is a new document
     /// </summary>
     /// <param name="transferDocumentDto">The file info to be stored</param>
@@ -76,38 +169,15 @@ public class DocumentServerEngine
         bool                    isInTransaction         = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
-
+        Result<StoredDocument>  result                  = new Result<StoredDocument>();
         try
         {
-            // Retrieve the DocumentType
-            // TODO this db call needs to be replaced with in memory hashset or something
-            DocumentType docType = await _db.DocumentTypes
-                                            .Include(i => i.ActiveStorageNode1)
-                                            .Include(i => i.ActiveStorageNode2)
-                                            .SingleOrDefaultAsync(d => d.Id == transferDocumentDto.DocumentTypeId);
+            // Load and Validate the DocumentType is ok to use
+            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentDto.DocumentTypeId);
+            if (docTypeResult.IsFailed)
+                return Result.Merge(result, docTypeResult);
 
-            if (docType == null)
-            {
-                string msg = "Unable to locate a DocumentType with the Id [ " + transferDocumentDto.DocumentTypeId + " ]";
-                return Result.Fail(msg);
-            }
-
-            if (!docType.IsActive)
-            {
-                string msg = String.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Name);
-                return Result.Fail(msg);
-            }
-
-
-            // TODO Need to implement logic to try 2nd active node.
-            if (docType.ActiveStorageNode1Id == null)
-            {
-                string msg = string.Format("The DocumentType requested does not have a storage node specified.  DocType = " + docType.Id);
-                _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
-
-                Result<StoredDocument> resultA = Result.Fail(new Error(msg));
-                return resultA;
-            }
+            DocumentType docType = docTypeResult.Value;
 
 
             // We always use the primary node for initial storage.
@@ -119,39 +189,22 @@ public class DocumentServerEngine
                                                 transferDocumentDto.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
 
+            // Store the document on the storage media
+            Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
+                                                                            docType,
+                                                                            (int)docType.ActiveStorageNode1Id,
+                                                                            transferDocumentDto.FileInBase64Format);
+            if (storeResult.IsFailed)
+                return Result.Merge(result, storeResult);
 
-            Result<string> resultB = await ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
-            if (resultB.IsFailed)
-            {
-                Result<StoredDocument> resultC = Result.Fail("Cannot save Document.");
-                Result                 merged  = Result.Merge(resultB, resultC);
-                return merged;
-            }
-
-            // Store the path and make sure all the paths exist.
-            string storeAtPath = resultB.Value;
-            _fileSystem.Directory.CreateDirectory(storeAtPath);
-
-
-            // Decode the file bytes
-            byte[] binaryFile;
-
-            binaryFile   = Convert.FromBase64String(transferDocumentDto.FileInBase64Format);
-            fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
-            _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
+            fullFileName       = storeResult.Value;
             fileSavedToStorage = true;
 
 
-            // Save Database Entry
-            storedDocument.StorageFolder = storeAtPath;
-
+            // Save StoredDocument
             transaction = _db.Database.BeginTransaction();
-
             _db.StoredDocuments.Add(storedDocument);
-
-            //await transaction.CreateSavepointAsync("SDOC2");
             await PreSaveEdits(docType, storedDocument);
-
             _db.Database.CommitTransaction();
 
             Result<StoredDocument> finalResult = Result.Ok(storedDocument);
@@ -183,6 +236,92 @@ public class DocumentServerEngine
                              msg);
             Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
             return errorResult;
+        }
+    }
+
+
+
+    /// <summary>
+    /// Stores a new document that is a replacement for an existing document.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<Result<StoredDocument>> StoreReplacementDocumentAsync(ReplacementDto replacementDto)
+    {
+        // The replacement process is:
+        // - Store new file
+        // - Update StoredDocument
+        // - Delete Old File
+
+        IDbContextTransaction  transaction        = null;
+        bool                   fileSavedToStorage = false;
+        string                 fullFileName       = "";
+        bool                   docSaved           = false;
+        string                 oldFileName        = "";
+        Result<StoredDocument> result             = new Result<StoredDocument>();
+        try
+        {
+            // We need to load the existing StoredDocument to retrieve some info.
+            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentId);
+            if (storedDocument == null)
+            {
+                string msg = String.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.CurrentId);
+                return Result.Fail(new Error(msg));
+            }
+
+            // Load and Validate the DocumentType is ok to use
+            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(storedDocument.DocumentTypeId);
+            if (docTypeResult.IsFailed)
+                return Result.Merge(result, docTypeResult);
+
+            DocumentType docType = docTypeResult.Value;
+
+
+            // Save the current Document FileName so we can delete it in a moment.
+            oldFileName = storedDocument.FileNameAndPath;
+
+            // Store the new document on the storage media
+            storedDocument.ReplaceFileName(replacementDto.FileExtension);
+            Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
+                                                                            docType,
+                                                                            (int)docType.ActiveStorageNode1Id,
+                                                                            replacementDto.FileInBase64Format);
+            if (storeResult.IsFailed)
+                return Result.Merge(result, storeResult);
+
+            fullFileName       = storeResult.Value;
+            fileSavedToStorage = true;
+
+
+            // Save StoredDocument
+            //  - Update description
+            if (!string.IsNullOrEmpty(replacementDto.Description))
+                storedDocument.Description = replacementDto.Description;
+
+            transaction = _db.Database.BeginTransaction();
+            _db.StoredDocuments.Update(storedDocument);
+            await PreSaveEdits(docType, storedDocument);
+            _db.Database.CommitTransaction();
+            docSaved = true;
+
+            // Delete the old document
+            _fileSystem.File.Delete(oldFileName);
+
+            Result<StoredDocument> finalResult = Result.Ok(storedDocument);
+            return finalResult;
+        }
+        catch (Exception ex)
+        {
+            if (docSaved)
+            {
+                // Then error happened during file delete of old document
+                // TODO add to error table.
+                string msg = string.Format("Error during cleanup of old replaceable file [ {0} ].  File remains on storagemedia and will need to be deleted manually.",
+                                           oldFileName);
+                return Result.Fail(new Error(msg).CausedBy(ex));
+            }
+
+            _logger.LogError("StoreReplacementDocumentAsync:  {Exception}", ex.Message);
+            return Result.Fail(new Error("StoreReplacementDocumentTypeAsync:  " + ex.Message).CausedBy(ex));
         }
     }
 
@@ -258,6 +397,61 @@ public class DocumentServerEngine
     }
 
 
+
+    /// <summary>
+    /// Replaces a Replaceable document with a new one.  Marks for deletion the old one.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<Result<StoredDocument>> ReplaceDocument(ReplacementDto replacementDto)
+    {
+        // Lets read current stored document
+        StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentId);
+        if (storedDocument == null)
+            return Result.Fail(new Error("Unable to find existing StoredDocument with Id [ " + replacementDto.CurrentId + " ]"));
+
+
+        return Result.Ok(storedDocument);
+    }
+
+
+
+    /// <summary>
+    /// Changes the IsAlive status of a DocumentType
+    /// </summary>
+    /// <param name="documentTypeId"></param>
+    /// <param name="isAliveValue"></param>
+    /// <returns></returns>
+    public async Task<Result> SetDocumentTypeAliveStatus(int documentTypeId,
+                                                         bool isAliveValue)
+    {
+        try
+        {
+            DocumentType documentType = await _db.DocumentTypes.SingleAsync(d => d.Id == documentTypeId);
+            if (documentType == null)
+            {
+                return Result.Fail("Unable to find a DocumentType with the Id of " + documentTypeId);
+            }
+
+            if (documentType.IsActive == isAliveValue)
+            {
+                return Result.Ok();
+            }
+
+            // Change it 
+            documentType.IsActive = isAliveValue;
+            await _db.SaveChangesAsync();
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("FAiled to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
+            return Result.Fail(new Error("Failed to change DocumentType IsAlive Status due to error.").CausedBy(ex));
+        }
+    }
+
+
+#region "Support Functions"
+
     /// <summary>
     ///  Loads / Reloads the master data tables.
     /// </summary>
@@ -311,33 +505,20 @@ public class DocumentServerEngine
             string month = folderDatetime.ToString("MM");
 
 
-#if DEBUG
-
-            // Displays the Change Tracker Cache
-            Console.WriteLine("Displaying ChangeTracker Cache");
-            foreach (var entityEntry in _db.ChangeTracker.Entries())
-            {
-                Console.WriteLine($"Found {entityEntry.Metadata.Name} entity with ID {entityEntry.Property("Id").CurrentValue}");
-            }
-#endif
-
             // Retrieve Storage Node
-            StorageNode storageNode = await _db.StorageNodes.SingleAsync(n => n.Id == storageNodeId);
-
-
-            string modePath = documentType.StorageMode switch
+            StorageNode storageNode = await _db.StorageNodes.SingleOrDefaultAsync(n => n.Id == storageNodeId);
+            if (storageNode == null)
             {
-                EnumStorageMode.WriteOnceReadMany => "W",
-                EnumStorageMode.Temporary         => "T",
-                EnumStorageMode.Editable          => "E",
-                EnumStorageMode.Versioned         => "V",
-                _                                 => ""
-            };
-            if (modePath == string.Empty)
-            {
-                return Result.Fail("Unknown StorageMode Value [ " + documentType.StorageMode.ToString() + " ] for DocumentType: " + documentType.Id);
+                string nodeMsg = String.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
+                return Result.Fail(new Error(nodeMsg));
             }
 
+            // Get letter for Mode.
+            Result<string> modeResult = GetModeLetter(documentType.StorageMode);
+            if (modeResult.IsFailed)
+                return modeResult;
+
+            string modePath = modeResult.Value;
 
             string path = Path.Combine(storageNode.NodePath,
                                        modePath,
@@ -369,37 +550,33 @@ public class DocumentServerEngine
     }
 
 
+
     /// <summary>
-    /// Changes the IsAlive status of a DocumentType
+    /// Returns the Mode Letter for the given StorageMode
     /// </summary>
-    /// <param name="documentTypeId"></param>
-    /// <param name="isActiveValue"></param>
+    /// <param name="storageMode"></param>
     /// <returns></returns>
-    public async Task<Result> SetDocumentTypeActiveStatus(int documentTypeId,
-                                                          bool isActiveValue)
+    /// <exception cref="NotSupportedException"></exception>
+    internal Result<string> GetModeLetter(EnumStorageMode storageMode)
     {
         try
         {
-            DocumentType documentType = await _db.DocumentTypes.SingleAsync(d => d.Id == documentTypeId);
-            if (documentType == null)
+            string modeLetter = storageMode switch
             {
-                return Result.Fail("Unable to find a DocumentType with the Id of " + documentTypeId);
-            }
-
-            if (documentType.IsActive == isActiveValue)
-            {
-                return Result.Ok();
-            }
-
-            // Change it 
-            documentType.IsActive = isActiveValue;
-            await _db.SaveChangesAsync();
-            return Result.Ok();
+                EnumStorageMode.WriteOnceReadMany => "W",
+                EnumStorageMode.Editable          => "E",
+                EnumStorageMode.Temporary         => "T",
+                EnumStorageMode.Replaceable       => "R",
+                EnumStorageMode.Versioned         => "V",
+                _                                 => throw new NotSupportedException("Invalid StorageMode provided - " + storageMode.ToString())
+            };
+            return Result.Ok(modeLetter);
         }
         catch (Exception ex)
         {
-            _logger.LogError("FAiled to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
-            return Result.Fail(new Error("Failed to change DocumentType IsAlive Status due to error.").CausedBy(ex));
+            return Result.Fail(new ExceptionalError(ex));
         }
     }
+
+#endregion
 }

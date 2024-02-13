@@ -15,10 +15,17 @@ public enum EnumStorageMode
     /// </summary>
     Editable = 50,
 
+
+    /// <summary>
+    /// The document can be replaced with another "version" of the document.  The prior one is deleted.
+    /// </summary>
+    Replaceable = 100,
+
+
     /// <summary>
     /// A Document that can retain a certain number of versions.
     /// </summary>
-    Versioned = 75,
+    Versioned = 150,
 
     /// <summary>
     /// The document can only be written once.  It can only be deleted if it has exceeded the lifetime rules

@@ -171,12 +171,22 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = prodY,
             IsActive           = true
         };
-
+        DocumentType docRA = new DocumentType()
+        {
+            Name               = TestConstants.DOCTYPE_REPLACE_A,
+            Description        = "Prod Doc Type RA - Replaceable",
+            Application        = appA,
+            StorageMode        = EnumStorageMode.Replaceable,
+            ActiveStorageNode1 = prodX,
+            ActiveStorageNode2 = prodY,
+            IsActive           = true
+        };
         db.AddRange(docA,
                     docB,
                     docC,
                     docX,
-                    docY);
+                    docY,
+                    docRA);
         db.SaveChanges();
     }
 }

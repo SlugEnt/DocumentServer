@@ -27,8 +27,9 @@ namespace DocumentServer_Test.SupportObjects;
 /// </summary>
 public class SupportMethods
 {
-    private readonly MockLogger<DocumentServerEngine> _logger = Substitute.For<MockLogger<DocumentServerEngine>>();
-    private static   Faker                            _faker  = null;
+    private readonly MockLogger<DocumentServerEngine> _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
+    private static   Faker                            _faker      = null;
+    private          UniqueKeys                       _uniqueKeys = new("");
 
 
     /// <summary>
@@ -176,6 +177,11 @@ public class SupportMethods
     /// </summary>
     public int DocumentType_Prod_Temp_Y { get; private set; }
 
+    /// <summary>
+    /// Returns the Document Type for a Replaceable document
+    /// </summary>
+    public int DocumentType_Prod_Replaceable_A { get; private set; }
+
 
 
     /// <summary>
@@ -195,14 +201,16 @@ public class SupportMethods
         DocumentType doc = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_TEST_A);
         DocumentType_Test_Worm_A = doc.Id;
 
-        doc                      = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_TEST_B);
-        DocumentType_Test_Temp_B = doc.Id;
-        doc                      = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_TEST_C);
-        DocumentType_Test_Edit_C = doc.Id;
-        doc                      = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_PROD_X);
-        DocumentType_Prod_Worm_X = doc.Id;
-        doc                      = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_PROD_Y);
-        DocumentType_Prod_Temp_Y = doc.Id;
+        doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_TEST_B);
+        DocumentType_Test_Temp_B        = doc.Id;
+        doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_TEST_C);
+        DocumentType_Test_Edit_C        = doc.Id;
+        doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_PROD_X);
+        DocumentType_Prod_Worm_X        = doc.Id;
+        doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_PROD_Y);
+        DocumentType_Prod_Temp_Y        = doc.Id;
+        doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_REPLACE_A);
+        DocumentType_Prod_Replaceable_A = doc.Id;
     }
 
 
@@ -219,11 +227,11 @@ public class SupportMethods
                                   string extension,
                                   int sizeInKB)
     {
-        int        fileSize   = sizeInKB * 1024;
-        UniqueKeys uniqueKeys = new("");
-        string     filePart   = uniqueKeys.GetKey("abc");
-        string     fileName   = filePart + "." + extension;
-        string     fullPath   = Path.Combine(path, fileName);
+        int fileSize = sizeInKB * 1024;
+
+        string filePart = _uniqueKeys.GetKey("abc");
+        string fileName = filePart + "." + extension;
+        string fullPath = Path.Combine(path, fileName);
 
         byte[] data = new byte[1024];
         Random rng  = new();
@@ -261,6 +269,7 @@ public class SupportMethods
                                              expectedExtension,
                                              3);
         string fullPath = Path.Combine(sm.Folder_Test, fileName);
+        Console.WriteLine("Generated FileName: " + fullPath);
         Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
 
 

@@ -23,11 +23,12 @@ namespace DocumentServer_Test.SupportObjects
         public const string STORAGE_NODE_PROD_Y = "NodeY";
 
         // Document Type Names
-        public const string DOCTYPE_TEST_A = "DocA";
-        public const string DOCTYPE_TEST_B = "DocB";
-        public const string DOCTYPE_TEST_C = "DocC";
-        public const string DOCTYPE_PROD_X = "DocX";
-        public const string DOCTYPE_PROD_Y = "DocY";
-        public const string DOCTYPE_PROD_Z = "DocZ";
+        public const string DOCTYPE_TEST_A    = "DocA";
+        public const string DOCTYPE_TEST_B    = "DocB";
+        public const string DOCTYPE_TEST_C    = "DocC";
+        public const string DOCTYPE_PROD_X    = "DocX";
+        public const string DOCTYPE_PROD_Y    = "DocY";
+        public const string DOCTYPE_PROD_Z    = "DocZ";
+        public const string DOCTYPE_REPLACE_A = "docRA";
     }
 }

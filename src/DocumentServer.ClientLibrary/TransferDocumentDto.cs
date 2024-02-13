@@ -5,7 +5,7 @@ namespace DocumentServer.ClientLibrary;
 /// <summary>
 /// This object is used to transfer an actual file back and forth from the Document Server
 /// </summary>
-public class TransferDocumentDto
+public class TransferDocumentDto : AbstractBaseFileTransfer
 {
     /// <summary>
     /// The Description of the Document
@@ -15,19 +15,19 @@ public class TransferDocumentDto
     /// <summary>
     ///  File Extension of the document
     /// </summary>
-    public string FileExtension { get; set; } = "";
+//    public string FileExtension { get; set; } = "";
 
     /// <summary>
     /// The File in Base64 format
     /// </summary>
-    public string FileInBase64Format { get; set; }
+    //  public string FileInBase64Format { get; set; }
 
     /// <summary>
     /// Type of Document This is
     /// </summary>
     public int DocumentTypeId { get; set; }
 
-
+    /*
     /// <summary>
     /// Reads the specified file into the FileInBase64Format property.
     /// </summary>
@@ -77,4 +77,5 @@ public class TransferDocumentDto
             return false;
         }
     }
+    */
 }

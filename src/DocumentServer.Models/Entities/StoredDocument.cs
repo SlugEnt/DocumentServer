@@ -55,7 +55,7 @@ namespace DocumentServer.Models.Entities
         [Key] public long Id { get; set; }
 
         /// <summary>
-        /// Filename that document is stored as on the file system.
+        /// Filename that document is stored as on the file system.  This is just the file name, for full path and name use FileNameAndPath
         /// </summary>
         public string FileName { get; set; } = "";
 
@@ -158,6 +158,28 @@ namespace DocumentServer.Models.Entities
                 string ext = fileExtension == string.Empty ? string.Empty : "." + fileExtension;
                 FileName = Guid.NewGuid().ToString() + ext;
             }
+        }
+
+
+
+        /// <summary>
+        /// Replaces the existing FileName with a new one.
+        /// </summary>
+        /// <param name="fileExtension"></param>
+        public void ReplaceFileName(string fileExtension)
+        {
+            FileName = string.Empty;
+            SetFileName(fileExtension);
+        }
+
+
+        /// <summary>
+        /// Returns the full path including the filename of the Stored Document
+        /// </summary>
+        [NotMapped]
+        public string FileNameAndPath
+        {
+            get { return Path.Join(StorageFolder, FileName); }
         }
 
 
