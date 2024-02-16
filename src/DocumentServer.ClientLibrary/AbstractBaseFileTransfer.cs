@@ -21,6 +21,18 @@ namespace DocumentServer.ClientLibrary
 
 
         /// <summary>
+        /// This is the external (Calling) systems primary relation ID, Ie, the thing this is related to, for instance a Claim #.
+        /// </summary>
+        public string RootObjectId { get; set; }
+
+
+        /// <summary>
+        /// This is the external (calling) systems Id that is related to this document.  Like an Invoice # or Bill #
+        /// </summary>
+        public string? DocTypeExternalId { get; set; }
+
+
+        /// <summary>
         /// Reads the specified file into the FileInBase64Format property.
         /// </summary>
         /// <param name="fileName">Full path and name of file to read in</param>

@@ -27,18 +27,15 @@ namespace DocumentServer.Models.Entities
                             string description,
                             string storageFolder,
                             EnumStorageMode storageMode,
-                            int applicationId,
+                            int rootObjectId,
                             int activeStorageNodeId,
                             EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
         {
-/*            if (storageFolder.Contains(" "))
-                throw new ArgumentException("Storage Folder Name cannot contain a space.");*/
-
             Name                 = name;
             Description          = description;
             StorageFolderName    = storageFolder;
             StorageMode          = storageMode;
-            ApplicationId        = applicationId;
+            RootObjectId         = rootObjectId;
             ActiveStorageNode1Id = activeStorageNodeId;
             InActiveLifeTime     = lifeTime;
 
@@ -111,7 +108,16 @@ namespace DocumentServer.Models.Entities
 
 
         // Relationships
-        public int ApplicationId { get; set; }
+        public int RootObjectId { get; set; }
+
+
+        /// <summary>
+        /// If this is false, then there can only be one entry per DocumentType External Key.  Meaning an invoice 123 can only exist once for this documenttype and rootObjectKey combination.  If true, there can be multiple of the same key.
+        /// </summary>
+        public bool AllowSameDTEKeys { get; set; } = false;
+
+
+        //public int ApplicationId { get; set; }
         public int? ActiveStorageNode1Id { get; set; }
         public int? ActiveStorageNode2Id { get; set; }
         public int? ArchivalStorageNode1Id { get; set; }
@@ -120,7 +126,9 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// The application this document type belongs to.
         /// </summary>
-        public Application Application { get; set; }
+
+        //public Application Application { get; set; }
+        public RootObject RootObject { get; set; }
 
         // Storage Nodes 
         public StorageNode ActiveStorageNode1 { get; set; }

@@ -12,6 +12,7 @@ using Application = DocumentServer.Models.Entities.Application;
 using System.Runtime.CompilerServices;
 using DocumentServer.ClientLibrary;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Storage;
 using SlugEnt.FluentResults;
 
@@ -182,12 +183,43 @@ public class DocumentServerEngine
 
             // We always use the primary node for initial storage.
             int fileSize = transferDocumentDto.FileInBase64Format.Length > 1024 ? transferDocumentDto.FileInBase64Format.Length / 1024 : 1;
-            StoredDocument storedDocument = new(transferDocumentDto.FileExtension,
-                                                transferDocumentDto.Description,
-                                                "",
-                                                fileSize,
-                                                transferDocumentDto.DocumentTypeId,
-                                                (int)docType.ActiveStorageNode1Id);
+
+            if (String.IsNullOrWhiteSpace(transferDocumentDto.RootObjectId))
+                return Result.Fail(new Error("No RootObjectId was specified on the TransferDocumentDto.  It is required."));
+
+            if (String.IsNullOrWhiteSpace(transferDocumentDto.DocTypeExternalId))
+
+                // Ensure it is null.
+                transferDocumentDto.DocTypeExternalId = null;
+            else
+            {
+                // Make sure we are following the rule for not allowing duplicates if it is set.
+                if (!docType.AllowSameDTEKeys)
+                {
+                    // Make sure the external key does not already exist.
+                    bool exists = _db.StoredDocuments.Any(sd => sd.RootObjectExternalKey == transferDocumentDto.RootObjectId &&
+                                                                sd.DocTypeExternalKey == transferDocumentDto.DocTypeExternalId);
+                    if (exists)
+                    {
+                        string msg =
+                            String.Format("Duplicate Key not allowed.  RootObject Id [ {0} ] already has a DocumentType [ {1} ]  with an External Id of [ {2} ].  This DocumentType does not allow duplicate entries.",
+                                          transferDocumentDto.RootObjectId,
+                                          transferDocumentDto.DocumentTypeId,
+                                          transferDocumentDto.DocTypeExternalId);
+                        return Result.Fail(new Error(msg));
+                    }
+                }
+            }
+
+            StoredDocument storedDocument = new StoredDocument(fileExtension: transferDocumentDto.FileExtension,
+                                                               transferDocumentDto.Description,
+                                                               transferDocumentDto.RootObjectId,
+                                                               transferDocumentDto.DocTypeExternalId,
+                                                               storageFolder: "",
+                                                               fileSize,
+                                                               transferDocumentDto.DocumentTypeId,
+                                                               (int)docType.ActiveStorageNode1Id);
+
 
             // Store the document on the storage media
             Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,

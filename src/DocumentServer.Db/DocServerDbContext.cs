@@ -28,7 +28,7 @@ namespace DocumentServer.Db
         public DbSet<DocumentType> DocumentTypes { get; set; }
         public DbSet<StorageNode> StorageNodes { get; set; }
         public DbSet<ExpiringDocument> ExpiringDocuments { get; set; }
-
+        public DbSet<RootObject> RootObjects { get; set; }
 
 
         // Reference / Lookup Models

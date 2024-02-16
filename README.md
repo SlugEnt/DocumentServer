@@ -6,12 +6,17 @@ DocumentServer stores documents via Document Types, each of which has a category
 These documents are Write Once Read Many.  Meaning the first time they are written is the only time they can be written.  Overwrite or updates to the same document is not allowed.  
 
 ### Category - Temporary 
-These documents are considered transitory and only have a limited lifetime.  Onece their lifetime is up they are automatically deleted.  The supporting app does not need to worry about them after sending them for storage, cleanup automatically happens by the DocumentServer engines.
+These documents are considered transitory and only have a limited lifetime.  Once their lifetime is up they are automatically deleted.  The supporting app does not need to worry about them after sending them for storage, cleanup automatically happens by the DocumentServer engines.
 
-### Category - Editable 
+### Category - Replaceable 
 These documents can be overwritten.  Versioning of the documents does not happen.  It is simply if the supporting application sends an update to this document with the document Id the one will be replaced with this new one.
 
 ### Category - Versioned???
+
+## Document Storage
+All documents must be associated with an Application.  An Application is just a means of segmenting a whole bunch of related documents.  
+
+Every Application then has 1 or more Root Objects.  A Root object is an object that can have many types of documents that it wants to store, but they are related around some central record.  For instance it might be an Insurance Claim # or a Referal # or an Accounting #, Provider #, Employer #, etc, it is an Id that associates 1 or more documents to a single entity in some upstream system.  This way you can easily in the future say: "Archive all documents for the Application Unity that are related to Claim 123" and the system will do that for every document you have associated with that claim #.  
 
 
 ## The DocumentServer Solution

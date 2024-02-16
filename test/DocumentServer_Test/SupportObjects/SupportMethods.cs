@@ -260,7 +260,9 @@ public class SupportMethods
     public Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
                                                               string expectedDescription,
                                                               string expectedExtension,
-                                                              int expectedDocTypeId)
+                                                              int expectedDocTypeId,
+                                                              string expectedRootObjectId,
+                                                              string? expectedDocExtKey)
     {
         // A10. Create A Document
 
@@ -284,6 +286,8 @@ public class SupportMethods
             DocumentTypeId     = expectedDocTypeId,
             FileExtension      = expectedExtension,
             FileInBase64Format = file,
+            RootObjectId       = expectedRootObjectId,
+            DocTypeExternalId  = expectedDocExtKey
         };
         return Result.Ok<TransferDocumentDto>(upload);
     }

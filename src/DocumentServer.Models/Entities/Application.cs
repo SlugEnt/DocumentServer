@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace DocumentServer.Models.Entities
 {
     /// <summary>
@@ -31,6 +32,7 @@ namespace DocumentServer.Models.Entities
 
         // Each App has 1 or more Document Types it manages.
         public ICollection<DocumentType> DocumentTypes;
+        public ICollection<RootObject>   RootObjects;
 
 
         /// <summary>
