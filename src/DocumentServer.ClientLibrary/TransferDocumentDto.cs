@@ -26,7 +26,6 @@ public class TransferDocumentDto : AbstractBaseFileTransfer
     /// Type of Document This is
     /// </summary>
     public int DocumentTypeId { get; set; }
-
     /*
     /// <summary>
     /// Reads the specified file into the FileInBase64Format property.

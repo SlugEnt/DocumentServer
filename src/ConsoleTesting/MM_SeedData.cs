@@ -58,13 +58,23 @@ namespace ConsoleTesting
                 await _db.SaveChangesAsync();
 
 
+                RootObject rootA = new RootObject()
+                {
+                    Application = application,
+                    Description = "some reference",
+                    Name        = "Some Reference"
+                };
+                _db.Add<RootObject>(rootA);
+                await _db.SaveChangesAsync();
+
+
                 // Create Document Types
                 DocumentType docType = new()
                 {
                     Name        = "Referral Acceptance Form",
                     Description = "Signed Referral Acceptance Form",
                     StorageMode = EnumStorageMode.WriteOnceReadMany,
-                    Application = application
+                    RootObject  = rootA
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -74,7 +84,7 @@ namespace ConsoleTesting
                     Name        = "Drug Results",
                     Description = "Official Drug Test Results",
                     StorageMode = EnumStorageMode.WriteOnceReadMany,
-                    Application = application
+                    RootObject  = rootA
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -84,7 +94,7 @@ namespace ConsoleTesting
                     Name        = "Draft Work Plan",
                     Description = "Draft of a work plan",
                     StorageMode = EnumStorageMode.Editable,
-                    Application = application
+                    RootObject  = rootA
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -94,7 +104,7 @@ namespace ConsoleTesting
                     Name        = "Temporary Notes",
                     Description = "Notes taken during a meeting",
                     StorageMode = EnumStorageMode.Temporary,
-                    Application = application
+                    RootObject  = rootA
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -102,7 +112,8 @@ namespace ConsoleTesting
             }
             catch (Exception ex)
             {
-                _logger.LogError("SeedAbsenceMgtAsync:  Error: {Error}  InnerError: {InnerError}", ex.Message,
+                _logger.LogError("SeedAbsenceMgtAsync:  Error: {Error}  InnerError: {InnerError}",
+                                 ex.Message,
                                  ex.InnerException != null ? ex.InnerException.Message : "N/A");
             }
         }
@@ -114,12 +125,20 @@ namespace ConsoleTesting
         /// <returns></returns>
         public async Task SeedStorageNodesAsync()
         {
-            StorageNode snode = new StorageNode("AbsenceMgt Primary", "Primary Storage for Absence Mgt", false, EnumStorageNodeLocation.HostedSMB,
-                                                EnumStorageNodeSpeed.Hot, nodePath: @"T:\ProgrammingTesting\absmgt_primary1");
+            StorageNode snode = new StorageNode("AbsenceMgt Primary",
+                                                "Primary Storage for Absence Mgt",
+                                                false,
+                                                EnumStorageNodeLocation.HostedSMB,
+                                                EnumStorageNodeSpeed.Hot,
+                                                nodePath: @"T:\ProgrammingTesting\absmgt_primary1");
             _db.Add<StorageNode>(snode);
 
-            snode = new StorageNode("AbsenceMgt Secondary", "Secondary Storage for Absence Mgt", false, EnumStorageNodeLocation.HostedSMB,
-                                    EnumStorageNodeSpeed.Hot, nodePath: @"T:\ProgrammingTesting\absmgt_secondary1");
+            snode = new StorageNode("AbsenceMgt Secondary",
+                                    "Secondary Storage for Absence Mgt",
+                                    false,
+                                    EnumStorageNodeLocation.HostedSMB,
+                                    EnumStorageNodeSpeed.Hot,
+                                    nodePath: @"T:\ProgrammingTesting\absmgt_secondary1");
             _db.Add<StorageNode>(snode);
         }
     }

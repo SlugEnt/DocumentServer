@@ -84,6 +84,34 @@ public static class DatabaseSetup_Test
         db.SaveChanges();
 
 
+        // Add a Root Object For each Application
+        RootObject rootA = new RootObject()
+        {
+            ApplicationId = appA.Id,
+            Name          = "Claim #",
+            Description   = "Claim Number of Auto Policy",
+        };
+
+        RootObject rootB = new RootObject()
+        {
+            ApplicationId = appB.Id,
+            Name          = "Movie #",
+            Description   = "The movie",
+        };
+
+        RootObject rootC = new RootObject()
+        {
+            ApplicationId = appB.Id,
+            Name          = "Actor",
+            Description   = "The actors professional screen writers Id",
+        };
+
+        db.Add<RootObject>(rootA);
+        db.Add<RootObject>(rootB);
+        db.Add<RootObject>(rootC);
+        db.SaveChanges();
+
+
         // Add Storage Nodes
         StorageNode testA = new StorageNode(TestConstants.STORAGE_NODE_TEST_A,
                                             "Test Node A - Primary",
@@ -125,7 +153,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_A,
             Description        = "Test Doc Type A - WORM",
-            Application        = appA,
+            RootObject         = rootA,
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = testA,
             ActiveStorageNode2 = testB,
@@ -135,7 +163,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_B,
             Description        = "Test Doc Type B - Temporary",
-            Application        = appA,
+            RootObject         = rootB,
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = testA,
             ActiveStorageNode2 = testB,
@@ -145,7 +173,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_C,
             Description        = "Test Doc Type C - Editable",
-            Application        = appA,
+            RootObject         = rootC,
             StorageMode        = EnumStorageMode.Editable,
             ActiveStorageNode1 = testA,
             ActiveStorageNode2 = testB,
@@ -155,7 +183,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_PROD_X,
             Description        = "Prod Doc Type X - WORM",
-            Application        = appA,
+            RootObject         = rootA,
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = prodX,
             ActiveStorageNode2 = prodY,
@@ -165,7 +193,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_PROD_Y,
             Description        = "Prod Doc Type Y - Temporary",
-            Application        = appA,
+            RootObject         = rootB,
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = prodX,
             ActiveStorageNode2 = prodY,
@@ -175,7 +203,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_REPLACE_A,
             Description        = "Prod Doc Type RA - Replaceable",
-            Application        = appA,
+            RootObject         = rootC,
             StorageMode        = EnumStorageMode.Replaceable,
             ActiveStorageNode1 = prodX,
             ActiveStorageNode2 = prodY,

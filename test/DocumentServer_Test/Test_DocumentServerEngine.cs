@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.IO.Abstractions;
 using Bogus;
 using Bogus.DataSets;
 using DocumentServer.ClientLibrary;
@@ -62,7 +63,7 @@ public class Test_DocumentServerEngine
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = storageNode.Id,
-            ApplicationId        = 1,
+            RootObjectId         = 1,
             StorageMode          = (EnumStorageMode)INVALID_STORAGE_MODE,
         };
         sm.DB.AddAsync(randomDocType);
@@ -115,7 +116,7 @@ public class Test_DocumentServerEngine
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = storageNode.Id,
-            ApplicationId        = 1,
+            RootObjectId         = 1,
             StorageMode          = storageMode,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
         };
@@ -166,6 +167,9 @@ public class Test_DocumentServerEngine
         int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
         string               expectedExtension    = sm.Faker.Random.String2(3);
         string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = null;
+
 
         // TODO - for test only.  DElete please now!
 //        sm.DB.ChangeTracker.Clear();
@@ -173,7 +177,9 @@ public class Test_DocumentServerEngine
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
-                                                                              expectedDocTypeId);
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -219,15 +225,21 @@ public class Test_DocumentServerEngine
         SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-        int    expectedDocTypeId   = sm.DocumentType_Test_Worm_A;
-        string expectedExtension   = sm.Faker.Random.String2(3);
-        string expectedDescription = sm.Faker.Random.String2(32);
+        int     expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string  expectedExtension    = sm.Faker.Random.String2(3);
+        string  expectedDescription  = sm.Faker.Random.String2(32);
+        string  expectedRootObjectId = sm.Faker.Random.String2(10);
+        string? expectedExternalId   = null;
+
 
         // A.  Generate File and store it
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
-                                                                              expectedDocTypeId);
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -273,8 +285,10 @@ public class Test_DocumentServerEngine
         SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-        string expectedExtension   = sm.Faker.Random.String2(3);
-        string expectedDescription = sm.Faker.Random.String2(32);
+        string  expectedExtension    = sm.Faker.Random.String2(3);
+        string  expectedDescription  = sm.Faker.Random.String2(32);
+        string  expectedRootObjectId = sm.Faker.Random.String2(10);
+        string? expectedExternalId   = null;
 
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
@@ -283,7 +297,7 @@ public class Test_DocumentServerEngine
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = 1,
-            ApplicationId        = 1,
+            RootObjectId         = 1,
             StorageMode          = EnumStorageMode.Temporary,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
             InActiveLifeTime     = lifeTime,
@@ -302,7 +316,10 @@ public class Test_DocumentServerEngine
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
-                                                                              randomDocType.Id);
+                                                                              randomDocType.Id,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -502,8 +519,9 @@ public class Test_DocumentServerEngine
         string               expectedExtension     = sm.Faker.Random.String2(3);
         string               expectedDescription   = sm.Faker.Random.String2(32);
         string               expectedStorageFolder = sm.Faker.Random.String2(6);
-
-        byte[] fileBytes = sm.Faker.Random.Bytes(20);
+        string               expectedRootObjectId  = sm.Faker.Random.String2(9);
+        string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
+        byte[]               fileBytes             = sm.Faker.Random.Bytes(20);
 
 
         // Load a Document Type
@@ -512,10 +530,12 @@ public class Test_DocumentServerEngine
         // Create a dummy StoredDocument
         StoredDocument storedDocument = new StoredDocument(fileExtension: expectedExtension,
                                                            description: expectedDescription,
-                                                           expectedStorageFolder,
-                                                           1,
-                                                           sm.DocumentType_Test_Worm_A,
-                                                           sm.StorageNode_Test_A);
+                                                           storageFolder: expectedStorageFolder,
+                                                           rootObjectExternalKey: expectedRootObjectId,
+                                                           docTypeExternalKey: exptectedDocTypeExtId,
+                                                           sizeInKB: 0,
+                                                           documentTypeId: sm.DocumentType_Test_Worm_A,
+                                                           primaryStorageNodeId: sm.StorageNode_Test_A);
 
         string fileBytes64 = Convert.ToBase64String(fileBytes);
         Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
@@ -542,6 +562,8 @@ public class Test_DocumentServerEngine
         string               expectedExtension     = sm.Faker.Random.String2(3);
         string               expectedDescription   = sm.Faker.Random.String2(32);
         string               expectedStorageFolder = sm.Faker.Random.String2(6);
+        string               expectedRootObjectId  = sm.Faker.Random.String2(9);
+        string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
 
         byte[] fileBytes = sm.Faker.Random.Bytes(20);
 
@@ -551,12 +573,15 @@ public class Test_DocumentServerEngine
 
         // Create a dummy StoredDocument
         int badStorageNode = 999999;
+
         StoredDocument storedDocument = new StoredDocument(fileExtension: expectedExtension,
                                                            description: expectedDescription,
-                                                           expectedStorageFolder,
-                                                           1,
-                                                           sm.DocumentType_Test_Worm_A,
-                                                           badStorageNode);
+                                                           storageFolder: expectedStorageFolder,
+                                                           rootObjectExternalKey: expectedRootObjectId,
+                                                           docTypeExternalKey: exptectedDocTypeExtId,
+                                                           sizeInKB: 0,
+                                                           documentTypeId: sm.DocumentType_Test_Worm_A,
+                                                           primaryStorageNodeId: badStorageNode);
 
         string fileBytes64 = Convert.ToBase64String(fileBytes);
         Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
@@ -579,13 +604,17 @@ public class Test_DocumentServerEngine
         int                  expectedDocTypeId    = sm.DocumentType_Prod_Replaceable_A;
         string               expectedExtension    = sm.Faker.Random.String2(3);
         string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = null;
 
 
         //***  B. Generate a file and store it
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
-                                                                              expectedDocTypeId);
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -604,7 +633,9 @@ public class Test_DocumentServerEngine
         Result<TransferDocumentDto> genNewFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                                  replaceDescription,
                                                                                  expectedExtension,
-                                                                                 expectedDocTypeId);
+                                                                                 expectedDocTypeId,
+                                                                                 expectedRootObjectId,
+                                                                                 expectedExternalId);
 
         // Create the ReplacementDTO
         ReplacementDto replacementDto = new ReplacementDto()
@@ -644,5 +675,207 @@ public class Test_DocumentServerEngine
         }
 
         Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(3), "Z91:");
+    }
+
+
+
+    /// <summary>
+    /// Confirms we can store a document that has an ExternalDocumentId
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task StoreDocument_HasExternalDocTypeKey_Success()
+    {
+        // A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+
+
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        StoredDocument         storedDocument = result.Value;
+
+
+        // Z. Validate
+        // Z.10 - Validate the Database entry
+
+        //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(storedDocument.FileName, Does.EndWith(expectedExtension), "Z10: File Extensions do not match");
+        Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(expectedDocTypeId), "Z20:");
+        Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30");
+        Assert.That(storedDocument.RootObjectExternalKey, Is.EqualTo(expectedRootObjectId), "Z40:");
+        Assert.That(storedDocument.DocTypeExternalKey, Is.EqualTo(expectedExternalId), "Z50:");
+    }
+
+
+
+    /// <summary>
+    /// Confirms we can store a document that has an ExternalDocumentId that is the same across multiple StoredDocuments
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task StoreDocument_HasExternalDocTypeKey_MultipleEntries_Success()
+    {
+        // A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+
+
+        //***  B. Create a random DocumentType.  These document types all will have a custom folder name
+        DocumentType randomDocType = new DocumentType()
+        {
+            Name                 = sm.Faker.Commerce.ProductName(),
+            Description          = sm.Faker.Lorem.Sentence(),
+            ActiveStorageNode1Id = 1,
+            RootObjectId         = 1,
+            StorageMode          = EnumStorageMode.Temporary,
+            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
+            InActiveLifeTime     = EnumDocumentLifetimes.DayOne,
+            IsActive             = true,
+            AllowSameDTEKeys     = true,
+        };
+        Result r1 = randomDocType.IsValid();
+        Console.WriteLine(r1.ToString());
+        if (r1.IsFailed)
+            throw new ApplicationException(r1.Errors.ToString());
+
+        sm.DB.AddAsync(randomDocType);
+        await sm.DB.SaveChangesAsync();
+
+        for (int i = 0; i < 4; i++)
+        {
+            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                  expectedDescription,
+                                                                                  expectedExtension,
+                                                                                  randomDocType.Id,
+                                                                                  expectedRootObjectId,
+                                                                                  expectedExternalId);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+            Assert.That(result.IsSuccess, Is.True, "Z05:");
+            StoredDocument storedDocument = result.Value;
+
+
+            // Z. Validate
+            // Z.10 - Validate the Database entry
+
+            //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+            Assert.That(storedDocument.FileName, Does.EndWith(expectedExtension), "Z10: Loop [ " + i + " ] File Extensions do not match");
+            Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(randomDocType.Id), "Z20: Loop [ " + i + " ]");
+            Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30Loop [ " + i + " ] ");
+            Assert.That(storedDocument.RootObjectExternalKey, Is.EqualTo(expectedRootObjectId), "Z40:Loop [ " + i + " ] ");
+            Assert.That(storedDocument.DocTypeExternalKey, Is.EqualTo(expectedExternalId), "Z50:Loop [ " + i + " ] ");
+        }
+    }
+
+
+
+    /// <summary>
+    /// Confirms we can only store a single document With an External DocumentTypeId that is the same for a given DocType
+    /// We run thru the test cycle 2 times.  The first time we should be able to save the document.  The 2nd we should
+    /// get an error.
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task StoreDocument_HasExternalDocTypeKey_AllowsSingleEntries_Success()
+    {
+        // A. Setup
+        SupportMethods       sm                   = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+
+
+        //***  B. Create a random DocumentType.  These document types all will have a custom folder name
+        DocumentType randomDocType = new DocumentType()
+        {
+            Name                 = sm.Faker.Commerce.ProductName(),
+            Description          = sm.Faker.Lorem.Sentence(),
+            ActiveStorageNode1Id = 1,
+            RootObjectId         = 1,
+            StorageMode          = EnumStorageMode.Temporary,
+            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
+            InActiveLifeTime     = EnumDocumentLifetimes.DayOne,
+            IsActive             = true,
+            AllowSameDTEKeys     = false,
+        };
+        Result r1 = randomDocType.IsValid();
+        Console.WriteLine(r1.ToString());
+        if (r1.IsFailed)
+            throw new ApplicationException(r1.Errors.ToString());
+
+        sm.DB.AddAsync(randomDocType);
+        await sm.DB.SaveChangesAsync();
+
+        for (int i = 0; i < 2; i++)
+        {
+            //***  Y
+            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                  expectedDescription,
+                                                                                  expectedExtension,
+                                                                                  randomDocType.Id,
+                                                                                  expectedRootObjectId,
+                                                                                  expectedExternalId);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+
+            // First pass we let go thru, 2nd we should get a failure.
+            if (i > 0)
+            {
+                Assert.That(result.IsFailed, Is.True, "Y10:");
+                string searchMsg = "Duplicate Key not allowed.";
+                Assert.That(result.ToString().Contains(searchMsg), "Y20:");
+                return;
+            }
+
+            Assert.That(result.IsSuccess, Is.True, "Y30:");
+            StoredDocument storedDocument = result.Value;
+
+
+            // Z. Validate
+            // Z.10 - Validate the Database entry
+
+            //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
+            Assert.That(storedDocument.FileName, Does.EndWith(expectedExtension), "Z10: Loop [ " + i + " ] File Extensions do not match");
+            Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(randomDocType.Id), "Z20: Loop [ " + i + " ]");
+            Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30Loop [ " + i + " ] ");
+            Assert.That(storedDocument.RootObjectExternalKey, Is.EqualTo(expectedRootObjectId), "Z40:Loop [ " + i + " ] ");
+            Assert.That(storedDocument.DocTypeExternalKey, Is.EqualTo(expectedExternalId), "Z50:Loop [ " + i + " ] ");
+        }
+    }
+
+
+
+    [Test]
+    public void dummy()
+    {
+        SupportMethods sm = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
+
+        try
+        {
+            sm.FileSystem.File.Create("abc");
+
+            FileSystemStream fs = sm.FileSystem.File.OpenWrite("abc");
+            fs.WriteByte(23);
+            sm.FileSystem.File.Delete("abc");
+        }
+        catch (Exception ex)
+        {
+            int j = 3;
+        }
     }
 }

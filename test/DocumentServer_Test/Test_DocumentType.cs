@@ -77,8 +77,10 @@ public class Test_DocumentType
         DocumentServerEngine dse        = sm.DocumentServerEngine;
         string               folderName = sm.Faker.Random.AlphaNumeric(6);
 
-        string expectedExtension   = sm.Faker.Random.String2(3);
-        string expectedDescription = sm.Faker.Random.String2(32);
+        string  expectedExtension    = sm.Faker.Random.String2(3);
+        string  expectedDescription  = sm.Faker.Random.String2(32);
+        string  expectedRootObjectId = sm.Faker.Random.String2(10);
+        string? expectedExternalId   = null;
 
 
         //***  B. Createa A new Document Type.
@@ -109,7 +111,9 @@ public class Test_DocumentType
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
                                                                               expectedExtension,
-                                                                              documentType.Id);
+                                                                              documentType.Id,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
         Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value);
 
 

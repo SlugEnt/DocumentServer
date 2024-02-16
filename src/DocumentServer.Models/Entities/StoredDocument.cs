@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentServer.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace DocumentServer.Models.Entities
 {
@@ -16,6 +17,7 @@ namespace DocumentServer.Models.Entities
     /// The document itself is saved on a file system with the name  Id.FileExtension
     /// It is thus vital that FileExtension and Id are never changed.  
     /// </summary>
+    [Index(nameof(RootObjectExternalKey), nameof(DocTypeExternalKey), Name = "IDX_Ext_Keys")]
     public class StoredDocument : AbstractBaseEntity
     {
         /// <summary>
@@ -29,6 +31,8 @@ namespace DocumentServer.Models.Entities
         /// </summary>
         public StoredDocument(string fileExtension,
                               string description,
+                              string rootObjectExternalKey,
+                              string? docTypeExternalKey,
                               string storageFolder,
                               int sizeInKB,
                               int documentTypeId,
@@ -39,11 +43,12 @@ namespace DocumentServer.Models.Entities
 
             //FileName = new Guid().ToString() + fileExtension == string.Empty ? string.Empty : "." + fileExtension;
             //FileExtension  = fileExtension;
-            Description    = description;
-            StorageFolder  = storageFolder;
-            SizeInKB       = sizeInKB;
-            DocumentTypeId = documentTypeId;
-
+            Description           = description;
+            StorageFolder         = storageFolder;
+            SizeInKB              = sizeInKB;
+            DocumentTypeId        = documentTypeId;
+            RootObjectExternalKey = rootObjectExternalKey;
+            DocTypeExternalKey    = docTypeExternalKey;
 
             Status                 = EnumDocumentStatus.InitialSave;
             NumberOfTimesAccessed  = 0;
@@ -92,7 +97,7 @@ namespace DocumentServer.Models.Entities
         /// <summary>
         /// Whether this document is considered a Live document.  A Live document is one who's expiration counter has not yet started.
         /// <para>For Temporary documents it is set immediately after creation.  For other documents it is when the parent system tells us it is not alive.</para>
-        /// <para>Typicall unalive documents are part of claims, referrals, etc that are considered closed and experiencing no activity on them and are moving towards an eventual archiving</para>
+        /// <para>Typicaly unalive documents are part of claims, referrals, etc that are considered closed and experiencing no activity on them and are moving towards an eventual archiving</para>
         /// </summary>
         public bool IsAlive { get; set; } = true;
 
@@ -105,6 +110,16 @@ namespace DocumentServer.Models.Entities
         public int NumberOfTimesAccessed { get; set; }
 
 
+        /// <summary>
+        /// This is the Id in the calling application that identifies the Root Object that this document belongs to.  For instance, a Claim #, an Actors Guild #, a Policy #.
+        /// </summary>
+        public string RootObjectExternalKey { get; set; }
+
+
+        /// <summary>
+        /// This is the Id in the calling application for this particular Document Type.  For instance it could be an invoice Number.
+        /// </summary>
+        public string? DocTypeExternalKey { get; set; }
 
         // Relationships
 
