@@ -1,0 +1,26 @@
+﻿@page "/applications"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using global::DocumentServer.Db
+@inject DocServerDbContext DB
+
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="applications/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="DB.Applications">
+    <PropertyColumn Property="application => application.Name" />
+    <PropertyColumn Property="application => application.IsActive" />
+    <PropertyColumn Property="application => application.CreatedAtUTC"/>
+    <PropertyColumn Property="application => application.ModifiedAtUTC"/>
+
+    <TemplateColumn Context="application">
+        <a href="@($"applications/edit?id={application.Id}")">Edit</a> |
+        <a href="@($"applications/details?id={application.Id}")">Details</a> |
+        <a href="@($"applications/delete?id={application.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>

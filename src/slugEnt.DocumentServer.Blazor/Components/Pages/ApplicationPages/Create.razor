@@ -1,0 +1,59 @@
+﻿@page "/applications/create"
+@using global::DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
+@using global::DocumentServer.Db
+@inject DocServerDbContext DB
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h4>Application</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="Application" OnValidSubmit="AddApplication" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label> 
+                <InputText id="name" @bind-Value="Application.Name" class="form-control" /> 
+                <ValidationMessage For="() => Application.Name" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="createdatutc" class="form-label">CreatedAtUTC:</label> 
+                <InputDate id="createdatutc" @bind-Value="Application.CreatedAtUTC" class="form-control" /> 
+                <ValidationMessage For="() => Application.CreatedAtUTC" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="modifiedatutc" class="form-label">ModifiedAtUTC:</label> 
+                <InputDate id="modifiedatutc" @bind-Value="Application.ModifiedAtUTC" class="form-control" /> 
+                <ValidationMessage For="() => Application.ModifiedAtUTC" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="isactive" class="form-label">IsActive:</label> 
+                <InputCheckbox id="isactive" @bind-Value="Application.IsActive" class="form-check-input" /> 
+                <ValidationMessage For="() => Application.IsActive" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/applications">Back to List</a>
+</div>
+
+@code {
+
+    [SupplyParameterFromForm]
+    public Application Application { get; set; } = new();
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddApplication()
+    {
+        DB.Applications.Add(Application);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/applications");
+    }
+}
