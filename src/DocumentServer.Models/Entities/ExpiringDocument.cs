@@ -5,9 +5,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Models.Enums;
 
-namespace DocumentServer.Models.Entities
+namespace SlugEnt.DocumentServer.Models.Entities
 {
     /// <summary>
     /// Keeps track of planned Document Expiration Times

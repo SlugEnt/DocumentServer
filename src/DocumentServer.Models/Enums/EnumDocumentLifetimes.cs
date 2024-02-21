@@ -1,4 +1,4 @@
-﻿namespace DocumentServer.Models.Enums;
+﻿namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
 /// Lifetime of a document after it is considered closed.  Meaning for a temporary document its closure clock starts at the day its created.

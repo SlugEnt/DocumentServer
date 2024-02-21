@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace DocumentServer.Models.Entities
+namespace SlugEnt.DocumentServer.Models.Entities
 {
     /// <summary>
     /// An Application that needs to store documents

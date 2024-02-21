@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using DocumentServer.Core;
-using DocumentServer.Db;
+using SlugEnt.DocumentServer.Db;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SlugEnt.FluentResults;

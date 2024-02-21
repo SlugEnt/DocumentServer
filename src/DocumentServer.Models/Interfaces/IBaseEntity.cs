@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DocumentServer.Models.Interfaces;
+namespace SlugEnt.DocumentServer.Models.Interfaces;
 
 /// <summary>
 /// Describes the basic fields that are on every Table

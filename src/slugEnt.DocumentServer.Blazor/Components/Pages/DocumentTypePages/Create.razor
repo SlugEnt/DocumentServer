@@ -1,0 +1,125 @@
+﻿@page "/documenttypes/create"
+@inject NavigationManager NavigationManager
+@using global::SlugEnt.DocumentServer.Db
+@using global::SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Models.Enums
+@inject DocServerDbContext DB
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h4>DocumentType</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <EditForm method="post" Model="DocumentType" OnValidSubmit="AddDocumentType" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="mb-3">
+                <label for="name" class="form-label">Name:</label> 
+                <InputText id="name" @bind-Value="DocumentType.Name" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.Name" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="description" class="form-label">Description:</label> 
+                <InputText id="description" @bind-Value="DocumentType.Description" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.Description" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="storagefoldername" class="form-label">StorageFolderName:</label> 
+                <InputText id="storagefoldername" @bind-Value="DocumentType.StorageFolderName" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.StorageFolderName" class="text-danger" /> 
+            </div>        
+
+            <div class="mb-3">
+                <label for="storagemode" class="form-label">Storage Mode:</label>
+                <InputSelect @bind-Value="@DocumentType.StorageMode">
+                    @foreach (var smode in Enum.GetValues(typeof(EnumStorageMode)))
+                    {
+                        <option value="@smode">@smode</option>
+                    }
+                </InputSelect>            
+                
+                <ValidationMessage For="() => DocumentType.StorageMode" class="text-danger" /> 
+            </div>
+
+            <div class="mb-3">
+                <label for="inactivelifetime" class="form-label">In Active Lifetime:</label>
+                <InputSelect @bind-Value="@DocumentType.InActiveLifeTime">
+                    @foreach (var life in Enum.GetValues(typeof(EnumDocumentLifetimes)))
+                    {
+                        <option value="@life">@life</option>
+                    }
+                </InputSelect>
+
+                <ValidationMessage For="() => DocumentType.InActiveLifeTime" class="text-danger"/>
+            </div>        
+
+            <div class="mb-3">
+                <label for="rootobjectid" class="form-label">RootObjectId:</label> 
+                <InputNumber id="rootobjectid" @bind-Value="DocumentType.RootObjectId" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.RootObjectId" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="allowsamedtekeys" class="form-label">Allow Same Document Type External Keys</label> 
+                <InputCheckbox id="allowsamedtekeys" @bind-Value="DocumentType.AllowSameDTEKeys" class="form-check-input" /> 
+                <ValidationMessage For="() => DocumentType.AllowSameDTEKeys" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="activestoragenode1id" class="form-label">Primary Active Storage Node:</label> 
+                <InputNumber id="activestoragenode1id" @bind-Value="DocumentType.ActiveStorageNode1Id" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.ActiveStorageNode1Id" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="activestoragenode2id" class="form-label">Secondary Active Storage Node:</label> 
+                <InputNumber id="activestoragenode2id" @bind-Value="DocumentType.ActiveStorageNode2Id" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.ActiveStorageNode2Id" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="archivalstoragenode1id" class="form-label">Primary Archival Storage Node:</label> 
+                <InputNumber id="archivalstoragenode1id" @bind-Value="DocumentType.ArchivalStorageNode1Id" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.ArchivalStorageNode1Id" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="archivalstoragenode2id" class="form-label">Secondary Archival Storage Node:</label> 
+                <InputNumber id="archivalstoragenode2id" @bind-Value="DocumentType.ArchivalStorageNode2Id" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.ArchivalStorageNode2Id" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="createdatutc" class="form-label">CreatedAtUTC:</label> 
+                <InputDate id="createdatutc" @bind-Value="DocumentType.CreatedAtUTC" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.CreatedAtUTC" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="modifiedatutc" class="form-label">ModifiedAtUTC:</label> 
+                <InputDate id="modifiedatutc" @bind-Value="DocumentType.ModifiedAtUTC" class="form-control" /> 
+                <ValidationMessage For="() => DocumentType.ModifiedAtUTC" class="text-danger" /> 
+            </div>        
+            <div class="mb-3">
+                <label for="isactive" class="form-label">IsActive:</label> 
+                <InputCheckbox id="isactive" @bind-Value="DocumentType.IsActive" class="form-check-input" /> 
+                <ValidationMessage For="() => DocumentType.IsActive" class="text-danger" /> 
+            </div>        
+            <button type="submit" class="btn btn-primary">Create</button>
+        </EditForm>
+    </div>
+</div>
+
+<div>
+    <a href="/documenttypes">Back to List</a>
+</div>
+
+@code {
+
+    [SupplyParameterFromForm]
+    public DocumentType DocumentType { get; set; } = new();
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddDocumentType()
+    {
+        DB.DocumentTypes.Add(DocumentType);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/documenttypes");
+    }
+}

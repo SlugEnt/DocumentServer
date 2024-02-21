@@ -34,7 +34,7 @@ This is all the interfaces to calling the API that a client application would ne
 ### DocumentServer.Core
 Contains the core business logic of the DocumentServer.  No business logic is in the API.
 
-### DocumentServer.Db
+### SlugEnt.DocumentServer.Db
 Contains the EF Core DatabaseContext, Database Migrations, etc.
 
 ### DocumentServer.Models

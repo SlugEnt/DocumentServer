@@ -1,4 +1,4 @@
-﻿namespace DocumentServer.Models.Enums;
+﻿namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
 /// Tells the status of a Document.

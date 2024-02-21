@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Models.Enums;
 
-namespace DocumentServer.Models.Entities;
+namespace SlugEnt.DocumentServer.Models.Entities;
 
 public class StorageNode : AbstractBaseEntity
 {

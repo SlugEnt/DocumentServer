@@ -1,7 +1,7 @@
 using System.IO.Abstractions.TestingHelpers;
 using DocumentServer.Core;
-using DocumentServer.Db;
-using DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Db;
+using SlugEnt.DocumentServer.Models.Entities;
 using DocumentServer_Test.SupportObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

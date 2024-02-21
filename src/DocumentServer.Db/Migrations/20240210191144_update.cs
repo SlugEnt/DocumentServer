@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace DocumentServer.Db.Migrations
+namespace SlugEnt.DocumentServer.Db.Migrations
 {
     /// <inheritdoc />
     public partial class update : Migration

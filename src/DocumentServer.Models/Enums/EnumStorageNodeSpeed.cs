@@ -1,4 +1,4 @@
-﻿namespace DocumentServer.Models.Enums;
+﻿namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
 /// This indicates how fast accessing a document on this node will be.  

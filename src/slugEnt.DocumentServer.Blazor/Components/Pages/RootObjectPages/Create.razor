@@ -1,0 +1,87 @@
+﻿@page "/rootobjects/create"
+@rendermode InteractiveServer
+@using SlugEnt.DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
+@using global::SlugEnt.DocumentServer.Db
+@using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.DTOS
+@inject DocServerDbContext DB
+
+
+<PageTitle>Create</PageTitle>
+
+<h1>Create</h1>
+
+<h4>RootObject</h4>
+<hr />
+
+<div class="row px-3">
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeSM="6">
+        <RadzenStack>
+
+            <div class="col-md-6 col-lg-4 p-3">
+                <RadzenFormField Text="Name" Variant="@radDisplay">
+                    <RadzenTextBox @bind-Value="@r2.Name"/>
+                </RadzenFormField>
+            </div>
+
+            <div class="col-md-6 col-lg-4 p-3">
+                <RadzenFormField Text="Desccription" Variant="@radDisplay">
+                    <RadzenTextBox @bind-Value="@r2.Description"/>
+                </RadzenFormField>
+            </div>
+
+            <div class="col-md-6 col-lg-4 p-3">
+                <RadzenFormField Text="Application Root Object Belongs To" Variant="@radDisplay">
+                    <RadzenDropDown Data=@_applicationsSelectDtos @bind-Value =@r2.ApplicationId TextProperty="Name" ValueProperty="Id" Style="width: 100%; max-width: 400px;" Name="DropDownBindValue"/>
+                </RadzenFormField>
+            </div>
+                <RadzenButton Click=@(args => AddRootObject()) Text="Create" ButtonStyle="ButtonStyle.Primary" />
+        </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+</div>
+
+<div>
+    <a href="/rootobjects">Back to List</a>
+</div>
+
+@code {
+    private Variant                    radDisplay              = Variant.Outlined;
+    private List<ApplicationSelectDto> _applicationsSelectDtos = new();
+    private RootObject                 r2                      = new();
+
+
+
+    /// <summary>
+    /// Method invoked when the component is ready to start, having received its
+    /// initial parameters from its parent in the render tree.
+    /// Override this method if you will perform an asynchronous operation and
+    /// want the component to refresh when that operation is completed.
+    /// </summary>
+    /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        // Load list of Applications
+        _applicationsSelectDtos = await DB.Applications.Select(a => new ApplicationSelectDto
+                                    {
+                                        Id   = a.Id,
+                                        Name = a.Name
+                                    })
+                                    .ToListAsync();
+
+        await base.OnInitializedAsync();
+    }
+
+
+
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddRootObject()
+    {
+        DB.RootObjects.Add(r2);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/rootobjects");
+    }
+}

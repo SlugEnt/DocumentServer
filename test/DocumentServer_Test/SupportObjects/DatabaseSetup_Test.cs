@@ -2,9 +2,9 @@
 
 
 
-using DocumentServer.Db;
-using DocumentServer.Models.Entities;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Db;
+using SlugEnt.DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client.Extensions.Msal;
 using NUnit.Framework;

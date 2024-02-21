@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading.Tasks;
-using DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 
 namespace DocumentServer.Core;

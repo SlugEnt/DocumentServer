@@ -7,7 +7,7 @@ using System.Reflection;
 using DocumentServer.Core;
 using Microsoft.Extensions.Configuration;
 using ConsoleTesting;
-using DocumentServer.Db;
+using SlugEnt.DocumentServer.Db;
 using Microsoft.Extensions.Logging;
 using ILogger = Serilog.ILogger;
 using Microsoft.EntityFrameworkCore;

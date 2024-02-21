@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using SlugEnt.DocumentServer.Models.Interfaces;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentServer.Models.Interfaces;
 
-namespace DocumentServer.Models.Entities;
+namespace SlugEnt.DocumentServer.Models.Entities;
 
 /// <summary>
 /// Contains some base fields used by all Entites

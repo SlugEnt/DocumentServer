@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
-namespace DocumentServer.Db
+namespace SlugEnt.DocumentServer.Db
 {
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DocServerDbContext>
     {

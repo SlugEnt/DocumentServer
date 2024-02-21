@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using DocumentServer.ClientLibrary;
-using DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Models.Entities;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;

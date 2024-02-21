@@ -7,10 +7,10 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace DocumentServer.Models.Entities
+namespace SlugEnt.DocumentServer.Models.Entities
 {
     /// <summary>
     /// The StoredDocument is the database entity that stores information about a single stored document.

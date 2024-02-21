@@ -1,0 +1,96 @@
+﻿@page "/RootObjects/edit"
+@inject SlugEnt.DocumentServer.Db.DocServerDbContext DB
+@using SlugEnt.DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h4>RootObject</h4>
+<hr />
+@if (RootObject is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="RootObject" OnValidSubmit="UpdateRootObject" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <input type="hidden" name="RootObject.Id" value="@RootObject.Id" />
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <InputText id="name" @bind-Value="RootObject.Name" class="form-control" />
+                    <ValidationMessage For="() => RootObject.Name" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description:</label>
+                    <InputText id="description" @bind-Value="RootObject.Description" class="form-control" />
+                    <ValidationMessage For="() => RootObject.Description" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="applicationid" class="form-label">ApplicationId:</label>
+                    <InputNumber id="applicationid" @bind-Value="RootObject.ApplicationId" class="form-control" />
+                    <ValidationMessage For="() => RootObject.ApplicationId" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/rootobjects">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    public RootObject? RootObject { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        RootObject ??= await DB.RootObjects.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (RootObject is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more details, see https://aka.ms/RazorPagesCRUD.
+    public async Task UpdateRootObject()
+    {
+        DB.Attach(RootObject!).State = EntityState.Modified;
+
+        try
+        {
+            await DB.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!RootObjectExists(RootObject!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/rootobjects");
+    }
+
+    bool RootObjectExists(int id)
+    {
+        return DB.RootObjects.Any(e => e.Id == id);
+    }
+}

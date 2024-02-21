@@ -1,13 +1,10 @@
-﻿using System.Net;
-using System.Text;
-using DocumentServer.ClientLibrary;
+﻿using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
-using DocumentServer.Db;
-using DocumentServer.Models;
-using DocumentServer.Models.Entities;
-using DocumentServer.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
+using SlugEnt.DocumentServer.Db;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using System.Text;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 

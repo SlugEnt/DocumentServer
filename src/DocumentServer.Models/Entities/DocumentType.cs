@@ -7,10 +7,10 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 
-namespace DocumentServer.Models.Entities
+namespace SlugEnt.DocumentServer.Models.Entities
 {
     /// <summary>
     /// Represents a Type of Document that can be stored.  Most importantly a Document Type determines a few things about a document:

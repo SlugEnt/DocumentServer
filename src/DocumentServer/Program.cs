@@ -2,7 +2,7 @@
 
 using System.Reflection;
 using DocumentServer.Core;
-using DocumentServer.Db;
+using SlugEnt.DocumentServer.Db;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 

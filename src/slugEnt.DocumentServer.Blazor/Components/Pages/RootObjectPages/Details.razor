@@ -1,0 +1,49 @@
+﻿@page "/rootobjects/details"
+@inject SlugEnt.DocumentServer.Db.DocServerDbContext DB
+@using SlugEnt.DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>Details</PageTitle>
+
+<h1>Details</h1>
+
+<div>
+    <h4>RootObject</h4>
+    <hr />
+    @if (rootobject is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else {
+        <dl class="row">
+            <dt class="col-sm-2">Name</dt>
+            <dd class="col-sm-10">@rootobject.Name</dd>
+            <dt class="col-sm-2">Description</dt>
+            <dd class="col-sm-10">@rootobject.Description</dd>
+            <dt class="col-sm-2">ApplicationId</dt>
+            <dd class="col-sm-10">@rootobject.ApplicationId</dd>
+        </dl>
+        <div>
+            <a href="@($"/rootobjects/edit?id={rootobject.Id}")">Edit</a> |
+            <a href="@($"/rootobjects")">Back to List</a>
+        </div>
+    }
+</div>
+
+@code {
+    RootObject? rootobject;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        rootobject = await DB.RootObjects.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (rootobject is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+}

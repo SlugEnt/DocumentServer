@@ -1,5 +1,5 @@
-﻿using DocumentServer.Models.Entities;
-using DocumentServer.Models.Enums;
+﻿using SlugEnt.DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Models.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

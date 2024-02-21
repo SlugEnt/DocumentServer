@@ -1,0 +1,181 @@
+@page "/DocumentTypes/edit/{Id}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using global::SlugEnt.DocumentServer.Db
+@using global::SlugEnt.DocumentServer.Models.Entities
+@using global::SlugEnt.DocumentServer.Models.Enums
+@inject DocServerDbContext DB
+@inject Radzen.DialogService dialogService
+@inject NavigationManager NavigationManager
+
+
+<h1>Edit</h1>
+
+<h4>DocumentType</h4>
+<hr />
+@if (DocumentType is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div Class="rz-p-0 rz-p-md-12">
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeSM="6">
+                <RadzenStack>
+                    <RadzenFormField Text="Document Type Name" Variant="@radDisplay">
+                        <RadzenTextBox @bind-Value="@_docType.Name" Style="width: 683px" />
+                    </RadzenFormField>
+                    <RadzenFormField Text="Description" Variant="@radDisplay">
+                        <RadzenNumeric @bind-Value="@_docType.Description" />
+                    </RadzenFormField>
+
+                    <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<Enum>())" @bind-Value=@_docType.InActiveLifeTime
+                                    AllowClear="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="width: 100%; max-width: 400px;" Name="DropDownEnums">
+                    </RadzenDropDown>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </div>
+
+    <!--
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="DocumentType" OnValidSubmit="UpdateDocumentType" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <input type="hidden" name="DocumentType.Id" value="@DocumentType.Id" />
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <InputText id="name" @bind-Value="DocumentType.Name" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.Name" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description:</label>
+                    <InputText id="description" @bind-Value="DocumentType.Description" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.Description" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="storagefoldername" class="form-label">StorageFolderName:</label>
+                    <InputText id="storagefoldername" @bind-Value="DocumentType.StorageFolderName" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.StorageFolderName" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="storagemode" class="form-label">StorageMode:</label>
+                    <InputText id="storagemode" @bind-Value="DocumentType.StorageMode" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.StorageMode" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="inactivelifetime" class="form-label">InActiveLifeTime:</label>
+                    <InputText id="inactivelifetime" @bind-Value="DocumentType.InActiveLifeTime" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.InActiveLifeTime" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="rootobjectid" class="form-label">RootObjectId:</label>
+                    <InputNumber id="rootobjectid" @bind-Value="DocumentType.RootObjectId" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.RootObjectId" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="allowsamedtekeys" class="form-label">AllowSameDTEKeys:</label>
+                    <InputCheckbox id="allowsamedtekeys" @bind-Value="DocumentType.AllowSameDTEKeys" class="form-check-input" />
+                    <ValidationMessage For="() => DocumentType.AllowSameDTEKeys" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="activestoragenode1id" class="form-label">ActiveStorageNode1Id:</label>
+                    <InputNumber id="activestoragenode1id" @bind-Value="DocumentType.ActiveStorageNode1Id" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.ActiveStorageNode1Id" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="activestoragenode2id" class="form-label">ActiveStorageNode2Id:</label>
+                    <InputNumber id="activestoragenode2id" @bind-Value="DocumentType.ActiveStorageNode2Id" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.ActiveStorageNode2Id" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="archivalstoragenode1id" class="form-label">ArchivalStorageNode1Id:</label>
+                    <InputNumber id="archivalstoragenode1id" @bind-Value="DocumentType.ArchivalStorageNode1Id" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.ArchivalStorageNode1Id" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="archivalstoragenode2id" class="form-label">ArchivalStorageNode2Id:</label>
+                    <InputNumber id="archivalstoragenode2id" @bind-Value="DocumentType.ArchivalStorageNode2Id" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.ArchivalStorageNode2Id" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="createdatutc" class="form-label">CreatedAtUTC:</label>
+                    <InputDate id="createdatutc" @bind-Value="DocumentType.CreatedAtUTC" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.CreatedAtUTC" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="modifiedatutc" class="form-label">ModifiedAtUTC:</label>
+                    <InputDate id="modifiedatutc" @bind-Value="DocumentType.ModifiedAtUTC" class="form-control" />
+                    <ValidationMessage For="() => DocumentType.ModifiedAtUTC" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="isactive" class="form-label">IsActive:</label>
+                    <InputCheckbox id="isactive" @bind-Value="DocumentType.IsActive" class="form-check-input" />
+                    <ValidationMessage For="() => DocumentType.IsActive" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+                -->
+}
+
+<div>
+    <a href="/documenttypes">Back to List</a>
+</div>
+
+@code {
+    [Parameter] public int ID { get; set; }
+
+    private Variant                            radDisplay = Variant.Outlined;
+    private DocumentType                       _docType;
+    private IEnumerable<EnumDocumentLifetimes> _lifeTimes = Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<EnumDocumentLifetimes>();
+    private DocumentType                       DocumentType;
+    
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        DocumentType ??= await DB.DocumentTypes.FirstOrDefaultAsync(m => m.Id == ID);
+
+        if (DocumentType is null)
+        {
+           NavigationManager.NavigateTo("notfound");
+        }
+
+        _docType = DocumentType;
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more details, see https://aka.ms/RazorPagesCRUD.
+    public async Task UpdateDocumentType()
+    {
+        DB.Attach(DocumentType!).State = EntityState.Modified;
+
+        try
+        {
+            await DB.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!DocumentTypeExists(DocumentType!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/documenttypes");
+    }
+
+    bool DocumentTypeExists(int id)
+    {
+        return DB.DocumentTypes.Any(e => e.Id == id);
+    }
+
+}

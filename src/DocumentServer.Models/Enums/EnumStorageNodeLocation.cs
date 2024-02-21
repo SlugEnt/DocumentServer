@@ -1,4 +1,4 @@
-﻿namespace DocumentServer.Models.Enums;
+﻿namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
 /// Where the Storage Node stores its documents

@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Reflection;
-using DocumentServer.Db;
+using SlugEnt.DocumentServer.Db;
+using Radzen;
 using SlugEnt.DocumentServer.Blazor.Components;
 using Microsoft.AspNetCore.Identity;
+
 
 namespace SlugEnt.DocumentServer.Blazor;
 
@@ -64,6 +66,11 @@ public class Program
 
 
         builder.Services.AddQuickGridEntityFrameworkAdapter();
+
+        builder.Services.AddRadzenComponents();
+        builder.Services.AddScoped<DialogService>();
+        builder.Services.AddScoped<TooltipService>();
+
 
         // WSH End 
         // Add services to the container.
