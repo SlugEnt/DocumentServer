@@ -8,7 +8,7 @@
 <h1>Index</h1>
 
 <p>
-    <a href="rootobjects/create">Create New</a>
+    <a href="rootobjects/crud/C">Create New></a>
 </p>
 
 <QuickGrid Class="table" Items="DB.RootObjects">
@@ -17,8 +17,8 @@
     <PropertyColumn Property="rootobject => rootobject.ApplicationId" />
 
     <TemplateColumn Context="rootobject">
-        <a href="@($"rootobjects/edit?id={rootobject.Id}")">Edit</a> |
-        <a href="@($"rootobjects/details?id={rootobject.Id}")">Details</a> |
+        <a href="@($"rootobjects/crud/E/{rootobject.Id}")">Edit</a> |
+        <a href="@($"rootobjects/crud/V/{rootobject.Id}")">Details</a> |
         <a href="@($"rootobjects/delete?id={rootobject.Id}")">Delete</a>
     </TemplateColumn>
 </QuickGrid>

@@ -1,0 +1,151 @@
+﻿@page "/rootobjects/crud/{mode}"
+@page "/rootobjects/crud/{mode}/{recordId:int}"
+@rendermode InteractiveServer
+@using SlugEnt.DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
+@using global::SlugEnt.DocumentServer.Db
+@using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.DTOS
+@using System.Drawing
+@inject DocServerDbContext DB
+
+
+<h1>@_pageTitle</h1>
+<hr/>
+
+
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeSM="6">
+            <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+            <RadzenStack>
+
+                <RadzenColumn Size="6" SizeMD="4">
+                    <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
+                        <RadzenTextBox @bind-Value="@_rootObject.Name"/>
+                    </RadzenFormField>
+                </RadzenColumn>
+
+                <RadzenColumn Size="3" SizeMD="2">
+                    <RadzenFormField Text="Desccription" Variant="@radDisplay" Style="width: 100%">
+                        <RadzenTextBox @bind-Value="@_rootObject.Description" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            
+                <RadzenColumn Size="2" SizeMD="2">
+                    <RadzenFormField Text="Application Root Object Belongs To" Variant="@radDisplay" Style="width: 100%; max-width: 500px" >
+                        <RadzenDropDown Data=@_applicationsSelectDtos  @bind-Value=@_rootObject.ApplicationId TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_isViewOnly"/>
+                    </RadzenFormField>
+                </RadzenColumn>
+
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddRootObject"/>
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel"/>
+            </RadzenStack>
+
+        </RadzenColumn>
+    </RadzenRow>
+
+
+
+
+
+<div>
+    <a href="/rootobjects">Back to List</a>
+</div>
+
+@code {
+    [Parameter]
+    public string mode { get; set; }
+    [Parameter]
+    public int? recordId { get; set; }
+
+    private   Variant                    radDisplay              = Variant.Outlined;
+    private   List<ApplicationSelectDto> _applicationsSelectDtos = new();
+    private   RootObject                 _rootObject             = new();
+    private   string                     _pageTitle              = "";
+    private   bool                       _isInitializeed         = false;
+    private   bool                       _isViewOnly             = false;
+    private   bool                       _isCreateMode           = false;
+    private   bool                       _isEditMode             = false;
+    protected bool                       _errVisible;
+    protected string                     _errMsg = "";
+
+
+    /// <summary>
+    /// Method invoked when the component is ready to start, having received its
+    /// initial parameters from its parent in the render tree.
+    /// Override this method if you will perform an asynchronous operation and
+    /// want the component to refresh when that operation is completed.
+    /// </summary>
+    /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isInitializeed)
+            return;
+
+        // Load list of Applications only once.
+        _applicationsSelectDtos = await DB.Applications.Select(a => new ApplicationSelectDto
+                                    {
+                                        Id   = a.Id,
+                                        Name = a.Name
+                                    })
+                                    .ToListAsync();
+
+        _isInitializeed = true;
+
+        await base.OnInitializedAsync();
+    }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Set the page mode.
+        if (mode == "C")
+        {
+            _isCreateMode = true;
+            _pageTitle = "Create New Root Object";
+            return;
+        }
+
+
+        else if (mode == "E")
+        {
+            _isEditMode = true;
+            _pageTitle  = "Edit Root Object";
+        }
+        else
+        {
+            _isViewOnly = true;
+            _pageTitle = "View Root Object";
+        }
+
+
+        if (recordId  == null)
+        {
+            _errVisible = true;
+            _errMsg     = "No value provided for the Id to retrieve.";
+            return;
+        }
+
+        bool retrieveRecord = false;
+
+        if (_rootObject == null || _rootObject.Id != recordId)
+            retrieveRecord = true;
+
+        if (retrieveRecord)
+           _rootObject = await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
+    }
+
+    public void Cancel()
+    {
+
+    }
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddRootObject()
+    {
+        DB.RootObjects.Add(_rootObject);
+        await DB.SaveChangesAsync();
+        NavigationManager.NavigateTo("/rootobjects");
+    }
+}
