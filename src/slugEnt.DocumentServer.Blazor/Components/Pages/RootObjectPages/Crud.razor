@@ -2,57 +2,82 @@
 @page "/rootobjects/crud/{mode}/{recordId:int}"
 @rendermode InteractiveServer
 @using SlugEnt.DocumentServer.Models.Entities
-@inject NavigationManager NavigationManager
 @using global::SlugEnt.DocumentServer.Db
 @using Microsoft.EntityFrameworkCore
 @using SlugEnt.DocumentServer.Models.DTOS
 @using System.Drawing
+@using global::DocumentServer.Core
+@inject NavigationManager NavigationManager
 @inject DocServerDbContext DB
+@inject DocumentServerEngine docEngine
 
 
 <h1>@_pageTitle</h1>
 <hr/>
-
-
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12" SizeSM="6">
-            <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+            @if (_errMsg != string.Empty)
+            {
+                <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+            }
+            @if (_successMsg != string.Empty)
+            {
+                <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
+            }
+
             <RadzenStack>
 
                 <RadzenColumn Size="6" SizeMD="4">
                     <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
-                        <RadzenTextBox @bind-Value="@_rootObject.Name"/>
+                        <RadzenTextBox @bind-Value="@_rootObject.Name" ReadOnly="@_canEdit"/>
                     </RadzenFormField>
                 </RadzenColumn>
 
                 <RadzenColumn Size="3" SizeMD="2">
                     <RadzenFormField Text="Desccription" Variant="@radDisplay" Style="width: 100%">
-                        <RadzenTextBox @bind-Value="@_rootObject.Description" />
+                        <RadzenTextBox @bind-Value="@_rootObject.Description" ReadOnly="@_canEdit"/>
                     </RadzenFormField>
                 </RadzenColumn>
-            
+
                 <RadzenColumn Size="2" SizeMD="2">
-                    <RadzenFormField Text="Application Root Object Belongs To" Variant="@radDisplay" Style="width: 100%; max-width: 500px" >
-                        <RadzenDropDown Data=@_applicationsSelectDtos  @bind-Value=@_rootObject.ApplicationId TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_isViewOnly"/>
+                    <RadzenFormField Text="Application Root Object Belongs To" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
+                        <RadzenDropDown Data=@_applicationsSelectDtos  @bind-Value=@_rootObject.ApplicationId TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
                     </RadzenFormField>
                 </RadzenColumn>
 
             </RadzenStack>
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
-                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddRootObject"/>
-                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel"/>
+                @if (_isCreateMode)
+                {
+                    <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddEntity"/>
+                }
+                else if (_isEditMode)
+                {
+                    <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save Changes" Click="@UpdateEntity"/>
+                }
+                else if (_isDeleteMode)
+                {
+                    <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="delete" Text="Confirm Deletion" Click="@DeleteEntity"/>
+                }
+                else if (_wasDeleted)
+                {
+                    <RadzenButton ButtonStyle="ButtonStyle.Success"  Size="ButtonSize.Large" Icon="check_circle"  Text="Return To List"  Click="@ReturnToList" />
+                }
+                @if (_isCreateMode || _isEditMode || _isDeleteMode) 
+                {
+                    <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel" />
+                }
+
             </RadzenStack>
 
         </RadzenColumn>
     </RadzenRow>
 
-
-
-
-
 <div>
     <a href="/rootobjects">Back to List</a>
 </div>
+
+
 
 @code {
     [Parameter]
@@ -68,8 +93,14 @@
     private   bool                       _isViewOnly             = false;
     private   bool                       _isCreateMode           = false;
     private   bool                       _isEditMode             = false;
-    protected bool                       _errVisible;
-    protected string                     _errMsg = "";
+    private   bool                       _isDeleteMode           = false;
+    private   bool                       _wasDeleted             = false;
+    protected bool                       _isReadOnly             = false;
+    private   bool                       _canEdit                = false; // Determines if fields can be edited.
+    protected bool                       _isDisabled             = false; // These are fields that can only be edited during creation.  They are not editable in edit mode.
+    protected bool                       _errVisible             = false;
+    protected string                     _errMsg                 = "";
+    protected string                     _successMsg             = "";
 
 
     /// <summary>
@@ -98,13 +129,23 @@
     }
 
 
+
+    /// <summary>
+    /// Explanation of the Modes:
+    ///   Create sets Createmode and sets readonly to false so fields can be edited.
+    ///   Edit sets EditMode and sets readonlyto false (so fields can be edited), but IsDisabled to true so that fields that cannot be edited once saved are disabled.
+    ///   Delete sets IsDeleteMode and sets Readonly to true, so no fields can be edited.
+    ///   View sets IsViewOnlt and ReadOnly to true.
+    /// </summary>
+    /// <returns></returns>
     protected override async Task OnParametersSetAsync()
     {
         // Set the page mode.
         if (mode == "C")
         {
             _isCreateMode = true;
-            _pageTitle = "Create New Root Object";
+            _isReadOnly   = false;
+            _pageTitle    = "Create New Root Object";
             return;
         }
 
@@ -112,12 +153,23 @@
         else if (mode == "E")
         {
             _isEditMode = true;
+            _isReadOnly = false;
+            _isDisabled = true;
             _pageTitle  = "Edit Root Object";
         }
+
+        else if (mode == "D")
+        {
+            _isDeleteMode = true;
+            _isReadOnly   = true;
+            _pageTitle    = "Confirm Deletion of Root Object";
+        }
+
         else
         {
             _isViewOnly = true;
-            _pageTitle = "View Root Object";
+            _isReadOnly = true;
+            _pageTitle  = "View Root Object";
         }
 
 
@@ -134,18 +186,78 @@
             retrieveRecord = true;
 
         if (retrieveRecord)
-           _rootObject = await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
+            _rootObject = await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
     }
 
+
+    /// <summary>
+    /// Cancels and returns to the Index
+    /// </summary>
     public void Cancel()
     {
-
+        ReturnToList();
     }
-    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
-    public async Task AddRootObject()
+
+
+    /// <summary>
+    /// Creates a new RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task AddEntity()
     {
         DB.RootObjects.Add(_rootObject);
         await DB.SaveChangesAsync();
+        ReturnToList();
+    }
+
+
+    /// <summary>
+    /// Updates the RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task UpdateEntity()
+    {
+        DB.RootObjects.Update(_rootObject);
+        await DB.SaveChangesAsync();
+        _successMsg = String.Format("RootObject {0} [ {1} ] was successfully updated.", _rootObject.Name, _rootObject.Id);
+    }
+
+
+    /// <summary>
+    /// Deletes the RootOBject
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteEntity()
+    {
+        bool result = await docEngine.RootObjectDeleteAsync(_rootObject.Id);
+        if (result)
+        {
+            _successMsg   = String.Format("RootObject {0} [ {1} ] was successfully inactivated.", _rootObject.Name, _rootObject.Id);
+            _wasDeleted   = true;
+            _isDeleteMode = false;
+        }
+        else
+            _errMsg = string.Format("RootObject was not inactivated.  Unknown reason.");
+
+    }
+
+
+    /// <summary>
+    /// Returns to the objects Index page
+    /// </summary>
+    protected void ReturnToList()
+    {
         NavigationManager.NavigateTo("/rootobjects");
+    }
+
+
+
+    /// <summary>
+    /// Clears Error and Success Messages
+    /// </summary>
+    protected void ClearMessages()
+    {
+        _errMsg     = "";
+        _successMsg = "";
     }
 }

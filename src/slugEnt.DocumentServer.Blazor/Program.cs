@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Reflection;
+using DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using Radzen;
 using SlugEnt.DocumentServer.Blazor.Components;
@@ -70,6 +71,7 @@ public class Program
         builder.Services.AddRadzenComponents();
         builder.Services.AddScoped<DialogService>();
         builder.Services.AddScoped<TooltipService>();
+        builder.Services.AddScoped<DocumentServerEngine>();
 
 
         // WSH End 
