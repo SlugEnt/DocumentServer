@@ -2,14 +2,10 @@
 
 
 
+using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client.Extensions.Msal;
-using NUnit.Framework;
-
-
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -27,16 +23,16 @@ public static class DatabaseSetup_Test
 
 
     /// <summary>
-    /// Creates unit test DB, Seeds data
+    ///     Creates unit test DB, Seeds data
     /// </summary>
-    static void Setup()
+    private static void Setup()
     {
 #if RESET_DATABASE
         lock (_lock)
         {
             if (!_databaseInitialized)
             {
-                var context = CreateContext();
+                DocServerDbContext context = CreateContext();
                 context.Database.EnsureDeleted();
                 context.Database.EnsureCreated();
 
@@ -52,7 +48,7 @@ public static class DatabaseSetup_Test
 
 
     /// <summary>
-    /// Create the Database Context for testing
+    ///     Create the Database Context for testing
     /// </summary>
     /// <returns></returns>
     public static DocServerDbContext CreateContext()
@@ -68,79 +64,79 @@ public static class DatabaseSetup_Test
     public static DocServerDbContext DocServerDbContext { get; private set; }
 
 
-    static void SeedData(DocServerDbContext db)
+    private static void SeedData(DocServerDbContext db)
     {
         // Add Applications
-        Application appA = new Application()
+        Application appA = new()
         {
             Name = "App_A"
         };
-        Application appB = new Application()
+        Application appB = new()
         {
             Name = "App_B"
         };
-        db.Add<Application>(appA);
-        db.Add<Application>(appB);
+        db.Add(appA);
+        db.Add(appB);
         db.SaveChanges();
 
 
         // Add a Root Object For each Application
-        RootObject rootA = new RootObject()
+        RootObject rootA = new()
         {
             ApplicationId = appA.Id,
             Name          = "Claim #",
-            Description   = "Claim Number of Auto Policy",
+            Description   = "Claim Number of Auto Policy"
         };
 
-        RootObject rootB = new RootObject()
+        RootObject rootB = new()
         {
             ApplicationId = appB.Id,
             Name          = "Movie #",
-            Description   = "The movie",
+            Description   = "The movie"
         };
 
-        RootObject rootC = new RootObject()
+        RootObject rootC = new()
         {
             ApplicationId = appB.Id,
             Name          = "Actor",
-            Description   = "The actors professional screen writers Id",
+            Description   = "The actors professional screen writers Id"
         };
 
-        db.Add<RootObject>(rootA);
-        db.Add<RootObject>(rootB);
-        db.Add<RootObject>(rootC);
+        db.Add(rootA);
+        db.Add(rootB);
+        db.Add(rootC);
         db.SaveChanges();
 
 
         // Add Storage Nodes
-        StorageNode testA = new StorageNode(TestConstants.STORAGE_NODE_TEST_A,
-                                            "Test Node A - Primary",
-                                            true,
-                                            EnumStorageNodeLocation.HostedSMB,
-                                            EnumStorageNodeSpeed.Hot,
-                                            TestConstants.FOLDER_TEST_PRIMARY);
+        StorageNode testA = new(TestConstants.STORAGE_NODE_TEST_A,
+                                "Test Node A - Primary",
+                                true,
+                                EnumStorageNodeLocation.HostedSMB,
+                                EnumStorageNodeSpeed.Hot,
+                                TestConstants.FOLDER_TEST_PRIMARY);
 
-        StorageNode testB = new StorageNode(TestConstants.STORAGE_NODE_TEST_B,
-                                            "Test Node B - Secondary",
-                                            true,
-                                            EnumStorageNodeLocation.HostedSMB,
-                                            EnumStorageNodeSpeed.Hot,
-                                            TestConstants.FOLDER_TEST_SECONDARY);
+        StorageNode testB = new(TestConstants.STORAGE_NODE_TEST_B,
+                                "Test Node B - Secondary",
+                                true,
+                                EnumStorageNodeLocation.HostedSMB,
+                                EnumStorageNodeSpeed.Hot,
+                                TestConstants.FOLDER_TEST_SECONDARY);
 
         // True Production Nodes
-        StorageNode prodX = new StorageNode(TestConstants.STORAGE_NODE_PROD_X,
-                                            "Production Node X - Primary",
-                                            false,
-                                            EnumStorageNodeLocation.HostedSMB,
-                                            EnumStorageNodeSpeed.Hot,
-                                            TestConstants.FOLDER_PROD_PRIMARY);
+        StorageNode prodX = new(TestConstants.STORAGE_NODE_PROD_X,
+                                "Production Node X - Primary",
+                                false,
+                                EnumStorageNodeLocation.HostedSMB,
+                                EnumStorageNodeSpeed.Hot,
+                                TestConstants.FOLDER_PROD_PRIMARY);
 
-        StorageNode prodY = new StorageNode(TestConstants.STORAGE_NODE_PROD_Y,
-                                            "Production Node Y - Secondary",
-                                            false,
-                                            EnumStorageNodeLocation.HostedSMB,
-                                            EnumStorageNodeSpeed.Hot,
-                                            TestConstants.FOLDER_PROD_SECONDARY);
+        StorageNode prodY = new(TestConstants.STORAGE_NODE_PROD_Y,
+                                "Production Node Y - Secondary",
+                                false,
+                                EnumStorageNodeLocation.HostedSMB,
+                                EnumStorageNodeSpeed.Hot,
+                                TestConstants.FOLDER_PROD_SECONDARY);
         db.AddRange(testA,
                     testB,
                     prodX,
@@ -149,7 +145,7 @@ public static class DatabaseSetup_Test
 
 
         // Add Document Types
-        DocumentType docA = new DocumentType()
+        DocumentType docA = new()
         {
             Name               = TestConstants.DOCTYPE_TEST_A,
             Description        = "Test Doc Type A - WORM",
@@ -159,7 +155,7 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = testB,
             IsActive           = true
         };
-        DocumentType docB = new DocumentType()
+        DocumentType docB = new()
         {
             Name               = TestConstants.DOCTYPE_TEST_B,
             Description        = "Test Doc Type B - Temporary",
@@ -169,7 +165,7 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = testB,
             IsActive           = true
         };
-        DocumentType docC = new DocumentType()
+        DocumentType docC = new()
         {
             Name               = TestConstants.DOCTYPE_TEST_C,
             Description        = "Test Doc Type C - Editable",
@@ -179,7 +175,7 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = testB,
             IsActive           = true
         };
-        DocumentType docX = new DocumentType()
+        DocumentType docX = new()
         {
             Name               = TestConstants.DOCTYPE_PROD_X,
             Description        = "Prod Doc Type X - WORM",
@@ -189,7 +185,7 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = prodY,
             IsActive           = true
         };
-        DocumentType docY = new DocumentType()
+        DocumentType docY = new()
         {
             Name               = TestConstants.DOCTYPE_PROD_Y,
             Description        = "Prod Doc Type Y - Temporary",
@@ -199,7 +195,7 @@ public static class DatabaseSetup_Test
             ActiveStorageNode2 = prodY,
             IsActive           = true
         };
-        DocumentType docRA = new DocumentType()
+        DocumentType docRA = new()
         {
             Name               = TestConstants.DOCTYPE_REPLACE_A,
             Description        = "Prod Doc Type RA - Replaceable",

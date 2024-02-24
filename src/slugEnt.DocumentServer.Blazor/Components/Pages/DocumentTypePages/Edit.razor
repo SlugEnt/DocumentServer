@@ -1,21 +1,23 @@
 @page "/DocumentTypes/edit/{Id}"
-@rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
-@using global::SlugEnt.DocumentServer.Db
-@using global::SlugEnt.DocumentServer.Models.Entities
-@using global::SlugEnt.DocumentServer.Models.Enums
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Models.Enums
+@using SlugEnt.DocumentServer.Db
+@rendermode InteractiveServer
 @inject DocServerDbContext DB
-@inject Radzen.DialogService dialogService
+@inject DialogService dialogService
 @inject NavigationManager NavigationManager
 
 
 <h1>Edit</h1>
 
 <h4>DocumentType</h4>
-<hr />
+<hr/>
 @if (DocumentType is null)
 {
-    <p><em>Loading...</em></p>
+    <p>
+        <em>Loading...</em>
+    </p>
 }
 else
 {
@@ -24,10 +26,10 @@ else
             <RadzenColumn Size="12" SizeSM="6">
                 <RadzenStack>
                     <RadzenFormField Text="Document Type Name" Variant="@radDisplay">
-                        <RadzenTextBox @bind-Value="@_docType.Name" Style="width: 683px" />
+                        <RadzenTextBox @bind-Value="@_docType.Name" Style="width: 683px"/>
                     </RadzenFormField>
                     <RadzenFormField Text="Description" Variant="@radDisplay">
-                        <RadzenNumeric @bind-Value="@_docType.Description" />
+                        <RadzenNumeric @bind-Value="@_docType.Description"/>
                     </RadzenFormField>
 
                     <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<Enum>())" @bind-Value=@_docType.InActiveLifeTime
@@ -129,11 +131,11 @@ else
 @code {
     [Parameter] public int ID { get; set; }
 
-    private Variant                            radDisplay = Variant.Outlined;
-    private DocumentType                       _docType;
-    private IEnumerable<EnumDocumentLifetimes> _lifeTimes = Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<EnumDocumentLifetimes>();
-    private DocumentType                       DocumentType;
-    
+    private readonly Variant                            radDisplay = Variant.Outlined;
+    private          DocumentType                       _docType;
+    private          IEnumerable<EnumDocumentLifetimes> _lifeTimes = Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<EnumDocumentLifetimes>();
+    private          DocumentType                       DocumentType;
+
 
 
     protected override async Task OnInitializedAsync()
@@ -142,11 +144,12 @@ else
 
         if (docType is null)
         {
-           NavigationManager.NavigateTo("notfound");
+            NavigationManager.NavigateTo("notfound");
         }
 
         _docType = docType;
     }
+
 
     // To protect from overposting attacks, enable the specific properties you want to bind to.
     // For more details, see https://aka.ms/RazorPagesCRUD.
@@ -173,9 +176,7 @@ else
         NavigationManager.NavigateTo("/documenttypes");
     }
 
-    bool DocumentTypeExists(int id)
-    {
-        return DB.DocumentTypes.Any(e => e.Id == id);
-    }
+
+    bool DocumentTypeExists(int id) { return DB.DocumentTypes.Any(e => e.Id == id); }
 
 }

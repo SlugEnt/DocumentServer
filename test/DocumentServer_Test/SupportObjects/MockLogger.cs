@@ -1,18 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
 namespace Test_DocumentServer.SupportObjects;
 
 /// <summary>
-/// Mocks out a Logger
+///     Mocks out a Logger
 /// </summary>
 /// <typeparam name="T"></typeparam>
 public abstract class MockLogger<T> : ILogger<T>
 {
+    public abstract IDisposable BeginScope<TState>(TState state);
+
+
+    public virtual bool IsEnabled(LogLevel logLevel) => true;
+
+
     void ILogger.Log<TState>(LogLevel logLevel,
                              EventId eventId,
                              TState state,
@@ -23,9 +24,4 @@ public abstract class MockLogger<T> : ILogger<T>
 
     public abstract void Log(LogLevel logLevel,
                              string message);
-
-
-    public virtual bool IsEnabled(LogLevel logLevel) => true;
-
-    public abstract IDisposable BeginScope<TState>(TState state);
 }

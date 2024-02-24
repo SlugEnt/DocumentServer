@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentServer.Core;
-using Test_DocumentServer.SupportObjects;
+﻿using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Models.Entities;
+using Test_DocumentServer.SupportObjects;
 
 namespace Test_DocumentServer;
 
@@ -23,19 +18,19 @@ public class Test_RootObject
     public async Task RootObjectUpdate_IgnoresWORMFields()
     {
         // A. Setup
-        SupportMethods       sm             = new SupportMethods();
+        SupportMethods       sm             = new();
         DocumentServerEngine dse            = sm.DocumentServerEngine;
         int                  expAppId       = 1;
         string               expDescription = "Some Desc";
         bool                 expIsActive    = true;
         string               expName        = "The Name is";
 
-        RootObject rootObject = new RootObject()
+        RootObject rootObject = new()
         {
             ApplicationId = expAppId,
             Description   = expDescription,
             IsActive      = expIsActive,
-            Name          = expName,
+            Name          = expName
         };
         sm.DB.RootObjects.Add(rootObject);
         await sm.DB.SaveChangesAsync();

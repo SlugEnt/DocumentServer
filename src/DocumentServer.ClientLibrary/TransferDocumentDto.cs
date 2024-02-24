@@ -1,14 +1,12 @@
-﻿using System.IO.Abstractions;
-
-namespace DocumentServer.ClientLibrary;
+﻿namespace DocumentServer.ClientLibrary;
 
 /// <summary>
-/// This object is used to transfer an actual file back and forth from the Document Server
+///     This object is used to transfer an actual file back and forth from the Document Server
 /// </summary>
 public class TransferDocumentDto : AbstractBaseFileTransfer
 {
     /// <summary>
-    /// The Description of the Document
+    ///     The Description of the Document
     /// </summary>
     public string Description { get; set; }
 
@@ -23,7 +21,7 @@ public class TransferDocumentDto : AbstractBaseFileTransfer
     //  public string FileInBase64Format { get; set; }
 
     /// <summary>
-    /// Type of Document This is
+    ///     Type of Document This is
     /// </summary>
     public int DocumentTypeId { get; set; }
     /*

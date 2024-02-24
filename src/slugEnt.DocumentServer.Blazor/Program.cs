@@ -1,23 +1,36 @@
-using Microsoft.EntityFrameworkCore;
-using Serilog;
 using System.Reflection;
 using DocumentServer.Core;
-using SlugEnt.DocumentServer.Db;
+using Microsoft.EntityFrameworkCore;
 using Radzen;
+using Serilog;
 using SlugEnt.DocumentServer.Blazor.Components;
-using Microsoft.AspNetCore.Identity;
-
+using SlugEnt.DocumentServer.Db;
+using ILogger = Serilog.ILogger;
 
 namespace SlugEnt.DocumentServer.Blazor;
 
 public class Program
 {
-    private static Serilog.ILogger _logger;
+    private static ILogger _logger;
+
+
+
+    /// <summary>
+    ///     Logs whether a given AppSettings file was found to exist.
+    /// </summary>
+    /// <param name="appSettingFileName"></param>
+    private static void DisplayAppSettingStatus(string appSettingFileName)
+    {
+        if (File.Exists(appSettingFileName))
+            _logger.Information("AppSettings File was located.  {AppSettingsFile}", appSettingFileName);
+        else
+            _logger.Warning("AppSettings File was not found.  {AppSettingsFile}", appSettingFileName);
+    }
 
 
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // 10 - Logging Setup
         //_logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
@@ -38,7 +51,7 @@ public class Program
 
 
         // Load Environment Specific App Setting file
-        string appSettingFileName = $"appsettings." + environment.EnvironmentName + ".json";
+        string appSettingFileName = "appsettings." + environment.EnvironmentName + ".json";
         string appSettingFile     = Path.Join(appRoot, appSettingFileName);
         builder.Configuration.AddJsonFile(appSettingFile, true);
         DisplayAppSettingStatus(appSettingFile);
@@ -55,7 +68,7 @@ public class Program
         builder.Services.AddDbContext<DocServerDbContext>(options =>
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()))
-                   .LogTo(Console.WriteLine, LogLevel.Debug)
+                   .LogTo(Console.WriteLine)
                    .EnableDetailedErrors();
         });
 #else
@@ -79,7 +92,7 @@ public class Program
         builder.Services.AddRazorComponents()
                .AddInteractiveServerComponents();
 
-        var app = builder.Build();
+        WebApplication app = builder.Build();
 
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
@@ -99,19 +112,5 @@ public class Program
            .AddInteractiveServerRenderMode();
 
         app.Run();
-    }
-
-
-
-    /// <summary>
-    /// Logs whether a given AppSettings file was found to exist.
-    /// </summary>
-    /// <param name="appSettingFileName"></param>
-    private static void DisplayAppSettingStatus(string appSettingFileName)
-    {
-        if (File.Exists(appSettingFileName))
-            _logger.Information("AppSettings File was located.  {AppSettingsFile}", appSettingFileName);
-        else
-            _logger.Warning("AppSettings File was not found.  {AppSettingsFile}", appSettingFileName);
     }
 }

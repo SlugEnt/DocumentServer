@@ -1,13 +1,9 @@
 ﻿@rendermode InteractiveServer
-@inherits AbstractCRUDComponent
-
 @using SlugEnt.DocumentServer.Models.Entities
-@using global::SlugEnt.DocumentServer.Db
-@using Microsoft.EntityFrameworkCore
 @using SlugEnt.DocumentServer.Models.DTOS
+@using SlugEnt.DocumentServer.Db
 @using global::DocumentServer.Core
-@using SlugEnt.DocumentServer.Models.Enums
-@using Humanizer
+@inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
@@ -18,19 +14,18 @@
 
 <RadzenColumn Size="2" SizeMD="2">
     <RadzenText TextStyle="TextStyle.Body2" class="mb-2">Populate children on parent expand.</RadzenText>
-    <RadzenTree Data=@_applications @bind-value="@appAndRootSelection" Expand=@OnExpandApp Change="@OnChangeApp" Style="height: 300px">
+    <RadzenTree Data="@_applications"@bind-value="@appAndRootSelection" Expand="@OnExpandApp" Change="@OnChangeApp" Style="height: 300px">
         <RadzenTreeLevel TextProperty="Name"/>
     </RadzenTree>
 </RadzenColumn>
 
 
-
 @code {
-    private DocumentType               _documentType           = new();
-    private List<ApplicationSelectDto> _applicationsSelectDtos = new();
-    private IEnumerable<Application>   _applications;
-    private IEnumerable<RootObject>    _rootObjects;
-    object                             appAndRootSelection;
+    private readonly DocumentType               _documentType           = new();
+    private          List<ApplicationSelectDto> _applicationsSelectDtos = new();
+    private          IEnumerable<Application>   _applications;
+    private          IEnumerable<RootObject>    _rootObjects;
+    object                                      appAndRootSelection;
 
 
     protected override async Task OnInitializedAsync()
@@ -38,9 +33,9 @@
         if (_isInitializeed)
             return;
 
-        
-         _applications = DB.Applications;
-         _rootObjects  = DB.RootObjects;
+
+        _applications = DB.Applications;
+        _rootObjects  = DB.RootObjects;
 
         await base.OnInitializedAsync();
         _isInitializeed = true;
@@ -52,7 +47,7 @@
         Application application = args.Value as Application;
         args.Children.Data         = _rootObjects.Where(ro => ro.ApplicationId == application.Id);
         args.Children.TextProperty = "Name";
-        args.Children.HasChildren  = (RootObject) => false;
+        args.Children.HasChildren  = RootObject => false;
     }
 
 
@@ -70,5 +65,6 @@
             Console.WriteLine("RootObj set to " + _documentType.RootObjectId);
         }
     }
+
 
 }

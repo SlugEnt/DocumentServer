@@ -1,9 +1,9 @@
 ﻿@page "/rootobjects"
-@rendermode InteractiveServer
+@using SlugEnt.DocumentServer.Db
 @using Microsoft.AspNetCore.Components.QuickGrid
-@inject SlugEnt.DocumentServer.Db.DocServerDbContext DB
+@rendermode InteractiveServer
+@inject DocServerDbContext DB
 @inject NavigationManager NavigationManager
-@using SlugEnt.DocumentServer.Models.Entities
 
 <PageTitle>Index Title</PageTitle>
 
@@ -16,9 +16,9 @@
 </p>
 
 <QuickGrid Class="table" Items="DB.RootObjects.Where(ro => ro.IsActive == true)">
-    <PropertyColumn Property="rootobject => rootobject.Name" />
-    <PropertyColumn Property="rootobject => rootobject.Description" />
-    <PropertyColumn Property="rootobject => rootobject.ApplicationId" />
+    <PropertyColumn Property="rootobject => rootobject.Name"/>
+    <PropertyColumn Property="rootobject => rootobject.Description"/>
+    <PropertyColumn Property="rootobject => rootobject.ApplicationId"/>
 
     <TemplateColumn Context="rootobject">
         <a href="@($"rootobjects/crud/E/{rootobject.Id}")">Edit</a> |
@@ -29,9 +29,6 @@
 
 @code
 {
-    protected void AddNew()
-    {
-        NavigationManager.NavigateTo("rootobjects/crud/C");
-    }
+    protected void AddNew() { NavigationManager.NavigateTo("rootobjects/crud/C"); }
 
 }

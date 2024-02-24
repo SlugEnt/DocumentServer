@@ -1,9 +1,6 @@
 ﻿using System.Text.Json;
-using DocumentServer.Core;
-using Microsoft.EntityFrameworkCore;
-using SlugEnt.DocumentServer.Db;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 
@@ -11,13 +8,13 @@ namespace ConsoleTesting;
 
 public partial class MainMenu
 {
+    private readonly DocServerDbContext             _db;
+    private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
     private readonly ILogger                        _logger;
+    private readonly JsonSerializerOptions          _options;
+    private          IHttpClientFactory             _httpClientFactory;
     private          IServiceProvider               _serviceProvider;
     private          bool                           _started;
-    private          IHttpClientFactory             _httpClientFactory;
-    private readonly JsonSerializerOptions          _options;
-    private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
-    private readonly DocServerDbContext             _db;
 
 
     public MainMenu(ILogger<MainMenu> logger,
@@ -38,26 +35,7 @@ public partial class MainMenu
             PropertyNameCaseInsensitive = true
         };
 
-        _logger.LogError($"Main Menu Configured");
-    }
-
-
-
-    internal async Task Start()
-    {
-        bool keepProcessing = true;
-        Display();
-
-        while (keepProcessing)
-        {
-            if (Console.KeyAvailable)
-            {
-                Display();
-                keepProcessing = await MainMenuUserInput();
-            }
-            else
-                Thread.Sleep(1000);
-        }
+        _logger.LogError("Main Menu Configured");
     }
 
 
@@ -90,7 +68,7 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.U:
-                        FileInfo       fileToSave = new FileInfo(Path.Combine(@"T:\RetarusFaxReport.pdf"));
+                        FileInfo       fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
                         Result<string> result     = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
                         if (result.IsSuccess)
                             Console.WriteLine("Document Stored   |   ID = " + result.Value);
@@ -127,5 +105,26 @@ public partial class MainMenu
 
         Display();
         return true;
+    }
+
+
+
+    internal async Task Start()
+    {
+        bool keepProcessing = true;
+        Display();
+
+        while (keepProcessing)
+        {
+            if (Console.KeyAvailable)
+            {
+                Display();
+                keepProcessing = await MainMenuUserInput();
+            }
+            else
+            {
+                Thread.Sleep(1000);
+            }
+        }
     }
 }

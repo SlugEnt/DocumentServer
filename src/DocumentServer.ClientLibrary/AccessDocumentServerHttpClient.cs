@@ -1,17 +1,9 @@
-﻿using System.Net;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Net.Mime;
-using System.Runtime.InteropServices.JavaScript;
-using System.Text;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using DocumentServer.ClientLibrary;
-using SlugEnt.DocumentServer.Models.Entities;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -20,9 +12,9 @@ namespace ConsoleTesting;
 
 public class AccessDocumentServerHttpClient : IDisposable
 {
-    private HttpClient                              _httpClient;
-    private ILogger<AccessDocumentServerHttpClient> _logger;
-    private JsonSerializerOptions                   _options;
+    private readonly HttpClient                              _httpClient;
+    private readonly ILogger<AccessDocumentServerHttpClient> _logger;
+    private readonly JsonSerializerOptions                   _options;
 
 
     public AccessDocumentServerHttpClient(HttpClient httpClient,
@@ -41,6 +33,10 @@ public class AccessDocumentServerHttpClient : IDisposable
         _httpClient.Timeout = new TimeSpan(0, 0, 1200);
         _httpClient.DefaultRequestHeaders.Clear();
     }
+
+
+
+    public void Dispose() => _httpClient?.Dispose();
 
 
     public async Task<string> GetDocument()
@@ -74,7 +70,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
 
     /// <summary>
-    /// Saves the given document to storage.
+    ///     Saves the given document to storage.
     /// </summary>
     /// <param name="name">The name of the file</param>
     /// <param name="extension">The extension the file has.</param>
@@ -97,7 +93,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
 
     /// <summary>
-    /// Saves the given document to storage.  Will Read the provided file and store into the storage library.
+    ///     Saves the given document to storage.  Will Read the provided file and store into the storage library.
     /// </summary>
     /// <param name="fileToSave">The FileInfo of the file you wish to save into storage.</param>
     /// <returns></returns>
@@ -127,7 +123,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
 
     /// <summary>
-    /// Saves the given document to storage.  This is the internal method that does the actual saving.
+    ///     Saves the given document to storage.  This is the internal method that does the actual saving.
     /// </summary>
     /// <param name="transferDocumentDto"></param>
     /// <returns></returns>
@@ -160,8 +156,4 @@ public class AccessDocumentServerHttpClient : IDisposable
             return Result.Fail(msg);
         }
     }
-
-
-
-    public void Dispose() => _httpClient?.Dispose();
 }

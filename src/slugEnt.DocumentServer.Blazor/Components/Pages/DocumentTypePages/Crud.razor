@@ -1,16 +1,12 @@
 ﻿@page "/documenttypes/crud/{mode}"
 @page "/documenttypes/crud/{mode}/{recordId:int}"
 @rendermode InteractiveServer
-@inherits AbstractCRUDComponent
-
-@using SlugEnt.DocumentServer.Models.Entities
-@using global::SlugEnt.DocumentServer.Db
 @using Microsoft.EntityFrameworkCore
-@using SlugEnt.DocumentServer.Models.DTOS
-@using global::DocumentServer.Core
+@using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Models.Enums
-@using Humanizer
-@using System.Linq.Dynamic.Core
+@using SlugEnt.DocumentServer.Db
+@using global::DocumentServer.Core
+@inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
@@ -18,7 +14,7 @@
 
 
 <h1>@_pageTitle</h1>
-<hr />
+<hr/>
 <RadzenRow Gap="1rem">
     <RadzenColumn Size="12" SizeSM="6">
         @if (_errMsg != string.Empty)
@@ -34,13 +30,13 @@
 
             <RadzenColumn Size="6" SizeMD="4">
                 <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
-                    <RadzenTextBox @bind-Value="@_documentType.Name" ReadOnly="@_canEdit" />
+                    <RadzenTextBox @bind-Value="@_documentType.Name" ReadOnly="@_canEdit"/>
                 </RadzenFormField>
             </RadzenColumn>
 
             <RadzenColumn Size="3" SizeMD="2">
                 <RadzenFormField Text="Description" Variant="@radDisplay" Style="width: 100%">
-                    <RadzenTextBox @bind-Value="@_documentType.Description" ReadOnly="@_canEdit" />
+                    <RadzenTextBox @bind-Value="@_documentType.Description" ReadOnly="@_canEdit"/>
                 </RadzenFormField>
             </RadzenColumn>
 
@@ -54,18 +50,18 @@
 
             <RadzenColumn Size="2" SizeMD="2">
                 <RadzenFormField Text="Application Associated With" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
-                    <RadzenDropDown Data=@_applications @bind-Value=@_documentType.ApplicationId TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" Change="@AppChanged"/>
+                    <RadzenDropDown Data="@_applications"@bind-Value="@_documentType.ApplicationId" TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" Change="@AppChanged"/>
                 </RadzenFormField>
             </RadzenColumn>
 
 
             <RadzenColumn Size="2" SizeMD="2">
                 <RadzenFormField Text="Primary Root Object Associationh" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
-                    <RadzenDropDown Data=@_rootObjects  @bind-Value =@_documentType.RootObjectId TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" />
+                    <RadzenDropDown Data="@_rootObjects"@bind-Value="@_documentType.RootObjectId" TextProperty="Name" ValueProperty="Id" Style="width: 100%;" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
                 </RadzenFormField>
             </RadzenColumn>
-            
-            
+
+
             <RadzenColumn Size="2" SizeMD="2">
                 <RadzenFormField Text="Storage Mode" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
                     <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageMode)).Cast<Enum>())" @bind-Value="@_documentType.StorageMode"
@@ -85,30 +81,29 @@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
             @if (_isCreateMode)
             {
-                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddEntity" />
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddEntity"/>
             }
             else if (_isEditMode)
             {
-                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save Changes" Click="@UpdateEntity" />
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save Changes" Click="@UpdateEntity"/>
             }
             else if (_isDeleteMode)
             {
-                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="delete" Text="Confirm Deletion" Click="@DeleteEntity" />
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="delete" Text="Confirm Deletion" Click="@DeleteEntity"/>
             }
             else if (_wasDeleted)
             {
-                <RadzenButton ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="check_circle" Text="Return To List" Click="@ReturnToList" />
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="check_circle" Text="Return To List" Click="@ReturnToList"/>
             }
             @if (_isCreateMode || _isEditMode || _isDeleteMode)
             {
-                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel" />
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel"/>
             }
 
         </RadzenStack>
 
     </RadzenColumn>
 </RadzenRow>
-
 
 
 @code {
@@ -120,15 +115,14 @@
 
 
     // Constructor
-    public Crud() : base("Document Type")
-    { }
+    public Crud() : base("Document Type") { }
 
 
     /// <summary>
-    /// Method invoked when the component is ready to start, having received its
-    /// initial parameters from its parent in the render tree.
-    /// Override this method if you will perform an asynchronous operation and
-    /// want the component to refresh when that operation is completed.
+    ///     Method invoked when the component is ready to start, having received its
+    ///     initial parameters from its parent in the render tree.
+    ///     Override this method if you will perform an asynchronous operation and
+    ///     want the component to refresh when that operation is completed.
     /// </summary>
     /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
     protected override async Task OnInitializedAsync()
@@ -142,7 +136,7 @@
 
 
     /// <summary>
-    /// Do after parameter set stuff, such as load the entity record, etc
+    ///     Do after parameter set stuff, such as load the entity record, etc
     /// </summary>
     /// <returns></returns>
     protected override async Task PostSetParametersAsync()
@@ -153,11 +147,10 @@
             _applications = DB.Applications;
 
             //_rootObjects  = DB.RootObjects;
-
         }
         else
         {
-            bool retrieveRecord = (_documentType == null || _documentType.Id != recordId) ? true : false;
+            bool retrieveRecord = _documentType == null || _documentType.Id != recordId ? true : false;
 
             if (retrieveRecord)
             {
@@ -166,9 +159,6 @@
                 DB.Applications.Where(ap => ap.Id == _documentType.ApplicationId);
             }
         }
-
-
-        return;
     }
 
 
@@ -176,7 +166,7 @@
 
 
     /// <summary>
-    /// Creates a new RootObject
+    ///     Creates a new RootObject
     /// </summary>
     /// <returns></returns>
     public async Task AddEntity()
@@ -188,19 +178,19 @@
 
 
     /// <summary>
-    /// Updates the RootObject
+    ///     Updates the RootObject
     /// </summary>
     /// <returns></returns>
     public async Task UpdateEntity()
     {
         DB.DocumentTypes.Update(_documentType);
         await DB.SaveChangesAsync();
-        _successMsg = String.Format("RootObject {0} [ {1} ] was successfully updated.", _documentType.Name, _documentType.Id);
+        _successMsg = string.Format("RootObject {0} [ {1} ] was successfully updated.", _documentType.Name, _documentType.Id);
     }
 
 
     /// <summary>
-    /// Deletes the RootOBject
+    ///     Deletes the RootOBject
     /// </summary>
     /// <returns></returns>
     public async Task DeleteEntity()
@@ -219,4 +209,4 @@
     }
 
 
-    }
+}

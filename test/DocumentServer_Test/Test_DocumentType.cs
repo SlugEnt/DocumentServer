@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Bogus;
-using DocumentServer.ClientLibrary;
+﻿using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
-using Test_DocumentServer.SupportObjects;
-using Microsoft.EntityFrameworkCore;
-using NSubstitute.Extensions;
-using SlugEnt;
 using SlugEnt.FluentResults;
+using Test_DocumentServer.SupportObjects;
 
 namespace Test_DocumentServer;
 
@@ -25,7 +18,7 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Validate that the ComputeStorageFolder method throws if it cannot find the StorageNode
+    ///     Validate that the ComputeStorageFolder method throws if it cannot find the StorageNode
     /// </summary>
     /// <returns></returns>
     [Test]
@@ -40,7 +33,7 @@ public class Test_DocumentType
                                                       bool shouldPass)
     {
         //***  A. Setup
-        SupportMethods       sm    = new SupportMethods();
+        SupportMethods       sm    = new();
         DocumentServerEngine dse   = sm.DocumentServerEngine;
         string               eName = sm.Faker.Random.Word();
 
@@ -69,7 +62,7 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Validates that a document cannot be stored that has a DocumentType that is inactive.
+    ///     Validates that a document cannot be stored that has a DocumentType that is inactive.
     /// </summary>
     /// <returns></returns>
     [Test]
@@ -78,7 +71,7 @@ public class Test_DocumentType
     public async Task DocumentTypeMustBeActive_ToStoreADocument(bool markDocumentTypeActive)
     {
         //***  A. Setup
-        SupportMethods       sm         = new SupportMethods(EnumFolderCreation.Test, false);
+        SupportMethods       sm         = new(EnumFolderCreation.Test, false);
         DocumentServerEngine dse        = sm.DocumentServerEngine;
         string               folderName = sm.Faker.Random.AlphaNumeric(6);
 
@@ -109,10 +102,8 @@ public class Test_DocumentType
 
         // Displays the Change Tracker Cache
         Console.WriteLine("Displaying ChangeTracker Cache");
-        foreach (var entityEntry in sm.DB.ChangeTracker.Entries())
-        {
+        foreach (EntityEntry entityEntry in sm.DB.ChangeTracker.Entries())
             Console.WriteLine($"Found {entityEntry.Metadata.Name} entity with ID {entityEntry.Property("Id").CurrentValue}");
-        }
 #endif
         await sm.DB.SaveChangesAsync();
         Console.WriteLine("Saved Step 1!");
@@ -141,7 +132,7 @@ public class Test_DocumentType
         Assert.That(result.Errors.Count, Is.GreaterThan(0), "Z20:");
 
         bool foundMsg = false;
-        foreach (var error in result.Errors)
+        foreach (IError? error in result.Errors)
         {
             if (error.Message.Contains("DocumentType") && error.Message.Contains("inactive"))
                 foundMsg = true;
@@ -153,14 +144,14 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Runs thru the DocumentType IsAlive change process.
+    ///     Runs thru the DocumentType IsAlive change process.
     /// </summary>
     /// <returns></returns>
     [Test]
     public async Task SetDocumentTypeIsActiveStatus_Success()
     {
         //***  A. Setup
-        SupportMethods       sm                  = new SupportMethods(EnumFolderCreation.None);
+        SupportMethods       sm                  = new();
         DocumentServerEngine dse                 = sm.DocumentServerEngine;
         string               folderName          = sm.Faker.Random.AlphaNumeric(6);
         string               expectedExtension   = sm.Faker.Random.String2(3);
@@ -198,15 +189,16 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Validates the default settings of a DocumentType Object are correct.  If these ever fail, very carefully consider the
-    /// changes you made, it could affect existing data.
+    ///     Validates the default settings of a DocumentType Object are correct.  If these ever fail, very carefully consider
+    ///     the
+    ///     changes you made, it could affect existing data.
     /// </summary>
     /// <returns></returns>
     [Test]
     public async Task Validate_DocumentTypeDefaultValues()
     {
         //***  A. Setup
-        SupportMethods       sm                  = new SupportMethods(EnumFolderCreation.None);
+        SupportMethods       sm                  = new();
         DocumentServerEngine dse                 = sm.DocumentServerEngine;
         string               folderName          = sm.Faker.Random.AlphaNumeric(6);
         string               expectedExtension   = sm.Faker.Random.String2(3);
@@ -239,14 +231,14 @@ public class Test_DocumentType
 
 
     /// <summary>
-    /// Confirms that WORM fields are unable to be updated after initial save.
+    ///     Confirms that WORM fields are unable to be updated after initial save.
     /// </summary>
     /// <returns></returns>
     [Test]
     public async Task Ignore_Worm_Fields_Success()
     {
         // A. Setup
-        SupportMethods        sm             = new SupportMethods(EnumFolderCreation.None, false);
+        SupportMethods        sm             = new(EnumFolderCreation.None, false);
         DocumentServerEngine  dse            = sm.DocumentServerEngine;
         string                sName          = sm.Faker.Random.String2(12);
         string                sDesc          = sm.Faker.Random.String2(22);
@@ -259,7 +251,7 @@ public class Test_DocumentType
 
 
         // B. Createa A new Document Type.
-        DocumentType docType = new DocumentType()
+        DocumentType docType = new()
         {
             Name                   = sName,
             Description            = sDesc,
@@ -271,7 +263,7 @@ public class Test_DocumentType
             InActiveLifeTime       = sDocLifetime,
             RootObjectId           = sRootObjId,
             StorageFolderName      = sStorageFolder,
-            StorageMode            = sStorageMode,
+            StorageMode            = sStorageMode
         };
 
         sm.DB.Add(docType);

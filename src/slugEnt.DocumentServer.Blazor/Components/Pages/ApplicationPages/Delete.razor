@@ -1,8 +1,8 @@
 ﻿@page "/applications/delete"
-@using global::SlugEnt.DocumentServer.Models.Entities
-@inject NavigationManager NavigationManager
 @using Microsoft.EntityFrameworkCore
-@using global::SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@inject NavigationManager NavigationManager
 @inject DocServerDbContext DB
 
 <PageTitle>Delete</PageTitle>
@@ -12,12 +12,15 @@
 <h3>Are you sure you want to delete this?</h3>
 <div>
     <h4>Application</h4>
-    <hr />
+    <hr/>
     @if (application is null)
     {
-        <p><em>Loading...</em></p>
+        <p>
+            <em>Loading...</em>
+        </p>
     }
-    else {
+    else
+    {
         <dl class="row">
             <dt class="col-sm-2">Name</dt>
             <dd class="col-sm-10">@application.Name</dd>
@@ -44,8 +47,8 @@
 @code {
     Application? application;
 
-    [SupplyParameterFromQuery]
-    public int Id { get; set; }
+    [SupplyParameterFromQuery] public int Id { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,10 +60,13 @@
         }
     }
 
+
     public async Task DeleteApplication()
     {
         DB.Applications.Remove(application!);
         await DB.SaveChangesAsync();
         NavigationManager.NavigateTo("/applications");
     }
+
+
 }

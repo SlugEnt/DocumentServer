@@ -1,8 +1,8 @@
 ﻿@page "/documenttypes/details"
-@inject NavigationManager NavigationManager
 @using Microsoft.EntityFrameworkCore
-@using global::SlugEnt.DocumentServer.Db
-@using global::SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@inject NavigationManager NavigationManager
 @inject DocServerDbContext DB
 
 
@@ -12,12 +12,15 @@
 
 <div>
     <h4>DocumentType</h4>
-    <hr />
+    <hr/>
     @if (documenttype is null)
     {
-        <p><em>Loading...</em></p>
+        <p>
+            <em>Loading...</em>
+        </p>
     }
-    else {
+    else
+    {
         <dl class="row">
             <dt class="col-sm-2">Name</dt>
             <dd class="col-sm-10">@documenttype.Name</dd>
@@ -50,7 +53,7 @@
         </dl>
         <div>
             <a href="@($"/documenttypes/edit?id={documenttype.Id}")">Edit</a> |
-            <a href="@($"/documenttypes")">Back to List</a>
+            <a href="@("/documenttypes")">Back to List</a>
         </div>
     }
 </div>
@@ -58,8 +61,8 @@
 @code {
     DocumentType? documenttype;
 
-    [SupplyParameterFromQuery]
-    public int Id { get; set; }
+    [SupplyParameterFromQuery] public int Id { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,4 +73,6 @@
             NavigationManager.NavigateTo("notfound");
         }
     }
+
+
 }

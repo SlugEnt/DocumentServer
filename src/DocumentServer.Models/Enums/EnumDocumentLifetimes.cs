@@ -3,8 +3,10 @@
 namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
-/// Lifetime of a document after it is considered closed.  Meaning for a temporary document its closure clock starts at the day its created.
-/// For other documents, it's when its parent entity, ie, a claim, referral, etc is considered closed. This is when its clock starts.
+///     Lifetime of a document after it is considered closed.  Meaning for a temporary document its closure clock starts at
+///     the day its created.
+///     For other documents, it's when its parent entity, ie, a claim, referral, etc is considered closed. This is when its
+///     clock starts.
 /// </summary>
 public enum EnumDocumentLifetimes
 {
@@ -24,13 +26,13 @@ public enum EnumDocumentLifetimes
     [Display(Description = "10 Years")] YearsTen    = 110,
 
     /// <summary>
-    /// There is no preset value, the parent will determine
+    ///     There is no preset value, the parent will determine
     /// </summary>
     [Display(Description = "Parent Save Determined")]
     ParentDetermined = 250,
 
     /// <summary>
-    /// Document is not considered to not have any value set, so it will never expire
+    ///     Document is not considered to not have any value set, so it will never expire
     /// </summary>
-    Never = 254,
+    Never = 254
 }

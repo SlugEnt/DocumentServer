@@ -1,8 +1,8 @@
 ﻿@page "/applications/details"
-@inject NavigationManager NavigationManager
 @using Microsoft.EntityFrameworkCore
-@using global::SlugEnt.DocumentServer.Models.Entities
-@using global::SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@inject NavigationManager NavigationManager
 @inject DocServerDbContext DB
 
 
@@ -12,12 +12,15 @@
 
 <div>
     <h4>Application</h4>
-    <hr />
+    <hr/>
     @if (application is null)
     {
-        <p><em>Loading...</em></p>
+        <p>
+            <em>Loading...</em>
+        </p>
     }
-    else {
+    else
+    {
         <dl class="row">
             <dt class="col-sm-2">Name</dt>
             <dd class="col-sm-10">@application.Name</dd>
@@ -30,7 +33,7 @@
         </dl>
         <div>
             <a href="@($"/applications/edit?id={application.Id}")">Edit</a> |
-            <a href="@($"/applications")">Back to List</a>
+            <a href="@("/applications")">Back to List</a>
         </div>
     }
 </div>
@@ -38,8 +41,8 @@
 @code {
     Application? application;
 
-    [SupplyParameterFromQuery]
-    public int Id { get; set; }
+    [SupplyParameterFromQuery] public int Id { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -50,4 +53,6 @@
             NavigationManager.NavigateTo("notfound");
         }
     }
+
+
 }

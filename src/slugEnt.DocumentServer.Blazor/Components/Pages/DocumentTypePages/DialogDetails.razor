@@ -1,20 +1,21 @@
 ﻿@page "/dialogdetails/{Id}"
-@rendermode InteractiveServer
-@using global::SlugEnt.DocumentServer.Db
-@using global::SlugEnt.DocumentServer.Models.Entities
-@using Humanizer
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.EntityFrameworkCore.ChangeTracking.Internal
-@using System.Text
+@using Humanizer
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
 @using System.Diagnostics.CodeAnalysis
+@using System.Text
+@rendermode InteractiveServer
 @inject DocServerDbContext DB
-@inject Radzen.DialogService dialogService
+@inject DialogService dialogService
 @inject TooltipService tooltipService
 
 
 @if (_documentType == null)
 {
-    <p><em>Loading...</em></p>
+    <p>
+        <em>Loading...</em>
+    </p>
 }
 else
 {
@@ -25,25 +26,30 @@ else
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
                     <RadzenStack Gap="0" Class="rz-text-truncate">
                         <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Name</RadzenText>
-                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@(_documentType.Name)</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                            <b>@(_documentType.Name)</b>
+                        </RadzenText>
 
                         <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Description</RadzenText>
-                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@_documentType.Description</b></RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                            <b>@_documentType.Description</b>
+                        </RadzenText>
 
                         <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Primary Root Object</RadzenText>
-                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@rootObjectName</b></RadzenText>
-
+                        <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                            <b>@rootObjectName</b>
+                        </RadzenText>
 
 
                         <div Class="rz-mt-4 rz-mb-0">
                             <RadzenCheckBox ReadOnly=true @bind-Value=@_documentType.IsActive Name="IsActive"/>
-                            <RadzenLabel Text="Is Active" Component="IsActive"  Style="color: var(--rz-text-tertiary-color);" />
+                            <RadzenLabel Text="Is Active" Component="IsActive" Style="color: var(--rz-text-tertiary-color);"/>
                         </div>
                         <div Class="rz-mt-4 rz-mb-0">
-                            <RadzenCheckBox ReadOnly=true @bind-Value=@_documentType.AllowSameDTEKeys Name="DTK" />
-                            <RadzenLabel Text="Allow Multple Same External Keys" Component="DTK"  Style="color: var(--rz-text-tertiary-color);"/>
+                            <RadzenCheckBox ReadOnly=true @bind-Value=@_documentType.AllowSameDTEKeys Name="DTK"/>
+                            <RadzenLabel Text="Allow Multple Same External Keys" Component="DTK" Style="color: var(--rz-text-tertiary-color);"/>
                         </div>
-                        
+
                     </RadzenStack>
                 </RadzenStack>
             </RadzenColumn>
@@ -51,14 +57,20 @@ else
                 <RadzenText TextStyle="TextStyle.Subtitle1">Storage Information</RadzenText>
                 <RadzenStack Gap="0" Class="rz-text-truncate">
                     <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Primary Storage Node</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@(storageNode1Name) [ @storageNode1Id]</b></RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                        <b>@(storageNode1Name) [ @storageNode1Id]</b>
+                    </RadzenText>
 
                     <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-2 rz-my-0" Style="color: var(--rz-text-tertiary-color);">Secondary Storage Node</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@(storageNode2Name) [ @storageNode2Id]</b></RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                        <b>@(storageNode2Name) [ @storageNode2Id]</b>
+                    </RadzenText>
 
 
                     <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Storage Mode</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate"><b>@_documentType.StorageMode.Humanize()</b></RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate">
+                        <b>@_documentType.StorageMode.Humanize()</b>
+                    </RadzenText>
 
                     <RadzenText TextStyle="TextStyle.Overline" Class="rz-mt-4 rz-mb-0" Style="color: var(--rz-text-tertiary-color);">Inactive Lifetime</RadzenText>
                     <RadzenText TextStyle="TextStyle.Body1" Class="rz-text-truncate" MouseEnter="@(args => ShowTooltipLifetime(args))">
@@ -75,8 +87,8 @@ else
 @code {
     [Parameter] public int ID { get; set; }
 
-    private     bool         _isInitialized = false;
-    [AllowNull] DocumentType _documentType;
+    private readonly bool         _isInitialized = false;
+    [AllowNull]      DocumentType _documentType;
 
 
     string? storageNode1Id   = "";
@@ -84,6 +96,7 @@ else
     string  storageNode1Name = "";
     string  storageNode2Name = "";
     string  rootObjectName   = "Error - Unable to retrieve";
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,7 +133,7 @@ else
             storageNode2Name = _documentType.ActiveStorageNode2.Name;
         }
 
-        
+
         if (_documentType.RootObject != null)
             rootObjectName = _documentType.RootObject.Name;
         await base.OnInitializedAsync();
@@ -128,17 +141,16 @@ else
 
 
     /// <summary>
-    /// Displays the Lifetime Tooltip
+    ///     Displays the Lifetime Tooltip
     /// </summary>
     /// <param name="elementReference"></param>
     /// <param name="options"></param>
     protected void ShowTooltipLifetime(ElementReference elementReference,
-                               TooltipOptions options = null)
+                                       TooltipOptions options = null)
     {
-        options = new()
+        options = new TooltipOptions
         {
-            Duration = 20000,
-            
+            Duration = 20000
         };
         StringBuilder sb = new("The Inactive Lifetime Setting determines how long after a particular Stored Document is no longer marked As Alive, before it can be considered for Archival or permanent removal.");
         tooltipService.Open(elementReference, sb.ToString(), options);
@@ -146,5 +158,3 @@ else
 
 
 }
-
-

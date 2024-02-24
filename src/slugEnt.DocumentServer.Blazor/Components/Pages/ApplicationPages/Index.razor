@@ -1,6 +1,6 @@
 ﻿@page "/applications"
+@using SlugEnt.DocumentServer.Db
 @using Microsoft.AspNetCore.Components.QuickGrid
-@using global::SlugEnt.DocumentServer.Db
 @inject DocServerDbContext DB
 
 
@@ -13,8 +13,8 @@
 </p>
 
 <QuickGrid Class="table" Items="DB.Applications">
-    <PropertyColumn Property="application => application.Name" />
-    <PropertyColumn Property="application => application.IsActive" />
+    <PropertyColumn Property="application => application.Name"/>
+    <PropertyColumn Property="application => application.IsActive"/>
     <PropertyColumn Property="application => application.CreatedAtUTC"/>
     <PropertyColumn Property="application => application.ModifiedAtUTC"/>
 
