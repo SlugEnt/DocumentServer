@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using SlugEnt.DocumentServer.Models.Enums;
+using SlugEnt.FluentResults;
 
 namespace SlugEnt.DocumentServer.Models.Entities
 {
@@ -25,12 +27,6 @@ namespace SlugEnt.DocumentServer.Models.Entities
         public DateTime ExpirationDateUtcDateTime { get; set; }
 
 
-        /// <summary>
-        /// Empty Constructor
-        /// </summary>
-        protected ExpiringDocument() { }
-
-
         public StoredDocument StoredDocument;
 
 
@@ -39,11 +35,13 @@ namespace SlugEnt.DocumentServer.Models.Entities
         /// </summary>
         /// <param name="documentLifetime"></param>
         /// <param name="expirationDateOnlySetForParentLifetime">This is only used when the EnumLifetime value is Parent Type.  If not set and type is ParentDetermined then 1 year is used</param>
-        public ExpiringDocument(EnumDocumentLifetimes documentLifetime,
-                                DateTime? expirationDateOnlySetForParentLifetime = null)
+        public static Result<ExpiringDocument> Create(EnumDocumentLifetimes documentLifetime,
+                                                      DateTime? expirationDateOnlySetForParentLifetime = null)
         {
+            ExpiringDocument expiringDocument = new();
+
             // Calculate the expiration date.
-            ExpirationDateUtcDateTime = documentLifetime switch
+            expiringDocument.ExpirationDateUtcDateTime = documentLifetime switch
             {
                 EnumDocumentLifetimes.Never       => DateTime.MaxValue,
                 EnumDocumentLifetimes.HoursOne    => DateTime.UtcNow.AddHours(1),
@@ -63,7 +61,13 @@ namespace SlugEnt.DocumentServer.Models.Entities
                 EnumDocumentLifetimes.ParentDetermined => expirationDateOnlySetForParentLifetime != null
                                                               ? (DateTime)expirationDateOnlySetForParentLifetime
                                                               : DateTime.UtcNow.AddYears(1),
+                _ => DateTime.MinValue
             };
+
+            if (expiringDocument.ExpirationDateUtcDateTime == DateTime.MinValue)
+                return Result.Fail(new Error("Unknown DocumentLifetime value of [ " + documentLifetime + " ]"));
+
+            return Result.Ok(expiringDocument);
         }
     }
 }

@@ -7,15 +7,16 @@ using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
-using DocumentServer_Test.SupportObjects;
+using Test_DocumentServer.SupportObjects;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute.ExceptionExtensions;
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using SlugEnt;
 using SlugEnt.FluentResults;
 using Test_DocumentServer.SupportObjects;
 
-namespace DocumentServer_Test;
+namespace Test_DocumentServer;
 
 [TestFixture]
 public class Test_DocumentServerEngine
@@ -139,7 +140,8 @@ public class Test_DocumentServerEngine
             EnumStorageMode.Editable          => "E",
             EnumStorageMode.Temporary         => "T",
             EnumStorageMode.Replaceable       => "R",
-            EnumStorageMode.Versioned         => "V"
+            EnumStorageMode.Versioned         => "V",
+            _                                 => throw new Exception("Unknown StorageMode value of [ " + storageMode + " ]")
         };
 
 
@@ -470,6 +472,7 @@ public class Test_DocumentServerEngine
                 EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
                 EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
                 EnumDocumentLifetimes.Never       => DateTime.MaxValue,
+                _                                 => throw new Exception("Unknown DocumentLifetime value of [ " + inActiveLifeTime + " ]")
             };
         }
 
@@ -502,6 +505,7 @@ public class Test_DocumentServerEngine
             EnumStorageMode.Temporary         => "T",
             EnumStorageMode.Versioned         => "V",
             EnumStorageMode.Replaceable       => "R",
+            _                                 => throw new Exception("Unknown StorageMode value of [ " + storageMode + " ]")
         };
 
         Result<string> actualResult = documentServerEngine.GetModeLetter(storageMode);
@@ -855,27 +859,6 @@ public class Test_DocumentServerEngine
             Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30Loop [ " + i + " ] ");
             Assert.That(storedDocument.RootObjectExternalKey, Is.EqualTo(expectedRootObjectId), "Z40:Loop [ " + i + " ] ");
             Assert.That(storedDocument.DocTypeExternalKey, Is.EqualTo(expectedExternalId), "Z50:Loop [ " + i + " ] ");
-        }
-    }
-
-
-
-    [Test]
-    public void dummy()
-    {
-        SupportMethods sm = new SupportMethods(EnumFolderCreation.Test, _useDatabaseTransactions);
-
-        try
-        {
-            sm.FileSystem.File.Create("abc");
-
-            FileSystemStream fs = sm.FileSystem.File.OpenWrite("abc");
-            fs.WriteByte(23);
-            sm.FileSystem.File.Delete("abc");
-        }
-        catch (Exception ex)
-        {
-            int j = 3;
         }
     }
 }

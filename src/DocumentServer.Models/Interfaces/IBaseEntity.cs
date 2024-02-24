@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -21,4 +22,12 @@ public interface IBaseEntity
     /// When it was last updated.
     /// </summary>
     public DateTime? ModifiedAtUTC { get; set; }
+
+    public bool HasWormFields();
+
+
+    /// <summary>
+    /// Method used to remove WORM fields from the entity on update.  This prevents these fields from ever being updated.
+    /// </summary>
+    public void OnEditRemoveWORMFields(EntityEntry entityEntry);
 }

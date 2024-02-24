@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace DocumentServer_Test.SupportObjects;
+namespace Test_DocumentServer.SupportObjects;
 
 /// <summary>
 /// Mocks out a Logger

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DocumentServer_Test.SupportObjects
+namespace Test_DocumentServer.SupportObjects
 {
     public static class TestConstants
     {

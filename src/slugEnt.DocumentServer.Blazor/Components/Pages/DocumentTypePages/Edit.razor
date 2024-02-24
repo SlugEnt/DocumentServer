@@ -138,14 +138,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        DocumentType ??= await DB.DocumentTypes.FirstOrDefaultAsync(m => m.Id == ID);
+        DocumentType? docType = await DB.DocumentTypes.FirstOrDefaultAsync(m => m.Id == ID);
 
-        if (DocumentType is null)
+        if (docType is null)
         {
            NavigationManager.NavigateTo("notfound");
         }
 
-        _docType = DocumentType;
+        _docType = docType;
     }
 
     // To protect from overposting attacks, enable the specific properties you want to bind to.

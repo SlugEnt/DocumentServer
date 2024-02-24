@@ -1,5 +1,7 @@
 ﻿using SlugEnt.DocumentServer.Models.Interfaces;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace SlugEnt.DocumentServer.Models.Entities;
 
@@ -24,4 +26,10 @@ public class AbstractBaseEntity : IBaseEntity
     /// True if the object is currently active, false if not.
     /// </summary>
     public bool IsActive { get; set; }
+
+
+    public virtual bool HasWormFields() => false;
+
+
+    public virtual void OnEditRemoveWORMFields(EntityEntry entityEntry) { }
 }

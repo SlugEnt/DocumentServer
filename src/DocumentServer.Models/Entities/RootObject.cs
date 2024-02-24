@@ -1,4 +1,6 @@
-﻿namespace SlugEnt.DocumentServer.Models.Entities;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
+
+namespace SlugEnt.DocumentServer.Models.Entities;
 
 /// <summary>
 /// A Root Object is some key object in an external system that you want to store documents about.  It could be a Claim or a Referral or an Account.
@@ -15,4 +17,16 @@ public class RootObject : AbstractBaseEntity
 
     public int ApplicationId { get; set; }
     public Application Application { get; set; }
+
+    public override bool HasWormFields() => true;
+
+
+    public override void OnEditRemoveWORMFields(EntityEntry entityEntry)
+    {
+        entityEntry.Property("ApplicationId").IsModified = false;
+        base.OnEditRemoveWORMFields(entityEntry);
+    }
+
+
+    public ICollection<DocumentType> DocumentTypes;
 }

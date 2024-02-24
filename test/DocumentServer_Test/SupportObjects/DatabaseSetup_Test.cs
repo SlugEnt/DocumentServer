@@ -11,7 +11,7 @@ using NUnit.Framework;
 
 
 
-namespace DocumentServer_Test.SupportObjects;
+namespace Test_DocumentServer.SupportObjects;
 
 [TestFixture]
 public static class DatabaseSetup_Test

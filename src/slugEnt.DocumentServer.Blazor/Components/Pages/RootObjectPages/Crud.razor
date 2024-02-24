@@ -8,6 +8,8 @@
 @using Microsoft.EntityFrameworkCore
 @using SlugEnt.DocumentServer.Models.DTOS
 @using global::DocumentServer.Core
+@using Microsoft.EntityFrameworkCore.Migrations.Operations
+@using SlugEnt.DocumentServer.Models.Enums
 
 
 @inject DocServerDbContext DB
@@ -119,14 +121,14 @@
     /// <returns></returns>
     protected override async Task PostSetParametersAsync()
     {
-        bool retrieveRecord = false;
+        bool retrieveRecord = (_rootObject == null || _rootObject.Id != recordId) ? true : false;
 
-        if (_rootObject == null || _rootObject.Id != recordId)
-            retrieveRecord = true;
+        if (!retrieveRecord)
+            return;
 
-        if (retrieveRecord)
-            _rootObject = await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
-        return;
+        RootObject? ro =  await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
+        if (ro == null) 
+            _errMsg = "Unable to locate the RootObject with Id of [ " + recordId + " ].  Unable to continue";
     }
 
 

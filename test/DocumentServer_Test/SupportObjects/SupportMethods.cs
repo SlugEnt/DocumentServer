@@ -9,6 +9,7 @@ using System.IO.Abstractions.TestingHelpers;
 using Bogus;
 using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
+using Microsoft.EntityFrameworkCore.Migrations;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using Microsoft.Identity.Client.Extensions.Msal;
@@ -16,7 +17,7 @@ using NSubstitute;
 using SlugEnt;
 using SlugEnt.FluentResults;
 
-namespace DocumentServer_Test.SupportObjects;
+namespace Test_DocumentServer.SupportObjects;
 
 /// <summary>
 ///     This sets up a Test Data class of common items that are needed for each test scenario
@@ -47,8 +48,22 @@ public class SupportMethods
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
         DB = DatabaseSetup_Test.CreateContext();
         LoadDatabaseInfo();
+        string tmsg = "";
+
+
+        ConsoleColor color = ConsoleColor.Green;
         if (useTransactions)
+        {
             DB.Database.BeginTransaction();
+            tmsg =
+                "This means nothing is committed to the database from this unit test.  In some test scenarios this can cause unexpected results.  It can be turned off in those cases.";
+            color = ConsoleColor.DarkRed;
+        }
+
+        Console.ForegroundColor = color;
+        Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
+        Console.WriteLine(tmsg);
+        Console.ForegroundColor = ConsoleColor.White;
 
         DocumentServerEngine = new DocumentServerEngine(_logger, DB, FileSystem);
 
@@ -69,9 +84,20 @@ public class SupportMethods
 
 
     /// <summary>
+    /// Resets the DB Context, by creating a new one, which means it is completely empty.
+    /// </summary>
+    /// <returns></returns>
+    public DocServerDbContext ResetContext()
+    {
+        DB = DatabaseSetup_Test.CreateContext();
+        return DB;
+    }
+
+
+    /// <summary>
     ///     Returns the DB Context
     /// </summary>
-    public DocServerDbContext DB { get; }
+    public DocServerDbContext DB { get; private set; }
 
 
     /// <summary>
@@ -272,7 +298,7 @@ public class SupportMethods
                                              3);
         string fullPath = Path.Combine(sm.Folder_Test, fileName);
         Console.WriteLine("Generated FileName: " + fullPath);
-        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
+        Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "TFX_GenerateUploadFile:");
 
 
         // A20. Read the File

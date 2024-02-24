@@ -1,4 +1,6 @@
-﻿namespace SlugEnt.DocumentServer.Models.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SlugEnt.DocumentServer.Models.Enums;
 
 /// <summary>
 /// Lifetime of a document after it is considered closed.  Meaning for a temporary document its closure clock starts at the day its created.
@@ -6,24 +8,25 @@
 /// </summary>
 public enum EnumDocumentLifetimes
 {
-    HoursOne    = 3,
-    HoursFour   = 4,
-    HoursTwelve = 12,
-    DayOne      = 14,
-    WeekOne     = 20,
-    MonthOne    = 22,
-    MonthsThree = 30,
-    MonthsSix   = 35,
-    YearOne     = 101,
-    YearsTwo    = 102,
-    YearsThree  = 103,
-    YearsFour   = 104,
-    YearsSeven  = 107,
-    YearsTen    = 110,
+    [Display(Description = "1 Hour")]   HoursOne    = 3,
+    [Display(Description = "4 Hours")]  HoursFour   = 4,
+    [Display(Description = "12 Hours")] HoursTwelve = 12,
+    [Display(Description = "1 Day")]    DayOne      = 14,
+    [Display(Description = "1 Week")]   WeekOne     = 20,
+    [Display(Description = "1 Month")]  MonthOne    = 22,
+    [Display(Description = "3 Months")] MonthsThree = 30,
+    [Display(Description = "6 Months")] MonthsSix   = 35,
+    [Display(Description = "1 Year")]   YearOne     = 101,
+    [Display(Description = "2 Years")]  YearsTwo    = 102,
+    [Display(Description = "3 Years")]  YearsThree  = 103,
+    [Display(Description = "4 Years")]  YearsFour   = 104,
+    [Display(Description = "7 Years")]  YearsSeven  = 107,
+    [Display(Description = "10 Years")] YearsTen    = 110,
 
     /// <summary>
     /// There is no preset value, the parent will determine
     /// </summary>
+    [Display(Description = "Parent Save Determined")]
     ParentDetermined = 250,
 
     /// <summary>

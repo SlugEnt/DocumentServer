@@ -4,9 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Numerics;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 
@@ -23,31 +25,35 @@ namespace SlugEnt.DocumentServer.Models.Entities
         public DocumentType() { }
 
 
-        public DocumentType(string name,
-                            string description,
-                            string storageFolder,
-                            EnumStorageMode storageMode,
-                            int rootObjectId,
-                            int activeStorageNodeId,
-                            EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
+        public static Result<DocumentType> CreateDocumentType(string name,
+                                                              string description,
+                                                              string storageFolder,
+                                                              EnumStorageMode storageMode,
+                                                              int applicationId,
+                                                              int rootObjectId,
+                                                              int activeStorageNodeId,
+                                                              EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
         {
-            Name                 = name;
-            Description          = description;
-            StorageFolderName    = storageFolder;
-            StorageMode          = storageMode;
-            RootObjectId         = rootObjectId;
-            ActiveStorageNode1Id = activeStorageNodeId;
-            InActiveLifeTime     = lifeTime;
+            DocumentType x = new DocumentType();
+            x.Name                 = name;
+            x.Description          = description;
+            x.StorageFolderName    = storageFolder;
+            x.StorageMode          = storageMode;
+            x.RootObjectId         = rootObjectId;
+            x.ActiveStorageNode1Id = activeStorageNodeId;
+            x.InActiveLifeTime     = lifeTime;
 
-            Result result = IsValid();
+            Result result = x.IsValid();
             if (result.IsSuccess)
-                return;
+                return Result.Ok(x);
 
             StringBuilder sb = new StringBuilder("Errors during creation of DocumentType object:");
             foreach (IError resultError in result.Errors)
             {
                 sb.Append(Environment.NewLine + resultError);
             }
+
+            return Result.Fail(new Error(sb.ToString()));
 
             throw new ArgumentException(sb.ToString());
         }
@@ -73,7 +79,7 @@ namespace SlugEnt.DocumentServer.Models.Entities
 
 
         /// <summary>
-        ///  Description of this Document Type
+        ///  Name of this Document Type
         /// </summary>
         [MaxLength(75)]
         public string Name { get; set; }
@@ -93,12 +99,6 @@ namespace SlugEnt.DocumentServer.Models.Entities
         [MaxLength(10)]
         public string StorageFolderName { get; set; } = "";
 
-        /// <summary>
-        /// Default Storage mode for documents of this type.
-        /// </summary>
-        [Column(TypeName = "tinyint")]
-        public EnumStorageMode StorageMode { get; set; }
-
 
         /// <summary>
         /// How long after the document is considered closed or InActive it should remain in system.
@@ -107,14 +107,41 @@ namespace SlugEnt.DocumentServer.Models.Entities
         public EnumDocumentLifetimes InActiveLifeTime { get; set; } = EnumDocumentLifetimes.Never;
 
 
-        // Relationships
+    #region "Worm Fields"
+
+        /// <summary>
+        /// Default Storage mode for documents of this type.  This cannot be changed once saved.
+        /// </summary>
+        [Required]
+        [Column(TypeName = "tinyint")]
+        public EnumStorageMode StorageMode { get; set; }
+
+
+        /// <summary>
+        /// The Root object associated with this document type.  This cannot be changed after initial creation.
+        /// </summary>
+        [Required]
         public int RootObjectId { get; set; }
 
 
         /// <summary>
+        /// The application this document is associated with
+        /// </summary>
+        [Required]
+        public int ApplicationId { get; set; }
+
+
+        /// <summary>
         /// If this is false, then there can only be one entry per DocumentType External Key.  Meaning an invoice 123 can only exist once for this documenttype and rootObjectKey combination.  If true, there can be multiple of the same key.
+        /// This cannot be changed after initial save
         /// </summary>
         public bool AllowSameDTEKeys { get; set; } = false;
+
+    #endregion
+
+
+        public RootObject RootObject { get; set; }
+        public Application Application { get; set; }
 
 
         //public int ApplicationId { get; set; }
@@ -123,18 +150,11 @@ namespace SlugEnt.DocumentServer.Models.Entities
         public int? ArchivalStorageNode1Id { get; set; }
         public int? ArchivalStorageNode2Id { get; set; }
 
-        /// <summary>
-        /// The application this document type belongs to.
-        /// </summary>
-
-        //public Application Application { get; set; }
-        public RootObject RootObject { get; set; }
-
         // Storage Nodes 
-        public StorageNode ActiveStorageNode1 { get; set; }
-        public StorageNode ActiveStorageNode2 { get; set; }
-        public StorageNode ArchivalStorageNode1 { get; set; }
-        public StorageNode ArchivalStorageNode2 { get; set; }
+        public StorageNode? ActiveStorageNode1 { get; set; }
+        public StorageNode? ActiveStorageNode2 { get; set; }
+        public StorageNode? ArchivalStorageNode1 { get; set; }
+        public StorageNode? ArchivalStorageNode2 { get; set; }
 
 
         /// <summary>
@@ -152,6 +172,24 @@ namespace SlugEnt.DocumentServer.Models.Entities
                                            Name);
                 return msg;
             }
+        }
+
+
+        /// <summary>
+        /// Prevent WORM Fields from being able to be updated and saved.
+        /// </summary>
+        /// <returns></returns>
+        public override bool HasWormFields() => true;
+
+
+        public override void OnEditRemoveWORMFields(EntityEntry entityEntry)
+        {
+            entityEntry.Property("ApplicationId").IsModified    = false;
+            entityEntry.Property("StorageMode").IsModified      = false;
+            entityEntry.Property("RootObjectId").IsModified     = false;
+            entityEntry.Property("AllowSameDTEKeys").IsModified = false;
+
+            base.OnEditRemoveWORMFields(entityEntry);
         }
     }
 }

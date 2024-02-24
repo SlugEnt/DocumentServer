@@ -77,10 +77,10 @@ public class StorageNode : AbstractBaseEntity
 
 
         // @formatter:off — disable formatter after this line
-        public List<DocumentType> ActiveNode1DocumentTypes { get; set; }
-        public List<DocumentType> ActiveNode2DocumentTypes { get; set; }
-        public List<DocumentType> ArchivalNode1DocumentTypes { get; set; }
-        public List<DocumentType> ArchivalNode2DocumentTypes { get; set; }
+        public List<DocumentType>? ActiveNode1DocumentTypes { get; set; }
+        public List<DocumentType>? ActiveNode2DocumentTypes { get; set; }
+        public List<DocumentType>? ArchivalNode1DocumentTypes { get; set; }
+        public List<DocumentType>? ArchivalNode2DocumentTypes { get; set; }
 
         public List<StoredDocument> PrimaryNodeStoredDocuments { get; set; }
         public List<StoredDocument> SecondaryNodeStoredDocuments { get; set; }

@@ -9,7 +9,7 @@ namespace SlugEnt.DocumentServer.Db;
 
 public class DocServerDbContext : DbContext
 {
-    private static IConfigurationRoot _Configuration;
+    private static IConfigurationRoot? _Configuration;
 
 
     /// <summary>
@@ -84,6 +84,14 @@ public class DocServerDbContext : DbContext
                     .HasOne(x => x.ArchivalStorageNode2)
                     .WithMany(x => x.ArchivalNode2DocumentTypes)
                     .HasForeignKey(x => x.ArchivalStorageNode2Id);
+        modelBuilder.Entity<DocumentType>()
+                    .HasOne(x => x.Application)
+                    .WithMany(x => x.DocumentTypes)
+                    .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<DocumentType>()
+                    .HasOne(x => x.RootObject)
+                    .WithMany(x => x.DocumentTypes)
+                    .OnDelete(DeleteBehavior.Restrict);
 
         // Stored Documents have multiple Fields for StorageNode
         modelBuilder.Entity<StoredDocument>()
@@ -100,7 +108,7 @@ public class DocServerDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-        Console.WriteLine("Hello:  Configuring DB");
+        Console.WriteLine("Database:  Configuring DB Context Options");
         if (!dbContextOptionsBuilder.IsConfigured)
         {
             IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
@@ -165,7 +173,7 @@ public class DocServerDbContext : DbContext
 
 
     /// <summary>
-    /// Implements custom logic to add Created and Modified audit entries upon save.
+    /// Implements custom logic to add Created and Modified audit entries upon save.  And prevent the updating of WORM Fields (Fields that can only be written to on initial creation)
     /// </summary>
     private void CustomSaveChanges()
     {
@@ -188,6 +196,10 @@ public class DocServerDbContext : DbContext
                     case EntityState.Deleted:
                     case EntityState.Modified:
                         baseEntity.ModifiedAtUTC = DateTime.UtcNow;
+
+                        // Call derived class to prevent updating any WORM fields
+                        if (baseEntity.HasWormFields())
+                            baseEntity.OnEditRemoveWORMFields(entry);
                         break;
                     default: break;
                 }

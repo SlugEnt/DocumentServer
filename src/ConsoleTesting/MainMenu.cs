@@ -1,8 +1,10 @@
 ﻿using System.Text.Json;
 using DocumentServer.Core;
+using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Db;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 
 namespace ConsoleTesting;
@@ -63,6 +65,7 @@ public partial class MainMenu
     internal async Task Display()
     {
         Console.WriteLine("Press:  ");
+        Console.WriteLine(" ( T ) Testing");
         Console.WriteLine(" ( U ) To Upload a randonly generated file");
         Console.WriteLine(" ( Z ) To Seed the database");
     }
@@ -104,7 +107,12 @@ public partial class MainMenu
                         await SeedDataAsync();
                         break;
 
-                    case ConsoleKey.D: break;
+                    case ConsoleKey.T:
+
+                        IEnumerable<RootObject>  rootObjects  = _db.RootObjects;
+                        IEnumerable<Application> applications = _db.Applications;
+
+                        break;
 
                     case ConsoleKey.R: break;
 

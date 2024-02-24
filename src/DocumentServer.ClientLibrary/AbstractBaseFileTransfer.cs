@@ -4,6 +4,7 @@ using System.IO.Abstractions;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SlugEnt.FluentResults;
 
 namespace DocumentServer.ClientLibrary
 {
@@ -38,20 +39,19 @@ namespace DocumentServer.ClientLibrary
         /// <param name="fileName">Full path and name of file to read in</param>
         /// <param name="fileSystem">Should be set to Mock File System in Unit Testing.  Leave null or empty for real use scenarios</param>
         /// <returns></returns>
-        public bool ReadFileIn(string fileName,
-                               IFileSystem fileSystem = null)
+        public Result ReadFileIn(string fileName,
+                                 IFileSystem fileSystem = null)
         {
             try
             {
                 FileInBase64Format = Convert.ToBase64String(File.ReadAllBytes(fileName));
-                return true;
+                return Result.Ok();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error reading file - {0}", fileName);
+                string msg = String.Format("Error reading File: {0}.", fileName);
+                return Result.Fail(new Error(msg).CausedBy(ex));
             }
-
-            return false;
         }
 
 

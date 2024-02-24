@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using global::SlugEnt.DocumentServer.Db
 @using global::SlugEnt.DocumentServer.Models.Entities
+@inject NavigationManager NavigationManager
 @using Microsoft.EntityFrameworkCore.ChangeTracking.Internal
 @using Microsoft.EntityFrameworkCore.Migrations.Operations
 @using System.Text
@@ -15,9 +16,7 @@
 
 <h1>Index</h1>
 
-<p>
-    <a href="documenttypes/create">Create New</a>
-</p>
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew" />
 
 <RadzenButton Text="Hello" Click=@(() => OpenDetails(2)) MouseEnter="@(args => ShowTooltipLifetime(args))" />
 
@@ -43,10 +42,12 @@
 
 @code
 {
-    IEnumerable<DocumentType> _documentTypes;
+    IEnumerable<DocumentType>? _documentTypes;
 
     bool _isInitialized = false;
 
+
+    protected void AddNew() { NavigationManager.NavigateTo("documenttypes/crud/C"); }
 
     /// <summary>
     /// Method invoked when the component is ready to start, having received its
@@ -66,10 +67,7 @@
 
     void OpenDetails(int Id)
     {
-        int y  =2;
-        
-        
-        DialogService.Open<DialogDetails>($"DocumentType {Id}",
+        DialogService.Open<DialogDetails>($"DocumentType {Id}", 
                                                       new Dictionary<string, object>()
                                                       {
                                                           {

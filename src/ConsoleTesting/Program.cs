@@ -18,8 +18,7 @@ namespace SlugEnt.DocumentServer.ConsoleTesting;
 
 public class Program
 {
-    private static ILogger        _logger;
-    private static IConfiguration _configuration;
+    private static ILogger _logger;
 
 
     public static async Task Main(string[] args)
@@ -71,7 +70,8 @@ public class Program
                                // Add our custom config from above to the default configuration
                                .ConfigureAppConfiguration(config => { config.AddConfiguration(configuration); })
                                .UseSerilog()
-                               .ConfigureServices((_, services) =>
+                               .ConfigureServices((_,
+                                                   services) =>
 
                                                       // The main program     
                                                       services

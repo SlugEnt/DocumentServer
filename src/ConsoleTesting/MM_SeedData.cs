@@ -24,7 +24,7 @@ namespace ConsoleTesting
             // Load Unity Data
             Application application = new Application
             {
-                Name = "Unity"
+                Name = "AppA"
             };
             _db.Add<Application>(application);
             await _db.SaveChangesAsync();
@@ -32,7 +32,7 @@ namespace ConsoleTesting
 
             application = new Application
             {
-                Name = "Phoenix"
+                Name = "Appb"
             };
             _db.Add<Application>(application);
 
@@ -52,7 +52,7 @@ namespace ConsoleTesting
                 // Load MDOS Data
                 Application application = new Application
                 {
-                    Name = "Modified Duty Off Site"
+                    Name = "AppC"
                 };
                 _db.Add<Application>(application);
                 await _db.SaveChangesAsync();
@@ -74,7 +74,8 @@ namespace ConsoleTesting
                     Name        = "Referral Acceptance Form",
                     Description = "Signed Referral Acceptance Form",
                     StorageMode = EnumStorageMode.WriteOnceReadMany,
-                    RootObject  = rootA
+                    RootObject  = rootA,
+                    Application = application
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -84,7 +85,8 @@ namespace ConsoleTesting
                     Name        = "Drug Results",
                     Description = "Official Drug Test Results",
                     StorageMode = EnumStorageMode.WriteOnceReadMany,
-                    RootObject  = rootA
+                    RootObject  = rootA,
+                    Application = application
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -94,7 +96,8 @@ namespace ConsoleTesting
                     Name        = "Draft Work Plan",
                     Description = "Draft of a work plan",
                     StorageMode = EnumStorageMode.Editable,
-                    RootObject  = rootA
+                    RootObject  = rootA,
+                    Application = application
                 };
                 _db.Add<DocumentType>(docType);
 
@@ -104,7 +107,8 @@ namespace ConsoleTesting
                     Name        = "Temporary Notes",
                     Description = "Notes taken during a meeting",
                     StorageMode = EnumStorageMode.Temporary,
-                    RootObject  = rootA
+                    RootObject  = rootA,
+                    Application = application
                 };
                 _db.Add<DocumentType>(docType);
 

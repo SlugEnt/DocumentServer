@@ -1,19 +1,13 @@
-﻿using System.Diagnostics;
+﻿using DocumentServer.ClientLibrary;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.Models.Entities;
+using SlugEnt.DocumentServer.Models.Enums;
+using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Xml.Linq;
-using SlugEnt.DocumentServer.Models.Entities;
-using SlugEnt.DocumentServer.Models.Enums;
-using Microsoft.Extensions.Logging;
-using static System.Net.Mime.MediaTypeNames;
-using Application = SlugEnt.DocumentServer.Models.Entities.Application;
-using System.Runtime.CompilerServices;
-using DocumentServer.ClientLibrary;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using Microsoft.EntityFrameworkCore.Storage;
-using SlugEnt.FluentResults;
 
 
 [assembly: InternalsVisibleTo("Test_DocumentServer")]
@@ -164,9 +158,7 @@ public class DocumentServerEngine
     public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentDto transferDocumentDto)
     {
         IDbContextTransaction   transaction             = null;
-        bool                    priorDBTransaction      = false;
         bool                    fileSavedToStorage      = false;
-        bool                    isInTransaction         = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
         Result<StoredDocument>  result                  = new Result<StoredDocument>();
@@ -235,7 +227,12 @@ public class DocumentServerEngine
             // Save StoredDocument
             transaction = _db.Database.BeginTransaction();
             _db.StoredDocuments.Add(storedDocument);
-            await PreSaveEdits(docType, storedDocument);
+
+            // TODO PreSaveEdits should return a Result
+            Result preSaveResult = await PreSaveEdits(docType, storedDocument);
+            if (preSaveResult.IsFailed)
+                return preSaveResult;
+
             _db.Database.CommitTransaction();
 
             Result<StoredDocument> finalResult = Result.Ok(storedDocument);
@@ -283,12 +280,11 @@ public class DocumentServerEngine
         // - Update StoredDocument
         // - Delete Old File
 
-        IDbContextTransaction  transaction        = null;
-        bool                   fileSavedToStorage = false;
-        string                 fullFileName       = "";
-        bool                   docSaved           = false;
-        string                 oldFileName        = "";
-        Result<StoredDocument> result             = new Result<StoredDocument>();
+        IDbContextTransaction  transaction  = null;
+        string                 fullFileName = "";
+        bool                   docSaved     = false;
+        string                 oldFileName  = "";
+        Result<StoredDocument> result       = new Result<StoredDocument>();
         try
         {
             // We need to load the existing StoredDocument to retrieve some info.
@@ -319,9 +315,7 @@ public class DocumentServerEngine
             if (storeResult.IsFailed)
                 return Result.Merge(result, storeResult);
 
-            fullFileName       = storeResult.Value;
-            fileSavedToStorage = true;
-
+            fullFileName = storeResult.Value;
 
             // Save StoredDocument
             //  - Update description
@@ -366,9 +360,9 @@ public class DocumentServerEngine
     /// <param name="storedDocument"></param>
     /// <param name="isFirstSave"></param>
     /// <returns></returns>
-    private async Task PreSaveEdits(DocumentType documentType,
-                                    StoredDocument storedDocument,
-                                    bool isFirstSave = true)
+    private async Task<Result> PreSaveEdits(DocumentType documentType,
+                                            StoredDocument storedDocument,
+                                            bool isFirstSave = true)
     {
         ExpiringDocument expiring = null;
 
@@ -380,7 +374,11 @@ public class DocumentServerEngine
                 storedDocument.IsAlive = false;
 
                 // Need to add an entry to the ExpiringDocuments table
-                expiring = new ExpiringDocument(documentType.InActiveLifeTime);
+                Result<ExpiringDocument> expResult = ExpiringDocument.Create(documentType.InActiveLifeTime);
+                if (expResult.IsFailed)
+                    return Result.Fail(expResult.Errors);
+
+                expiring = expResult.Value;
             }
         }
 
@@ -394,6 +392,8 @@ public class DocumentServerEngine
             _db.Add(expiring);
             await _db.SaveChangesAsync();
         }
+
+        return Result.Ok();
     }
 
 
@@ -548,6 +548,7 @@ public class DocumentServerEngine
                     EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
                     EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
                     EnumDocumentLifetimes.Never       => DateTime.MaxValue,
+                    _                                 => throw new Exception("Unknown DocumentLifetime value of [ " + documentType.InActiveLifeTime + " ]")
                 };
             }
 

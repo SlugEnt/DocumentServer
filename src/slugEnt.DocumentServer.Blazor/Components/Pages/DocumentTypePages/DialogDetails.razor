@@ -6,6 +6,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.EntityFrameworkCore.ChangeTracking.Internal
 @using System.Text
+@using System.Diagnostics.CodeAnalysis
 @inject DocServerDbContext DB
 @inject Radzen.DialogService dialogService
 @inject TooltipService tooltipService
@@ -74,14 +75,15 @@ else
 @code {
     [Parameter] public int ID { get; set; }
 
-    private bool _isInitialized = false;
-    DocumentType _documentType;
+    private     bool         _isInitialized = false;
+    [AllowNull] DocumentType _documentType;
 
-    string storageNode1Id   = "";
-    string storageNode2Id   = "";
-    string storageNode1Name = "";
-    string storageNode2Name = "";
-    string rootObjectName   = "Error - Unable to retrieve";
+
+    string? storageNode1Id   = "";
+    string? storageNode2Id   = "";
+    string  storageNode1Name = "";
+    string  storageNode2Name = "";
+    string  rootObjectName   = "Error - Unable to retrieve";
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,7 +120,7 @@ else
             storageNode2Name = _documentType.ActiveStorageNode2.Name;
         }
 
-        // This should never happen
+        
         if (_documentType.RootObject != null)
             rootObjectName = _documentType.RootObject.Name;
         await base.OnInitializedAsync();
