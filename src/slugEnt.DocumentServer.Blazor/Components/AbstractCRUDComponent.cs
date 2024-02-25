@@ -81,7 +81,7 @@ public abstract class AbstractCRUDComponent : ComponentBase
         {
             _isEditMode = true;
             _isReadOnly = false;
-            _isDisabled = true;
+            _isDisabled = true; // Prevents us from editing fields that should never be changed after creation
             _pageTitle  = "Edit " + _entityName;
         }
 

@@ -48,13 +48,13 @@
         
             <RadzenFormField Text="Type of Storage" Variant="@radDisplay" Style="max-width: 200px">
                 <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeLocation)).Cast<Enum>())" @bind-Value="@_storageNode.StorageNodeLocation"
-                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="width: 100%; " Name="DropDownStorageMode"/>
+                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="width: 100%; " Name="DropDownStorageMode" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
             </RadzenFormField>
         
         
             <RadzenFormField Text="Node Speed" Variant="@radDisplay" Style="max-width: 200px">
                 <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeSpeed)).Cast<Enum>())" @bind-Value="@_storageNode.StorageSpeed"
-                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownStorageMode"/>
+                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownStorageMode" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
             </RadzenFormField>
         
         

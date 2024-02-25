@@ -18,26 +18,27 @@
 
 <RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
 
-    <RadzenLabel Text="" Component="ShowActiveCheckbox" Class="rz-mx-4"></RadzenLabel>
-    <RadzenCheckBox @bind-Value="@SetIsActive" Name="ShowActiveCheckbox" Class="rz-my-4"></RadzenCheckBox>
-
+<div>
+    <RadzenCheckBox @bind-Value="@SetIsActive" Name="cb1" />
+    <RadzenLabel Text="Show Inactive Storage Nodes" Component="cb1" Style="margin-left: 8px;"></RadzenLabel>
+</div>
 
 
 <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@_storageNodes" TItem="StorageNode" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedNodes">
     <Columns>
-        <RadzenDataGridColumn TItem="StorageNode" Property="Name" Title="Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn TItem="StorageNode" Property="Name" Title="Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left" />
         <RadzenDataGridColumn TItem="StorageNode" Property="Description" Title="Description" Frozen="true" Sortable="false" Filterable="false" Width="100px" TextAlign="TextAlign.Left"/>
         <RadzenDataGridColumn TItem="StorageNode" Property="NodePath" Title="Node Path" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left" />
         <RadzenDataGridColumn TItem="StorageNode" Property="StorageNodeLocation" Title="Node Location" Frozen="true" Width="50px" Filterable="false" />
         <RadzenDataGridColumn TItem="StorageNode" Property="IsActive" Title="Active" Frozen="true" Width="18px">
             <Template>
-                <RadzenCheckBox @bind-Value=@context.IsActive></RadzenCheckBox>
+                <RadzenCheckBox @bind-Value=@context.IsActive ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="18px">
             <Template>
-                <RadzenCheckBox @bind-Value=@context.IsTestNode></RadzenCheckBox>
+                <RadzenCheckBox @bind-Value=@context.IsTestNode ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>         
         <RadzenDataGridColumn TItem="StorageNode" Property="StorageSpeed" Title="Speed" Frozen="true" Width="18px" />
