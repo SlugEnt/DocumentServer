@@ -13,9 +13,9 @@
 
 <h1>Index</h1>
 
-<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" Icon="label" Text="Add New" Click="@AddNew"/>
 
-<RadzenButton Text="Hello" Click="@(() => OpenDetails(2))" MouseEnter="@(args => ShowTooltipLifetime(args))"/>
+<!--<RadzenButton Text="Hello" Click="@(() => OpenDetails(2))" MouseEnter="@(args => ShowTooltipLifetime(args))"/>-->
 
 <RadzenDataGrid Data="@_documentTypes" TItem="DocumentType" AllowSorting="true" AllowPaging="true" PageSize="5">
     <Columns>
@@ -25,14 +25,15 @@
         <RadzenDataGridColumn TItem="DocumentType" Property="AllowSameDTEKeys" Title="Dup ExtKeys?"/>
         <RadzenDataGridColumn TItem="DocumentType" Property="Description" Title="Description"/>
         <RadzenDataGridColumn TItem="DocumentType" Property="StorageFolderName" Title="Storage Folder"/>
-
+        
+        <!--
         <RadzenDataGridColumn Width="160px" TItem="DocumentType" Property="ID" Title="Document Actions">
             <Template Context="data">
                 <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => ProcessAction(data.Id, "Details")) Text="Details"/>
                 <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => ProcessAction(data.Id, "Edit")) Text="Details"/>
             </Template>
         </RadzenDataGridColumn>
-
+        -->
     </Columns>
 </RadzenDataGrid>
 
@@ -63,41 +64,8 @@
     }
 
 
-    void OpenDetails(int Id)
-    {
-        DialogService.Open<DialogDetails>($"DocumentType {Id}",
-                                          new Dictionary<string, object>
-                                          {
-                                              {
-                                                  "Id", Id
-                                              }
-                                          },
-                                          new DialogOptions
-                                          {
-                                              Width  = "700px",
-                                              Height = "520px"
-                                          });
-    }
+    
 
-
-    protected void ProcessAction(int id,
-                                 string action)
-    {
-        if (action == "Details")
-        {
-            string title = $"Document Type {id}";
-            GoToServicePageInt<DialogDetails>(title, id);
-            return;
-        }
-
-        if (action == "Edit")
-        {
-            string title = $"Edit Document Type {id}";
-            GoToServicePageInt<Edit>(title, id);
-        }
-
-        if (action == "Delete") { }
-    }
 
 
     /// <summary>

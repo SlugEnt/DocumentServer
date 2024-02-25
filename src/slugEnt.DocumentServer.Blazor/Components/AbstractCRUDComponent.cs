@@ -17,13 +17,21 @@ public abstract class AbstractCRUDComponent : ComponentBase
     protected bool    _isInitializeed = false;
     protected bool    _isReadOnly;
     protected bool    _isViewOnly;
-    protected string  _pageTitle  = "";
-    protected string  _successMsg = "";
-    protected bool    _wasDeleted = false;
-    protected Variant radDisplay  = Variant.Outlined;
+    protected string  _pageTitle    = "";
+    protected string  _successMsg   = "";
+    protected bool    _wasDeleted   = false;
+    protected Variant radDisplay    = Variant.Outlined;
+    protected string  _returnToPage = "";
 
 
-    public AbstractCRUDComponent(string entityName) { _entityName = entityName; }
+    public AbstractCRUDComponent(string entityName,
+                                 string returnToPage)
+    {
+        _entityName   = entityName;
+        _returnToPage = returnToPage;
+    }
+
+
     public AbstractCRUDComponent() { }
 
     [Inject] protected NavigationManager _navigationManager { get; set; }
@@ -114,7 +122,7 @@ public abstract class AbstractCRUDComponent : ComponentBase
     /// <summary>
     ///     Returns to the objects Index page
     /// </summary>
-    protected void ReturnToList() { _navigationManager.NavigateTo("/rootobjects"); }
+    protected void ReturnToList() { _navigationManager.NavigateTo("/" + _returnToPage); }
 
 
     public override async Task SetParametersAsync(ParameterView parameters) { await base.SetParametersAsync(parameters); }

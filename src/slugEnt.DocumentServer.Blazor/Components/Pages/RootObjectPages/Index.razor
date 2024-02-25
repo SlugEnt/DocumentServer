@@ -11,10 +11,6 @@
 
 <RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
 
-<p>
-    <a href="rootobjects/crud/C">Create New></a>
-</p>
-
 <QuickGrid Class="table" Items="DB.RootObjects.Where(ro => ro.IsActive == true)">
     <PropertyColumn Property="rootobject => rootobject.Name"/>
     <PropertyColumn Property="rootobject => rootobject.Description"/>

@@ -26,7 +26,7 @@ public class StorageNode : AbstractBaseEntity
         Description         = description;
         IsTestNode          = isTestNode;
         StorageNodeLocation = storageNodeLocation;
-        storageNodeSpeed    = StorageSpeed;
+        StorageSpeed        = storageNodeSpeed;
         NodePath            = nodePath;
 
         IsActive = false;

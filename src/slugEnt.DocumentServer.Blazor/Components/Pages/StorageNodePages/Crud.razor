@@ -1,11 +1,12 @@
-﻿@page "/documenttypes/crud/{mode}"
-@page "/documenttypes/crud/{mode}/{recordId:int}"
+﻿@page "/storagenodes/crud/{mode}"
+@page "/storagenodes/crud/{mode}/{recordId:int}"
 @rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
-@using SlugEnt.DocumentServer.Models.Enums
 @using SlugEnt.DocumentServer.Db
 @using global::DocumentServer.Core
+@using SlugEnt.DocumentServer.Models.Enums
 @inherits AbstractCRUDComponent
 
 
@@ -14,7 +15,7 @@
 
 
 <h1>@_pageTitle</h1>
-<hr/>
+<hr />
 <RadzenRow Gap="1rem">
     <RadzenColumn Size="12" SizeSM="6">
         @if (_errMsg != string.Empty)
@@ -26,43 +27,46 @@
             <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
         }
 
+
+
         <RadzenStack>
-
-            <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
-                <RadzenTextBox @bind-Value="@_documentType.Name" ReadOnly="@_canEdit"/>
-            </RadzenFormField>
             
-
-            <RadzenFormField Text="Description" Variant="@radDisplay" Style="width: 100%">
-                <RadzenTextBox @bind-Value="@_documentType.Description" ReadOnly="@_canEdit"/>
+            <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
+                <RadzenTextBox @bind-Value="@_storageNode.Name" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-
-
-            <RadzenFormField Text="Storage Folder Name" Variant="@radDisplay" Style="width: 100%">
-                <RadzenTextBox @bind-Value="@_documentType.StorageFolderName" ReadOnly="@_canEdit"/>
+        
+            
+            <RadzenFormField Text="Desccription" Variant="@radDisplay" Style="width: 100%">
+                <RadzenTextBox @bind-Value="@_storageNode.Description" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-
-
-            <RadzenFormField Text="Application Associated With" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@_applications"@bind-Value="@_documentType.ApplicationId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" Change="@AppChanged"/>
+        
+            
+            <RadzenFormField Text="Node Path" Variant="@radDisplay" Style="width: 100%">
+                <RadzenTextBox @bind-Value="@_storageNode.NodePath" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-
-
-            <RadzenFormField Text="Primary Root Object Associationh" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@_rootObjects"@bind-Value="@_documentType.RootObjectId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+        
+        
+            <RadzenFormField Text="Type of Storage" Variant="@radDisplay" Style="max-width: 200px">
+                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeLocation)).Cast<Enum>())" @bind-Value="@_storageNode.StorageNodeLocation"
+                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="width: 100%; " Name="DropDownStorageMode"/>
             </RadzenFormField>
-
-
-            <RadzenFormField Text="Storage Mode" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageMode)).Cast<Enum>())" @bind-Value="@_documentType.StorageMode"
+        
+        
+            <RadzenFormField Text="Node Speed" Variant="@radDisplay" Style="max-width: 200px">
+                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeSpeed)).Cast<Enum>())" @bind-Value="@_storageNode.StorageSpeed"
                                 AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownStorageMode"/>
             </RadzenFormField>
-
-
-            <RadzenFormField Text="Document Lifetime" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumDocumentLifetimes)).Cast<Enum>())" @bind-Value="@_documentType.InActiveLifeTime"
-                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownDocLifetime"/>
+        
+        
+            <RadzenFormField Text="Is Active" Variant="@radDisplay" Style="max-width: 200px;">
+                <Start>
+                    <RadzenCheckBox @bind-Value="@_storageNode.IsActive" Name="ActiveCheckbox" Class="rz-my-4"></RadzenCheckBox>
+                </Start>
+                <ChildContent>
+                    <RadzenLabel Text="Is Active" Component="ActiveCheckbox" Class="rz-mx-4"></RadzenLabel>
+                </ChildContent>
             </RadzenFormField>
+            
 
         </RadzenStack>
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
@@ -93,16 +97,15 @@
 </RadzenRow>
 
 
+
+
 @code {
-
-
-    private DocumentType             _documentType = new();
-    private IEnumerable<Application> _applications;
-    private IEnumerable<RootObject>  _rootObjects = Enumerable.Empty<RootObject>();
+    private readonly StorageNode _storageNode  = new();
+    
 
 
     // Constructor
-    public Crud() : base("Document Type","documenttypes") { }
+    public Crud() : base("Storage Node", "storagenodes") { }
 
 
     /// <summary>
@@ -117,8 +120,9 @@
         if (_isInitializeed)
             return;
 
-        await base.OnInitializedAsync();
         _isInitializeed = true;
+
+        await base.OnInitializedAsync();
     }
 
 
@@ -128,28 +132,16 @@
     /// <returns></returns>
     protected override async Task PostSetParametersAsync()
     {
-        // Load list of Applications only once and only for Create mode
-        if (_isCreateMode)
-        {
-            _applications = DB.Applications;
+        bool retrieveRecord = _storageNode == null || _storageNode.Id != recordId ? true : false;
 
-            //_rootObjects  = DB.RootObjects;
-        }
-        else
-        {
-            bool retrieveRecord = _documentType == null || _documentType.Id != recordId ? true : false;
+        if (!retrieveRecord)
+            return;
 
-            if (retrieveRecord)
-            {
-                _documentType = await DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == recordId);
-                DB.RootObjects.Where(ro => ro.Id == _documentType.RootObjectId);
-                DB.Applications.Where(ap => ap.Id == _documentType.ApplicationId);
-            }
-        }
+        StorageNode? ro = await DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == recordId);
+        if (ro == null)
+            _errMsg = "Unable to locate the StorageNode with Id of [ " + recordId + " ].  Unable to continue";
     }
 
-
-    public void AppChanged() { _rootObjects = DB.RootObjects.Where(ro => ro.ApplicationId == _documentType.ApplicationId); }
 
 
     /// <summary>
@@ -158,7 +150,7 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        DB.DocumentTypes.Add(_documentType);
+        DB.StorageNodes.Add(_storageNode);
         await DB.SaveChangesAsync();
         ReturnToList();
     }
@@ -170,9 +162,9 @@
     /// <returns></returns>
     public async Task UpdateEntity()
     {
-        DB.DocumentTypes.Update(_documentType);
+        DB.StorageNodes.Update(_storageNode);
         await DB.SaveChangesAsync();
-        _successMsg = string.Format("RootObject {0} [ {1} ] was successfully updated.", _documentType.Name, _documentType.Id);
+        _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully updated.", _storageNode.Name, _storageNode.Id);
     }
 
 
@@ -182,17 +174,15 @@
     /// <returns></returns>
     public async Task DeleteEntity()
     {
-        /*
-        bool result = await docEngine.DocRootObjectDeleteAsync(_rootObject.Id);
+        bool result = await docEngine.RootObjectDeleteAsync(_storageNode.Id);
         if (result)
         {
-            _successMsg = String.Format("RootObject {0} [ {1} ] was successfully inactivated.", _rootObject.Name, _rootObject.Id);
+            _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully inactivated.", _storageNode.Name, _storageNode.Id);
             _wasDeleted = true;
             _isDeleteMode = false;
         }
         else
-            _errMsg = string.Format("RootObject was not inactivated.  Unknown reason.");
-            */
+            _errMsg = "StorageNode was not inactivated.  Unknown reason.";
     }
 
 
