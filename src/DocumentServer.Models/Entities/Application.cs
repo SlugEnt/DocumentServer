@@ -11,8 +11,8 @@ public class Application : AbstractBaseEntity
     // Relationships
 
     // Each App has 1 or more Document Types it manages.
-    public ICollection<DocumentType> DocumentTypes;
-    public ICollection<RootObject>   RootObjects;
+    public ICollection<DocumentType>? DocumentTypes;
+    public ICollection<RootObject>?   RootObjects;
 
 
     /// <summary>

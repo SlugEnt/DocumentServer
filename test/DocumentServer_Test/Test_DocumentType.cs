@@ -159,6 +159,9 @@ public class Test_DocumentType
 
 
         //***  B. Createa A new Document Type.
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Word(),
                                                                          sm.Faker.Random.Words(4),
                                                                          folderName,
@@ -251,6 +254,9 @@ public class Test_DocumentType
 
 
         // B. Createa A new Document Type.
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == sRootObjId);
+
         DocumentType docType = new()
         {
             Name                   = sName,
@@ -262,6 +268,7 @@ public class Test_DocumentType
             ArchivalStorageNode2Id = sNodes,
             InActiveLifeTime       = sDocLifetime,
             RootObjectId           = sRootObjId,
+            ApplicationId          = rootObject.ApplicationId,
             StorageFolderName      = sStorageFolder,
             StorageMode            = sStorageMode
         };

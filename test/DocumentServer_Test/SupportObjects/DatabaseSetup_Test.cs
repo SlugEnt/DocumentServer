@@ -9,7 +9,7 @@ using SlugEnt.DocumentServer.Models.Enums;
 
 namespace Test_DocumentServer.SupportObjects;
 
-[TestFixture]
+//[TestFixture]
 public static class DatabaseSetup_Test
 {
     private const string ConnectionString =
@@ -149,6 +149,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_A,
             Description        = "Test Doc Type A - WORM",
+            Application        = appA,
             RootObject         = rootA,
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = testA,
@@ -159,6 +160,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_B,
             Description        = "Test Doc Type B - Temporary",
+            Application        = appA,
             RootObject         = rootB,
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = testA,
@@ -169,6 +171,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_TEST_C,
             Description        = "Test Doc Type C - Editable",
+            Application        = appA,
             RootObject         = rootC,
             StorageMode        = EnumStorageMode.Editable,
             ActiveStorageNode1 = testA,
@@ -179,6 +182,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_PROD_X,
             Description        = "Prod Doc Type X - WORM",
+            Application        = appB,
             RootObject         = rootA,
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = prodX,
@@ -189,6 +193,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_PROD_Y,
             Description        = "Prod Doc Type Y - Temporary",
+            Application        = appB,
             RootObject         = rootB,
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = prodX,
@@ -199,6 +204,7 @@ public static class DatabaseSetup_Test
         {
             Name               = TestConstants.DOCTYPE_REPLACE_A,
             Description        = "Prod Doc Type RA - Replaceable",
+            Application        = appB,
             RootObject         = rootC,
             StorageMode        = EnumStorageMode.Replaceable,
             ActiveStorageNode1 = prodX,

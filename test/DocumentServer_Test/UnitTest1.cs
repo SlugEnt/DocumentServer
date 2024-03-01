@@ -4,8 +4,9 @@ using Test_DocumentServer.SupportObjects;
 
 //using ILogger = Castle.Core.Logging.ILogger;
 
-namespace DocumentServer_Test;
+namespace Test_DocumentServer;
 
+[TestFixture]
 public class Tests
 {
     // Tests that CreatedAT timestamp field is automatically saved on all entity saves.

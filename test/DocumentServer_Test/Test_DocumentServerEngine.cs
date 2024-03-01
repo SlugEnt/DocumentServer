@@ -51,12 +51,17 @@ public class Test_DocumentServerEngine
 
         // Create a random DocumentType WITH AN INVALID StorageNode
         int INVALID_STORAGE_MODE = 0;
+
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+
         DocumentType randomDocType = new()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = storageNode.Id,
-            RootObjectId         = 1,
+            RootObjectId         = rootObject.Id,
+            ApplicationId        = rootObject.ApplicationId,
             StorageMode          = (EnumStorageMode)INVALID_STORAGE_MODE
         };
         sm.DB.AddAsync(randomDocType);
@@ -104,12 +109,16 @@ public class Test_DocumentServerEngine
 
 
         // Create a random DocumentType.  These document types all will have a custom folder name
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+
         DocumentType randomDocType = new()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = storageNode.Id,
-            RootObjectId         = 1,
+            RootObjectId         = rootObject.Id,
+            ApplicationId        = rootObject.ApplicationId,
             StorageMode          = storageMode,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7)
         };
@@ -219,11 +228,11 @@ public class Test_DocumentServerEngine
         SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-        int     expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string  expectedExtension    = sm.Faker.Random.String2(3);
-        string  expectedDescription  = sm.Faker.Random.String2(32);
-        string  expectedRootObjectId = sm.Faker.Random.String2(10);
-        string? expectedExternalId   = null;
+        int    expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string expectedExtension    = sm.Faker.Random.String2(3);
+        string expectedDescription  = sm.Faker.Random.String2(32);
+        string expectedRootObjectId = sm.Faker.Random.String2(10);
+        string expectedExternalId   = sm.Faker.Random.String2(15);
 
 
         // A.  Generate File and store it
@@ -238,8 +247,16 @@ public class Test_DocumentServerEngine
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
-        Result<string> readResult = await documentServerEngine.ReadStoredDocumentAsync(storedDocument.Id);
-        Assert.That(readResult.Value, Is.EqualTo(genFileResult.Value.FileInBase64Format), "Z10:");
+        Result<TransferDocumentDto> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id);
+        TransferDocumentDto         tdd        = readResult.Value;
+        Assert.That(tdd.FileInBase64Format, Is.EqualTo(genFileResult.Value.FileInBase64Format), "Z10:");
+
+        // Validate other TransferDocument Info
+        Assert.That(tdd.CurrentStoredDocumentId, Is.Not.EqualTo(0), "Z20:");
+        Assert.That(tdd.Description, Is.EqualTo(expectedDescription), "Z30:");
+        Assert.That(tdd.DocTypeExternalId, Is.EqualTo(expectedExternalId), "Z40:");
+        Assert.That(tdd.DocumentTypeId, Is.EqualTo(expectedDocTypeId), "Z50:");
+        Assert.That(tdd.RootObjectId, Is.EqualTo(expectedRootObjectId), "Z60:");
     }
 
 
@@ -286,12 +303,16 @@ public class Test_DocumentServerEngine
 
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+
         DocumentType randomDocType = new()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = 1,
-            RootObjectId         = 1,
+            RootObjectId         = rootObject.Id,
+            ApplicationId        = rootObject.ApplicationId,
             StorageMode          = EnumStorageMode.Temporary,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
             InActiveLifeTime     = lifeTime,
@@ -730,12 +751,16 @@ public class Test_DocumentServerEngine
 
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+
         DocumentType randomDocType = new()
         {
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = 1,
-            RootObjectId         = 1,
+            RootObjectId         = rootObject.Id,
+            ApplicationId        = rootObject.ApplicationId,
             StorageMode          = EnumStorageMode.Temporary,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
             InActiveLifeTime     = EnumDocumentLifetimes.DayOne,
@@ -794,6 +819,8 @@ public class Test_DocumentServerEngine
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
 
+        // Need to get RootObject's Application ID.
+        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         DocumentType randomDocType = new()
@@ -801,7 +828,8 @@ public class Test_DocumentServerEngine
             Name                 = sm.Faker.Commerce.ProductName(),
             Description          = sm.Faker.Lorem.Sentence(),
             ActiveStorageNode1Id = 1,
-            RootObjectId         = 1,
+            RootObjectId         = rootObject.Id,
+            ApplicationId        = rootObject.ApplicationId,
             StorageMode          = EnumStorageMode.Temporary,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
             InActiveLifeTime     = EnumDocumentLifetimes.DayOne,

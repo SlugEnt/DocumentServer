@@ -42,19 +42,19 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/{name}")]
-    public async Task<ActionResult<StoredDocument>> GetStoredDocument(string id,
-                                                                      string name)
+    public async Task<ActionResult<TransferDocumentDto>> GetStoredDocument(long id)
     {
         // For testing
-        StoredDocument storedDocument = new();
-        return Ok(storedDocument);
+        Result<TransferDocumentDto> result = await _docEngine.GetStoredDocumentAsync(id);
+
+        return Ok(result.Value);
     }
 
 
 
     // POST api/<DocumentsController>
     /// <summary>
-    ///     Stores a passed in document to the storage engine
+    ///     Places a document to be stored in to the DocumentServer
     /// </summary>
     /// <param name="transferDocumentDto">
     ///     The TransferDocumentDto that contains a document and the documents information to be

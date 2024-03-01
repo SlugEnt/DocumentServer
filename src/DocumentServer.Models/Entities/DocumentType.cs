@@ -103,6 +103,7 @@ public class DocumentType : AbstractBaseEntity
         x.StorageFolderName    = storageFolder;
         x.StorageMode          = storageMode;
         x.RootObjectId         = rootObjectId;
+        x.ApplicationId        = applicationId;
         x.ActiveStorageNode1Id = activeStorageNodeId;
         x.InActiveLifeTime     = lifeTime;
 
@@ -168,7 +169,7 @@ public class DocumentType : AbstractBaseEntity
 
 
     /// <summary>
-    ///     The application this document is associated with
+    ///     The application this Document Type is associated with
     /// </summary>
     [Required]
     public int ApplicationId { get; set; }

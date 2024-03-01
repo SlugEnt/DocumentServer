@@ -51,24 +51,6 @@ public class StoredDocument : AbstractBaseEntity
 
 
     /// <summary>
-    /// This is a 0:1 relationship.
-    /// </summary>
-    //public List<ExpiringDocument> ExpiringDocuments { get; set; }
-
-    /// <summary>
-    ///     Returns the stored filename
-    /// </summary>
-    [Obsolete]
-    public string ComputedStoredFileName => FileName;
-
-    /*
-            if (FileExtension == string.Empty)
-                return Id.ToString();
-
-            string value = Id + "." + FileExtension;
-            return value;
-            */
-    /// <summary>
     ///     A readable name or description for the document.. Maximum length of 250
     /// </summary>
     [MaxLength(250)]

@@ -140,12 +140,47 @@ public class DocumentServerEngine
 
 
 
+    public async Task<Result<TransferDocumentDto>> GetStoredDocumentAsync(long id)
+    {
+        TransferDocumentDto transferDocument = new();
+        try
+        {
+            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
+            if (storedDocument == null)
+                return Result.Fail("Unable to find a Stored Document with that Id");
+
+
+            // Now Load the Stored Document.
+            string fileName     = storedDocument.FileName;
+            string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
+            transferDocument.FileInBase64Format = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
+
+            // Load the TransferDocument info
+            transferDocument.Description             = storedDocument.Description;
+            transferDocument.CurrentStoredDocumentId = storedDocument.Id;
+            transferDocument.DocumentTypeId          = storedDocument.DocumentTypeId;
+            transferDocument.DocTypeExternalId       = storedDocument.DocTypeExternalKey;
+            transferDocument.RootObjectId            = storedDocument.RootObjectExternalKey;
+
+            // TODO update the number of times accessed
+            return Result.Ok(transferDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("GetStoredDocumentFileBytesAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", id, ex.Message);
+            return Result.Fail(new Error("Unable to read document from library.").CausedBy(ex));
+        }
+    }
+
+
+
     /// <summary>
-    ///     Reads a document from the library and returns it to the caller.
+    ///     Reads a document from the library and returns it to the caller.  Returns the File Bytes Only
     /// </summary>
     /// <param name="Id"></param>
     /// <returns>Result.Success and the file in Base64  or returns Result.Fail with error message</returns>
-    public async Task<Result<string>> ReadStoredDocumentAsync(long Id)
+    [Obsolete]
+    public async Task<Result<string>> GetStoredDocumentFileBytesAsync(long Id)
     {
         try
         {
@@ -164,7 +199,7 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError("ReadStoredDocumentAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", Id, ex.Message);
+            _logger.LogError("GetStoredDocumentFileBytesAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", Id, ex.Message);
             return Result.Fail(new Error("Unable to read document from library.").CausedBy(ex));
         }
     }
