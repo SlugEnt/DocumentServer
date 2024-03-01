@@ -634,10 +634,10 @@ public class Test_DocumentServerEngine
         // Create the ReplacementDTO
         ReplacementDto replacementDto = new()
         {
-            CurrentId          = storedDocument.Id,
-            FileInBase64Format = genNewFileResult.Value.FileInBase64Format,
-            Description        = replaceDescription,
-            FileExtension      = expectedExtension
+            CurrentStoredDocumentId = storedDocument.Id,
+            FileInBase64Format      = genNewFileResult.Value.FileInBase64Format,
+            Description             = replaceDescription,
+            FileExtension           = expectedExtension
         };
 
 

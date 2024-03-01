@@ -43,6 +43,11 @@ Contains the EF Core Models and some other common data objects.
 ### Test_DocumentServer 
 All of the Unit Tests
 
+WORM Cannot be replaced, Cannot be deleted
+Temporary - Can be replaced, can be deleted.
+Replacable - Can be replaced, cannot be deleted
+
+
 
 ## Unit Testing
 ### ENABLE_TRANSACTIONS

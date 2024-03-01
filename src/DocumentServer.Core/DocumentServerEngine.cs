@@ -64,7 +64,6 @@ public class DocumentServerEngine
     internal async Task<Result<DocumentType>> LoadDocumentType_ForSavingStoredDocument(int documentTypeId)
     {
         // Retrieve the DocumentType
-        // TODO this db call needs to be replaced with in memory hashset or something
         DocumentType docType = await _db.DocumentTypes
                                         .Include(i => i.ActiveStorageNode1)
                                         .Include(i => i.ActiveStorageNode2)
@@ -179,9 +178,9 @@ public class DocumentServerEngine
     public async Task<Result<StoredDocument>> ReplaceDocument(ReplacementDto replacementDto)
     {
         // Lets read current stored document
-        StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentId);
+        StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
         if (storedDocument == null)
-            return Result.Fail(new Error("Unable to find existing StoredDocument with Id [ " + replacementDto.CurrentId + " ]"));
+            return Result.Fail(new Error("Unable to find existing StoredDocument with Id [ " + replacementDto.CurrentStoredDocumentId + " ]"));
 
 
         return Result.Ok(storedDocument);
@@ -209,7 +208,7 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    ///     Changes the IsAlive status of a DocumentType
+    /// Changes the Alive Status for a Document Type
     /// </summary>
     /// <param name="documentTypeId"></param>
     /// <param name="isAliveValue"></param>
@@ -430,10 +429,10 @@ public class DocumentServerEngine
         try
         {
             // We need to load the existing StoredDocument to retrieve some info.
-            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentId);
+            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
             if (storedDocument == null)
             {
-                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.CurrentId);
+                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.CurrentStoredDocumentId);
                 return Result.Fail(new Error(msg));
             }
 

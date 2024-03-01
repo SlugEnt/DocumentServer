@@ -5,7 +5,7 @@
 /// </summary>
 public class ReplacementDto
 {
-    public long CurrentId { get; set; }
+    public long CurrentStoredDocumentId { get; set; }
 
     /// <summary>
     ///     Description of the document being stored

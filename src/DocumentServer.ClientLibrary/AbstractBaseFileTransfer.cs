@@ -6,7 +6,18 @@ namespace DocumentServer.ClientLibrary;
 public abstract class AbstractBaseFileTransfer
 {
     /// <summary>
-    ///     This is the external (calling) systems Id that is related to this document.  Like an Invoice # or Bill #
+    ///     Type of Document This is
+    /// </summary>
+    public int DocumentTypeId { get; set; }
+
+
+    /// <summary>
+    ///     The Description of the Document
+    /// </summary>
+    public string Description { get; set; }
+
+    /// <summary>
+    ///     This is the external (calling) systems key that corresponds to the RootObjectId that is related to this document.  Like an Invoice # or Bill #
     /// </summary>
     public string? DocTypeExternalId { get; set; }
 
