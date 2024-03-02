@@ -2,9 +2,12 @@
 using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
+using System.IO;
+using Microsoft.AspNetCore.Http.Internal;
 using Test_DocumentServer.SupportObjects;
 
 namespace Test_DocumentServer;
@@ -177,12 +180,12 @@ public class Test_DocumentServerEngine
         // TODO - for test only.  DElete please now!
 //        sm.DB.ChangeTracker.Clear();
 
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              expectedDocTypeId,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -233,23 +236,42 @@ public class Test_DocumentServerEngine
         string expectedDescription  = sm.Faker.Random.String2(32);
         string expectedRootObjectId = sm.Faker.Random.String2(10);
         string expectedExternalId   = sm.Faker.Random.String2(15);
-
+        int    sizeInKB             = 3;
 
         // A.  Generate File and store it
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              expectedDocTypeId,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
 
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
-        Result<TransferDocumentDto> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id);
-        TransferDocumentDto         tdd        = readResult.Value;
-        Assert.That(tdd.FileInBase64Format, Is.EqualTo(genFileResult.Value.FileInBase64Format), "Z10:");
+        Result<TransferDocumentContainer> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id);
+        TransferDocumentContainer         tdc        = readResult.Value;
+        TransferDocumentDto               tdd        = readResult.Value.TransferDocument;
+        if (!tdc.IsInFormFileMode)
+        {
+            Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
+            byte[] buffer2 = new byte[stream2.Length];
+            stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
+
+            Assert.That(tdc.FileInBytes, Is.EqualTo(buffer2), "Z10A:");
+        }
+        else
+        {
+            Stream stream = tdc.FileInFormFile.OpenReadStream();
+            Byte[] buffer = new Byte[stream.Length];
+            stream.ReadExactly(buffer, 0, (int)stream.Length);
+
+            Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
+            byte[] buffer2 = new byte[stream2.Length];
+            stream.ReadExactly(buffer2, 0, (int)stream2.Length);
+            Assert.That(buffer, Is.EqualTo(buffer2), "Z10B:");
+        }
 
         // Validate other TransferDocument Info
         Assert.That(tdd.CurrentStoredDocumentId, Is.Not.EqualTo(0), "Z20:");
@@ -328,12 +350,12 @@ public class Test_DocumentServerEngine
 
 
         //***  C.  Generate File and store it
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              randomDocType.Id,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    randomDocType.Id,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
 
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
@@ -552,11 +574,13 @@ public class Test_DocumentServerEngine
                                             documentTypeId: sm.DocumentType_Test_Worm_A,
                                             primaryStorageNodeId: sm.StorageNode_Test_A);
 
-        string fileBytes64 = Convert.ToBase64String(fileBytes);
+        FormFile formFile = sm.GetFormFile(fileBytes);
+
+        //string   fileBytes64 = Convert.ToBase64String(fileBytes);
         Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
                                                                                                  documentType,
                                                                                                  sm.StorageNode_Test_A,
-                                                                                                 fileBytes64);
+                                                                                                 formFile);
 
         //***  Z. Validate
         Assert.That(storeFileResult.IsSuccess, Is.True, "Z10: StoreFileResult returned false");
@@ -598,11 +622,12 @@ public class Test_DocumentServerEngine
                                             documentTypeId: sm.DocumentType_Test_Worm_A,
                                             primaryStorageNodeId: badStorageNode);
 
-        string fileBytes64 = Convert.ToBase64String(fileBytes);
+        //string   fileBytes64 = Convert.ToBase64String(fileBytes);
+        FormFile formFile = sm.GetFormFile(fileBytes);
         Result<string> storeFileResult = await documentServerEngine.StoreFileOnStorageMediaAsync(storedDocument,
                                                                                                  documentType,
                                                                                                  badStorageNode,
-                                                                                                 fileBytes64);
+                                                                                                 formFile);
 
         //***  Z. Validate
         Assert.That(storeFileResult.IsFailed, Is.True, "Z10: StoreFileResult should have been false");
@@ -624,12 +649,12 @@ public class Test_DocumentServerEngine
 
 
         //***  B. Generate a file and store it
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              expectedDocTypeId,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -645,24 +670,21 @@ public class Test_DocumentServerEngine
 
         //***  D.  Generate and store a replacement file
         string replaceDescription = "Replaced Description";
-        Result<TransferDocumentDto> genNewFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                 replaceDescription,
-                                                                                 expectedExtension,
-                                                                                 expectedDocTypeId,
-                                                                                 expectedRootObjectId,
-                                                                                 expectedExternalId);
-
-        // Create the ReplacementDTO
-        ReplacementDto replacementDto = new()
+        Result<TransferDocumentContainer> replacementDtoResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                           replaceDescription,
+                                                                                           expectedExtension,
+                                                                                           expectedDocTypeId,
+                                                                                           expectedRootObjectId,
+                                                                                           expectedExternalId);
+        TransferDocumentContainer replacement = replacementDtoResult.Value;
+        replacement.TransferDocument = new()
         {
-            CurrentStoredDocumentId = storedDocument.Id,
-            FileInBase64Format      = genNewFileResult.Value.FileInBase64Format,
             Description             = replaceDescription,
-            FileExtension           = expectedExtension
+            FileExtension           = expectedExtension,
+            CurrentStoredDocumentId = storedDocument.Id,
         };
 
-
-        Result<StoredDocument> replaceResult       = await documentServerEngine.StoreReplacementDocumentAsync(replacementDto);
+        Result<StoredDocument> replaceResult       = await documentServerEngine.StoreReplacementDocumentAsync(replacement);
         StoredDocument         replacementDocument = replaceResult.Value;
 
         // Z. Validate
@@ -711,12 +733,12 @@ public class Test_DocumentServerEngine
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
 
 
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              expectedDocTypeId,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -777,12 +799,12 @@ public class Test_DocumentServerEngine
 
         for (int i = 0; i < 4; i++)
         {
-            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                  expectedDescription,
-                                                                                  expectedExtension,
-                                                                                  randomDocType.Id,
-                                                                                  expectedRootObjectId,
-                                                                                  expectedExternalId);
+            Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                        expectedDescription,
+                                                                                        expectedExtension,
+                                                                                        randomDocType.Id,
+                                                                                        expectedRootObjectId,
+                                                                                        expectedExternalId);
             Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
             Assert.That(result.IsSuccess, Is.True, "Z05:");
             StoredDocument storedDocument = result.Value;
@@ -847,12 +869,12 @@ public class Test_DocumentServerEngine
         for (int i = 0; i < 2; i++)
         {
             //***  Y
-            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                  expectedDescription,
-                                                                                  expectedExtension,
-                                                                                  randomDocType.Id,
-                                                                                  expectedRootObjectId,
-                                                                                  expectedExternalId);
+            Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                        expectedDescription,
+                                                                                        expectedExtension,
+                                                                                        randomDocType.Id,
+                                                                                        expectedRootObjectId,
+                                                                                        expectedExternalId);
             Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
 
             // First pass we let go thru, 2nd we should get a failure.

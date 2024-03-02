@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Models.Entities;
 using Test_DocumentServer.SupportObjects;
@@ -55,4 +56,18 @@ public class Tests
 
     [SetUp]
     public void Setup() { }
+
+
+    [Test]
+    public void FormFileFile()
+    {
+        SupportMethods sm = new();
+        string fileName = sm.WriteRandomFile(sm.FileSystem,
+                                             "",
+                                             "pdf",
+                                             1024);
+
+        string   fullName = sm.FileSystem.Path.Combine("", fileName);
+        FormFile x        = sm.GetFormFile(fileName);
+    }
 }

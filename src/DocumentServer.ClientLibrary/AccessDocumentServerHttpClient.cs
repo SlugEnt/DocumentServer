@@ -25,7 +25,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
         _options = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
         };
 
         _httpClient.BaseAddress = new Uri("https://localhost:7223/api/");
@@ -70,64 +70,11 @@ public class AccessDocumentServerHttpClient : IDisposable
 
 
     /// <summary>
-    ///     Saves the given document to storage.
-    /// </summary>
-    /// <param name="name">The name of the file</param>
-    /// <param name="extension">The extension the file has.</param>
-    /// <param name="fileBytesInBase64">String of bytes.  MUST BE IN BASE64 format</param>
-    /// <returns></returns>
-    public async Task<Result<string>> SaveDocumentAsync(string name,
-                                                        string extension,
-                                                        string fileBytesInBase64)
-    {
-        TransferDocumentDto transferDocumentDto = new()
-        {
-            Description        = name,
-            FileExtension      = extension,
-            FileInBase64Format = fileBytesInBase64
-        };
-
-        return await SaveDocumentInternalAsync(transferDocumentDto);
-    }
-
-
-
-    /// <summary>
-    ///     Saves the given document to storage.  Will Read the provided file and store into the storage library.
-    /// </summary>
-    /// <param name="fileToSave">The FileInfo of the file you wish to save into storage.</param>
-    /// <returns></returns>
-    public async Task<Result<string>> SaveDocumentAsync(FileInfo fileToSave)
-    {
-        try
-        {
-            string file = Convert.ToBase64String(File.ReadAllBytes(fileToSave.FullName));
-
-            TransferDocumentDto transferDocumentDto = new()
-            {
-                DocumentTypeId     = 1,
-                Description        = fileToSave.Name,
-                FileExtension      = fileToSave.Extension,
-                FileInBase64Format = file
-            };
-
-            return await SaveDocumentInternalAsync(transferDocumentDto);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogError("Failed to save Document:  {FileToSave}", fileToSave.FullName);
-            return Result.Fail(exception.ToString());
-        }
-    }
-
-
-
-    /// <summary>
     ///     Saves the given document to storage.  This is the internal method that does the actual saving.
     /// </summary>
     /// <param name="transferDocumentDto"></param>
     /// <returns></returns>
-    private async Task<Result<string>> SaveDocumentInternalAsync(TransferDocumentDto transferDocumentDto)
+    public async Task<Result<int>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto)
     {
         HttpResponseMessage response = null;
         string              content  = "";
@@ -135,18 +82,24 @@ public class AccessDocumentServerHttpClient : IDisposable
         try
         {
             // Call API
-            response = await _httpClient.PostAsJsonAsync("documents", transferDocumentDto);
+            response = await _httpClient.PostAsJsonAsync("Documents", transferDocumentDto);
             content  = await response.Content.ReadAsStringAsync();
             json     = JsonNode.Parse(content);
 
             response.EnsureSuccessStatusCode();
 
-            string id = (string)json["id"];
+            int id = json["id"];
             return Result.Ok(id);
         }
         catch (Exception exception)
         {
-            string msg = (string)json["detail"];
+            string msg = "";
+            if (json != null)
+                msg = (string)json["detail"];
+            if (msg == string.Empty)
+                msg = exception.Message;
+
+
             _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",
                              transferDocumentDto.Description,
                              transferDocumentDto.FileExtension,

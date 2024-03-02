@@ -2,6 +2,7 @@
 using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
@@ -109,12 +110,12 @@ public class Test_DocumentType
         Console.WriteLine("Saved Step 1!");
 
         //***  C. Create a document
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              documentType.Id,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    documentType.Id,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId);
         Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value);
 
 

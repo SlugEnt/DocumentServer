@@ -2,9 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using DocumentServer.ClientLibrary;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
@@ -140,9 +142,9 @@ public class DocumentServerEngine
 
 
 
-    public async Task<Result<TransferDocumentDto>> GetStoredDocumentAsync(long id)
+    public async Task<Result<TransferDocumentContainer>> GetStoredDocumentAsync(long id)
     {
-        TransferDocumentDto transferDocument = new();
+        TransferDocumentContainer transferDocument = new();
         try
         {
             StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
@@ -153,14 +155,23 @@ public class DocumentServerEngine
             // Now Load the Stored Document.
             string fileName     = storedDocument.FileName;
             string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
-            transferDocument.FileInBase64Format = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
+
+            // TODO Do this upto 5MB file??? 
+
+            //transferDocument.FileInBase64Format = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
+            transferDocument.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
+
 
             // Load the TransferDocument info
-            transferDocument.Description             = storedDocument.Description;
-            transferDocument.CurrentStoredDocumentId = storedDocument.Id;
-            transferDocument.DocumentTypeId          = storedDocument.DocumentTypeId;
-            transferDocument.DocTypeExternalId       = storedDocument.DocTypeExternalKey;
-            transferDocument.RootObjectId            = storedDocument.RootObjectExternalKey;
+            transferDocument.TransferDocument = new TransferDocumentDto()
+            {
+                Description             = storedDocument.Description,
+                CurrentStoredDocumentId = storedDocument.Id,
+                DocumentTypeId          = storedDocument.DocumentTypeId,
+                DocTypeExternalId       = storedDocument.DocTypeExternalKey,
+                RootObjectId            = storedDocument.RootObjectExternalKey,
+            };
+
 
             // TODO update the number of times accessed
             return Result.Ok(transferDocument);
@@ -280,7 +291,7 @@ public class DocumentServerEngine
     /// <param name="transferDocumentDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentDto transferDocumentDto)
+    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentContainer transferDocumentContainer)
     {
         IDbContextTransaction   transaction             = null;
         bool                    fileSavedToStorage      = false;
@@ -290,7 +301,7 @@ public class DocumentServerEngine
         try
         {
             // Load and Validate the DocumentType is ok to use
-            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentDto.DocumentTypeId);
+            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentContainer.TransferDocument.DocumentTypeId);
             if (docTypeResult.IsFailed)
                 return Result.Merge(result, docTypeResult);
 
@@ -298,16 +309,17 @@ public class DocumentServerEngine
 
 
             // We always use the primary node for initial storage.
-            int fileSize = transferDocumentDto.FileInBase64Format.Length > 1024 ? transferDocumentDto.FileInBase64Format.Length / 1024 : 1;
+            // TODO This is going to need to be fixed now that we are not passing file bytes around...
+            int tmpFileSize = transferDocumentContainer.FileSize;
+            int fileSize    = tmpFileSize > 1024 ? tmpFileSize / 1024 : 1;
 
-            if (string.IsNullOrWhiteSpace(transferDocumentDto.RootObjectId))
-                return Result.Fail(new Error("No RootObjectId was specified on the TransferDocumentDto.  It is required."));
+            if (string.IsNullOrWhiteSpace(transferDocumentContainer.TransferDocument.RootObjectId))
+                return Result.Fail(new Error("No RootObjectId was specified on the transferDocumentContainer.  It is required."));
 
-            if (string.IsNullOrWhiteSpace(transferDocumentDto.DocTypeExternalId))
-
-                // Ensure it is null.
+            if (string.IsNullOrWhiteSpace(transferDocumentContainer.TransferDocument.DocTypeExternalId))
             {
-                transferDocumentDto.DocTypeExternalId = null;
+                // Ensure it is null.
+                transferDocumentContainer.TransferDocument.DocTypeExternalId = null;
             }
             else
             {
@@ -315,27 +327,27 @@ public class DocumentServerEngine
                 if (!docType.AllowSameDTEKeys)
                 {
                     // Make sure the external key does not already exist.
-                    bool exists = _db.StoredDocuments.Any(sd => sd.RootObjectExternalKey == transferDocumentDto.RootObjectId &&
-                                                                sd.DocTypeExternalKey == transferDocumentDto.DocTypeExternalId);
+                    bool exists = _db.StoredDocuments.Any(sd => sd.RootObjectExternalKey == transferDocumentContainer.TransferDocument.RootObjectId &&
+                                                                sd.DocTypeExternalKey == transferDocumentContainer.TransferDocument.DocTypeExternalId);
                     if (exists)
                     {
                         string msg =
                             string.Format("Duplicate Key not allowed.  RootObject Id [ {0} ] already has a DocumentType [ {1} ]  with an External Id of [ {2} ].  This DocumentType does not allow duplicate entries.",
-                                          transferDocumentDto.RootObjectId,
-                                          transferDocumentDto.DocumentTypeId,
-                                          transferDocumentDto.DocTypeExternalId);
+                                          transferDocumentContainer.TransferDocument.RootObjectId,
+                                          transferDocumentContainer.TransferDocument.DocumentTypeId,
+                                          transferDocumentContainer.TransferDocument.DocTypeExternalId);
                         return Result.Fail(new Error(msg));
                     }
                 }
             }
 
-            StoredDocument storedDocument = new(transferDocumentDto.FileExtension,
-                                                transferDocumentDto.Description,
-                                                transferDocumentDto.RootObjectId,
-                                                transferDocumentDto.DocTypeExternalId,
+            StoredDocument storedDocument = new(transferDocumentContainer.TransferDocument.FileExtension,
+                                                transferDocumentContainer.TransferDocument.Description,
+                                                transferDocumentContainer.TransferDocument.RootObjectId,
+                                                transferDocumentContainer.TransferDocument.DocTypeExternalId,
                                                 "",
                                                 fileSize,
-                                                transferDocumentDto.DocumentTypeId,
+                                                transferDocumentContainer.TransferDocument.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
 
 
@@ -343,7 +355,7 @@ public class DocumentServerEngine
             Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
                                                                             docType,
                                                                             (int)docType.ActiveStorageNode1Id,
-                                                                            transferDocumentDto.FileInBase64Format);
+                                                                            transferDocumentContainer.FileInFormFile);
             if (storeResult.IsFailed)
                 return Result.Merge(result, storeResult);
 
@@ -375,7 +387,7 @@ public class DocumentServerEngine
                 _fileSystem.File.Delete(fullFileName);
 
             string msg =
-                string.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentDto.Description}, Extension: {transferDocumentDto.FileExtension}.  Error Was: {ex.Message}.  ");
+                string.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentContainer.TransferDocument.Description}, Extension: {transferDocumentContainer.TransferDocument.FileExtension}.  Error Was: {ex.Message}.  ");
 
             StringBuilder sb = new();
             sb.Append(msg);
@@ -384,8 +396,8 @@ public class DocumentServerEngine
             msg = sb.ToString();
 
             _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.",
-                             transferDocumentDto.Description,
-                             transferDocumentDto.FileExtension,
+                             transferDocumentContainer.TransferDocument.Description,
+                             transferDocumentContainer.TransferDocument.FileExtension,
                              msg);
             Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
             return errorResult;
@@ -402,11 +414,14 @@ public class DocumentServerEngine
     /// <param name="storageNodeId">Node Id to store file at</param>
     /// <param name="fileInBase64Format">Contents of the file</param>
     /// <returns>Result string where string is the full file name </returns>
+    [Obsolete]
     internal async Task<Result<string>> StoreFileOnStorageMediaAsync(StoredDocument storedDocument,
                                                                      DocumentType documentType,
                                                                      int storageNodeId,
                                                                      string fileInBase64Format)
     {
+        throw new NotImplementedException();
+
         string         fullFileName = "";
         Result<string> result       = new Result();
 
@@ -429,6 +444,8 @@ public class DocumentServerEngine
 
             binaryFile   = Convert.FromBase64String(fileInBase64Format);
             fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
+
+            // Only if file is in bytes.
             _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
 
 //            fileSavedToStorage = true;
@@ -446,10 +463,65 @@ public class DocumentServerEngine
 
 
     /// <summary>
+    ///     Determines where to store the file and then stores it.
+    /// </summary>
+    /// <param name="storedDocument">The StoredDocument that will be updated with path info</param>
+    /// <param name="documentType">DocumentType this document is</param>
+    /// <param name="storageNodeId">Node Id to store file at</param>
+    /// <param name="formFile">Contents of the file</param>
+    /// <returns>Result string where string is the full file name </returns>
+    internal async Task<Result<string>> StoreFileOnStorageMediaAsync(StoredDocument storedDocument,
+                                                                     DocumentType documentType,
+                                                                     int storageNodeId,
+                                                                     IFormFile formFile)
+    {
+        string         fullFileName = "";
+        Result<string> result       = new Result();
+
+        try
+        {
+            Result<string> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
+            if (resultB.IsFailed)
+            {
+                resultB.WithError("Failed to compute Where the document should be stored.");
+                return resultB;
+            }
+
+            // Store the path and make sure all the paths exist.
+            string storeAtPath = resultB.Value;
+            _fileSystem.Directory.CreateDirectory(storeAtPath);
+
+
+            // Decode the file bytes
+            //byte[] binaryFile;
+            //binaryFile = Convert.FromBase64String(formFile);
+            fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
+            using (Stream fs = _fileSystem.File.Create(fullFileName))
+            {
+                await formFile.CopyToAsync(fs);
+            }
+
+            // Only if file is in bytes.
+            //_fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
+
+            //            fileSavedToStorage = true;
+
+            // Save the path in the StoredDocument
+            storedDocument.StorageFolder = storeAtPath;
+            return Result.Ok(fullFileName);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
+        }
+    }
+
+
+    /// <summary>
     ///     Stores a new document that is a replacement for an existing document.
     /// </summary>
     /// <returns></returns>
-    public async Task<Result<StoredDocument>> StoreReplacementDocumentAsync(ReplacementDto replacementDto)
+    public async Task<Result<StoredDocument>> StoreReplacementDocumentAsync(TransferDocumentContainer replacementDto)
     {
         // The replacement process is:
         // - Store new file
@@ -464,10 +536,10 @@ public class DocumentServerEngine
         try
         {
             // We need to load the existing StoredDocument to retrieve some info.
-            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
+            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.TransferDocument.CurrentStoredDocumentId);
             if (storedDocument == null)
             {
-                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.CurrentStoredDocumentId);
+                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.TransferDocument.CurrentStoredDocumentId);
                 return Result.Fail(new Error(msg));
             }
 
@@ -483,11 +555,11 @@ public class DocumentServerEngine
             oldFileName = storedDocument.FileNameAndPath;
 
             // Store the new document on the storage media
-            storedDocument.ReplaceFileName(replacementDto.FileExtension);
+            storedDocument.ReplaceFileName(replacementDto.TransferDocument.FileExtension);
             Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
                                                                             docType,
                                                                             (int)docType.ActiveStorageNode1Id,
-                                                                            replacementDto.FileInBase64Format);
+                                                                            replacementDto.FileInFormFile);
             if (storeResult.IsFailed)
                 return Result.Merge(result, storeResult);
 
@@ -495,8 +567,8 @@ public class DocumentServerEngine
 
             // Save StoredDocument
             //  - Update description
-            if (!string.IsNullOrEmpty(replacementDto.Description))
-                storedDocument.Description = replacementDto.Description;
+            if (!string.IsNullOrEmpty(replacementDto.TransferDocument.Description))
+                storedDocument.Description = replacementDto.TransferDocument.Description;
 
             transaction = _db.Database.BeginTransaction();
             _db.StoredDocuments.Update(storedDocument);

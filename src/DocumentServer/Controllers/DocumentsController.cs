@@ -2,6 +2,7 @@
 using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using Microsoft.AspNetCore.Mvc;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
@@ -45,7 +46,7 @@ public class DocumentsController : ControllerBase
     public async Task<ActionResult<TransferDocumentDto>> GetStoredDocument(long id)
     {
         // For testing
-        Result<TransferDocumentDto> result = await _docEngine.GetStoredDocumentAsync(id);
+        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
 
         return Ok(result.Value);
     }
@@ -61,31 +62,58 @@ public class DocumentsController : ControllerBase
     ///     stored.
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
-    [HttpPost]
-    public async Task<ActionResult<string>> PostStoredDocument(TransferDocumentDto transferDocumentDto)
+    [HttpPost(Name = "PostStoredDocument")]
+    public async Task<ActionResult<string>> PostStoredDocument([FromForm] TransferDocumentDto transferDocumentDto)
     {
-        Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(transferDocumentDto);
-
-        if (result.IsSuccess)
+        try
         {
-            long id = result.Value.Id;
-            var val = new
+/*            if (transferDocumentDto.FileInFormFile == null || transferDocumentDto.FileInFormFile.Length == 0)
             {
-                Id = id
-            };
-            return Ok(val);
+                return BadRequest("No File provided");
+            }
+*/
+            return Ok();
         }
-
-
-        // TODO - return the errors from the Result
-        StringBuilder sb = new();
-        foreach (IError resultError in result.Errors)
-            sb.Append(resultError + Environment.NewLine);
-        return Problem(
-                       sb.ToString(),
-                       title: "Error Storing the Document"
-                      );
+        catch (Exception ex)
+        {
+            return BadRequest("ff");
+        }
     }
+    /*
+    public async Task<ActionResult<string>> PostStoredDocument(TransferDocumentDto transferDocumentDto = null)
+    {
+        try
+        {
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(transferDocumentDto);
+
+            if (result.IsSuccess)
+            {
+                long id = result.Value.Id;
+                var val = new
+                {
+                    Id = id
+                };
+                return Ok(val);
+            }
+
+
+            // TODO - return the errors from the Result
+            StringBuilder sb = new();
+            foreach (IError resultError in result.Errors)
+                sb.Append(resultError + Environment.NewLine);
+            return Problem(
+                           sb.ToString(),
+                           title: "Error Storing the Document"
+                          );
+        }
+        catch (Exception ex)
+        {
+            int j = 2;
+            return Problem(ex.Message);
+        }
+    }
+
+    */
 
 
     //(************************************************************************

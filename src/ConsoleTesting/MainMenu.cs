@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using DocumentServer.ClientLibrary;
 using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -68,8 +69,18 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.U:
-                        FileInfo       fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
-                        Result<string> result     = await _documentServerHttpClient.SaveDocumentAsync(fileToSave);
+                        FileInfo fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
+                        TransferDocumentDto transferDocumentDto = new()
+                        {
+                            DocumentTypeId = 1,
+                            Description    = "Some document about something",
+                            FileExtension  = fileToSave.Extension,
+                        };
+
+                        // TODO Fix this - it is not reading any file in.
+                        //transferDocumentDto.ReadFileIn(fileToSave.FullName);
+                        Result<int> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto);
+
                         if (result.IsSuccess)
                             Console.WriteLine("Document Stored   |   ID = " + result.Value);
                         else

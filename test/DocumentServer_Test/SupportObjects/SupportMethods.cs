@@ -6,11 +6,16 @@
 
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using System.Text;
 using Bogus;
 using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NSubstitute;
 using SlugEnt;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
@@ -245,39 +250,50 @@ public class SupportMethods
     /// <param name="expectedExtension"></param>
     /// <param name="expectedDocTypeId"></param>
     /// <returns></returns>
-    public Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
-                                                              string expectedDescription,
-                                                              string expectedExtension,
-                                                              int expectedDocTypeId,
-                                                              string expectedRootObjectId,
-                                                              string? expectedDocExtKey)
+    public Result<TransferDocumentContainer> TFX_GenerateUploadFile(SupportMethods sm,
+                                                                    string expectedDescription,
+                                                                    string expectedExtension,
+                                                                    int expectedDocTypeId,
+                                                                    string expectedRootObjectId,
+                                                                    string? expectedDocExtKey,
+                                                                    int sizeInKB = 3)
     {
         // A10. Create A Document
 
         string fileName = sm.WriteRandomFile(sm.FileSystem,
                                              sm.Folder_Test,
                                              expectedExtension,
-                                             3);
+                                             sizeInKB);
         string fullPath = Path.Combine(sm.Folder_Test, fileName);
         Console.WriteLine("Generated FileName: " + fullPath);
         Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "TFX_GenerateUploadFile:");
 
 
-        // A20. Read the File
-        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
+        // Get FormFile 
+        FormFile formFile = GetFormFile(fullPath);
+        Assert.That(formFile.Length, Is.Not.EqualTo(0), "TFX_GenerateUploadFile Formfile is zero length");
 
+        // A20. Read the File
+        //string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
+        TransferDocumentContainer transferDocumentContainer = new TransferDocumentContainer()
+        {
+            FileInFormFile = formFile,
+
+//            FileInBase64Format = file,
+        };
 
         // B.  Now Store it in the DocumentServer
         TransferDocumentDto upload = new()
         {
-            Description        = expectedDescription,
-            DocumentTypeId     = expectedDocTypeId,
-            FileExtension      = expectedExtension,
-            FileInBase64Format = file,
-            RootObjectId       = expectedRootObjectId,
-            DocTypeExternalId  = expectedDocExtKey
+            Description       = expectedDescription,
+            DocumentTypeId    = expectedDocTypeId,
+            FileExtension     = expectedExtension,
+            RootObjectId      = expectedRootObjectId,
+            DocTypeExternalId = expectedDocExtKey
         };
-        return Result.Ok(upload);
+        transferDocumentContainer.TransferDocument = upload;
+
+        return Result.Ok(transferDocumentContainer);
     }
 
 
@@ -302,6 +318,7 @@ public class SupportMethods
 
         byte[] data = new byte[1024];
         Random rng  = new();
+        rng.NextBytes(data);
 
 
         MockFileStream stream = new(FileDataAccessor, fullPath, FileMode.Create);
@@ -311,6 +328,54 @@ public class SupportMethods
             stream.Write(data, 0, data.Length);
         }
 
+        stream.Close();
         return fileName;
+    }
+
+
+    /// <summary>
+    /// Creates a FormFile object
+    /// </summary>
+    /// <param name="fullFileName"></param>
+    /// <returns></returns>
+    public FormFile GetFormFile(string fullFileName)
+    {
+        FormFile       file;
+        MockFileStream stream2 = new(FileDataAccessor, fullFileName, FileMode.Open);
+
+        file = new FormFile(stream2,
+                            0,
+                            stream2.Length,
+                            null,
+                            Path.GetFileName(fullFileName))
+        {
+            Headers     = new HeaderDictionary(),
+            ContentType = "application/pdf"
+        };
+
+
+        return file;
+    }
+
+
+    public FormFile GetFormFile(byte[] fileBytes)
+    {
+        FormFile     file;
+        MemoryStream ms = new MemoryStream(fileBytes);
+        file = new FormFile(ms,
+                            0,
+                            ms.Length,
+                            null,
+                            "somefile.pdf")
+        {
+            Headers     = new HeaderDictionary(),
+            ContentType = "application/pdf"
+        };
+
+        ms.Seek(0, SeekOrigin.Begin);
+
+
+        file.OpenReadStream();
+        return file;
     }
 }
