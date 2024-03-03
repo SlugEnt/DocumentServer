@@ -1,11 +1,11 @@
 ﻿using System.IO.Abstractions;
 using System.Runtime.CompilerServices;
 using System.Text;
-using DocumentServer.ClientLibrary;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
@@ -156,9 +156,6 @@ public class DocumentServerEngine
             string fileName     = storedDocument.FileName;
             string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
 
-            // TODO Do this upto 5MB file??? 
-
-            //transferDocument.FileInBase64Format = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
             transferDocument.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
 
 
@@ -170,10 +167,12 @@ public class DocumentServerEngine
                 DocumentTypeId          = storedDocument.DocumentTypeId,
                 DocTypeExternalId       = storedDocument.DocTypeExternalKey,
                 RootObjectId            = storedDocument.RootObjectExternalKey,
+                MediaType               = storedDocument.MediaType,
             };
 
 
             // TODO update the number of times accessed
+
             return Result.Ok(transferDocument);
         }
         catch (Exception ex)
@@ -349,6 +348,7 @@ public class DocumentServerEngine
                                                 fileSize,
                                                 transferDocumentContainer.TransferDocument.DocumentTypeId,
                                                 (int)docType.ActiveStorageNode1Id);
+            SetMediaType(transferDocumentContainer.TransferDocument.MediaType, transferDocumentContainer.TransferDocument.FileExtension, storedDocument);
 
 
             // Store the document on the storage media
@@ -404,6 +404,25 @@ public class DocumentServerEngine
         }
     }
 
+
+    /// <summary>
+    /// Determines and sets the Media Type based upon the passed MediaType or Extension.  
+    /// </summary>
+    /// <param name="storedDocument"></param>
+    internal void SetMediaType(EnumMediaTypes mediaType,
+                               string fileExtension,
+                               StoredDocument storedDocument)
+    {
+        // Use user specified Media Type if available.
+        if (mediaType != EnumMediaTypes.NotSpecified)
+        {
+            storedDocument.MediaType = mediaType;
+            return;
+        }
+
+        // Figure out based upon extension
+        storedDocument.MediaType = MediaTypes.GetMediaType(fileExtension.ToLower());
+    }
 
 
     /// <summary>
@@ -493,18 +512,11 @@ public class DocumentServerEngine
 
 
             // Decode the file bytes
-            //byte[] binaryFile;
-            //binaryFile = Convert.FromBase64String(formFile);
             fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
             using (Stream fs = _fileSystem.File.Create(fullFileName))
             {
                 await formFile.CopyToAsync(fs);
             }
-
-            // Only if file is in bytes.
-            //_fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
-
-            //            fileSavedToStorage = true;
 
             // Save the path in the StoredDocument
             storedDocument.StorageFolder = storeAtPath;

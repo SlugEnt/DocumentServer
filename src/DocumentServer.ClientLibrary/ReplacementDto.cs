@@ -1,4 +1,4 @@
-﻿namespace DocumentServer.ClientLibrary;
+﻿namespace SlugEnt.DocumentServer.ClientLibrary;
 
 /// <summary>
 ///     Dto used to upload a document that is replacing a current document

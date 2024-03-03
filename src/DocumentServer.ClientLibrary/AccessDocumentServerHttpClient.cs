@@ -1,8 +1,13 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Net.Mime;
+using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using DocumentServer.ClientLibrary;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using JsonSerializer = System.Text.Json.JsonSerializer;
@@ -39,31 +44,37 @@ public class AccessDocumentServerHttpClient : IDisposable
     public void Dispose() => _httpClient?.Dispose();
 
 
-    public async Task<string> GetDocument()
+    public async Task DoDownload(long id)
+    {
+        Stream fileStream = await GetDocumentFileAsStream(id);
+        if (fileStream != null)
+        {
+            using (FileStream outputStream = new FileStream($"T:\\Temp\\newfile", FileMode.CreateNew))
+            {
+                await outputStream.CopyToAsync(fileStream);
+            }
+        }
+    }
+
+
+    public async Task<Stream> GetDocumentFileAsStream(long documentId)
     {
         try
         {
-            //StoredDocument storedDocument = new StoredDocument { AppAreaId = "WC", AppName = "MDOS", CreatedAt = DateTime.Now, Id= new Guid(), StorageFolder = @"C:\temp"};
-            /*
-            using StringContent json = new(JsonSerializer.Serialize(storedDocument, new JsonSerializerOptions(JsonSerializerDefaults.Web)), Encoding.UTF8,
-                                           MediaTypeNames.Application.Json);
-            */
-            Guid id = Guid.NewGuid();
-
-            string q = "documents/" + "12345" + "/scott";
-            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(q, HttpCompletionOption.ResponseHeadersRead))
+            string qry = "documents/" + documentId;
+            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
-                Stream         stream         = await httpResponse.Content.ReadAsStreamAsync();
-                StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
-            }
+                Stream stream = await httpResponse.Content.ReadAsStreamAsync();
+                return stream;
 
-            return "yeep";
+                //StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
+            }
         }
         catch (Exception exception)
         {
             _logger.LogError("Something wong:  {Error}", exception);
-            return "no";
+            return Stream.Null;
         }
     }
 
@@ -73,23 +84,46 @@ public class AccessDocumentServerHttpClient : IDisposable
     ///     Saves the given document to storage.  This is the internal method that does the actual saving.
     /// </summary>
     /// <param name="transferDocumentDto"></param>
+    /// <param name="fileName">The full path and file name of file to send</param>
     /// <returns></returns>
-    public async Task<Result<int>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto)
+    public async Task<Result<long>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto,
+                                                      string fileName)
     {
-        HttpResponseMessage response = null;
-        string              content  = "";
-        dynamic             json     = null;
+        HttpResponseMessage response        = null;
+        string              content         = "";
+        dynamic             json            = null;
+        string              responseContent = string.Empty;
+
         try
         {
-            // Call API
-            response = await _httpClient.PostAsJsonAsync("Documents", transferDocumentDto);
-            content  = await response.Content.ReadAsStringAsync();
-            json     = JsonNode.Parse(content);
+            DocumentContainer documentContainer = new DocumentContainer()
+            {
+                Info = transferDocumentDto,
+            };
+
+            MultipartFormDataContent form = new MultipartFormDataContent();
+
+            // Fill out the rest of data
+            form.Add(new StringContent(transferDocumentDto.Description), "Info.Description");
+            form.Add(new StringContent(transferDocumentDto.DocumentTypeId.ToString()), "Info.DocumentTypeId");
+            form.Add(new StringContent(transferDocumentDto.FileExtension), "Info.FileExtension");
+            form.Add(new StringContent(transferDocumentDto.RootObjectId.ToString()), "Info.RootObjectId");
+            form.Add(new StringContent(transferDocumentDto.DocTypeExternalId), "Info.DocTypeExternalId");
+            form.Add(new StringContent(transferDocumentDto.CurrentStoredDocumentId.ToString()), "Info.CurrentStoredDocumentId");
+
+            // Add File
+            await using var stream = System.IO.File.OpenRead(fileName);
+            form.Add(new StreamContent(stream), "File", fileName);
+            response = await _httpClient.PostAsync("documents", form);
+
+            responseContent = await response.Content.ReadAsStringAsync();
 
             response.EnsureSuccessStatusCode();
 
-            int id = json["id"];
-            return Result.Ok(id);
+            if (!long.TryParse(responseContent, out long value))
+                return Result.Ok(0L);
+            else
+                return Result.Ok(value);
         }
         catch (Exception exception)
         {
@@ -97,7 +131,7 @@ public class AccessDocumentServerHttpClient : IDisposable
             if (json != null)
                 msg = (string)json["detail"];
             if (msg == string.Empty)
-                msg = exception.Message;
+                msg = exception.Message + " |  " + responseContent;
 
 
             _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",

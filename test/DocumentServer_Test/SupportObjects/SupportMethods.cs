@@ -4,21 +4,18 @@
 //    database.
 #define ENABLE_TRANSACTIONS
 
-using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
-using System.Text;
 using Bogus;
-using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Internal;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NSubstitute;
 using SlugEnt;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
+using SlugEnt.DocumentServer.ClientLibrary;
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -334,7 +331,7 @@ public class SupportMethods
 
 
     /// <summary>
-    /// Creates a FormFile object
+    /// Creates a FormFile object from a physical file
     /// </summary>
     /// <param name="fullFileName"></param>
     /// <returns></returns>
@@ -358,6 +355,11 @@ public class SupportMethods
     }
 
 
+    /// <summary>
+    /// Creates a FormFile from a Byte Array
+    /// </summary>
+    /// <param name="fileBytes"></param>
+    /// <returns></returns>
     public FormFile GetFormFile(byte[] fileBytes)
     {
         FormFile     file;

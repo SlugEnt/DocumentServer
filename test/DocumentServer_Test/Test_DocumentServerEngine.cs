@@ -1,5 +1,4 @@
-﻿using DocumentServer.ClientLibrary;
-using DocumentServer.Core;
+﻿using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt;
 using SlugEnt.DocumentServer.Core;
@@ -7,7 +6,8 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 using System.IO;
-using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.AspNetCore.Http;
+using SlugEnt.DocumentServer.ClientLibrary;
 using Test_DocumentServer.SupportObjects;
 
 namespace Test_DocumentServer;

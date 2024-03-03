@@ -128,6 +128,13 @@ public class StoredDocument : AbstractBaseEntity
 
     public DateTime LastAccessedUTC { get; set; }
 
+
+    /// <summary>
+    /// The Type of Document this is in regards to C# MediaTypes or additional app definitions, such as Word, Excel, Outlook, etc
+    /// </summary>
+    public EnumMediaTypes MediaType { get; set; }
+
+
     /// <summary>
     ///     The number of times this document has been accessed by an end-user.  Either read, write or edit.  Background
     ///     service tasks are not counted.
@@ -135,6 +142,7 @@ public class StoredDocument : AbstractBaseEntity
     public int NumberOfTimesAccessed { get; set; }
 
     public StorageNode PrimaryStorageNode { get; set; }
+
 
 
     // The nodes this document is stored on.
@@ -187,10 +195,14 @@ public class StoredDocument : AbstractBaseEntity
     /// <param name="fileExtension"></param>
     public void SetFileName(string fileExtension)
     {
+        string dotSeparate = ".";
+
         if (FileName == string.Empty)
         {
-            string ext = fileExtension == string.Empty ? string.Empty : "." + fileExtension;
-            FileName = Guid.NewGuid() + ext;
+            if (fileExtension.StartsWith("."))
+                FileName = Guid.NewGuid() + fileExtension;
+            else
+                FileName = Guid.NewGuid() + "." + fileExtension;
         }
     }
 }

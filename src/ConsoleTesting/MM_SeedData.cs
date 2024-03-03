@@ -7,14 +7,13 @@ namespace ConsoleTesting;
 public partial class MainMenu
 {
     /// <summary>
-    ///     Seed Absence Mgt
+    ///     Seed Some Info
     /// </summary>
     /// <returns></returns>
-    public async Task SeedAbsenceMgtAsync()
+    public async Task SeedSomeAppDataAsync()
     {
         try
         {
-            // Load MDOS Data
             Application application = new()
             {
                 Name = "AppC"
@@ -27,7 +26,8 @@ public partial class MainMenu
             {
                 Application = application,
                 Description = "some reference",
-                Name        = "Some Reference"
+                Name        = "Some Reference",
+                IsActive    = true,
             };
             _db.Add(rootA);
             await _db.SaveChangesAsync();
@@ -40,7 +40,8 @@ public partial class MainMenu
                 Description = "Signed Referral Acceptance Form",
                 StorageMode = EnumStorageMode.WriteOnceReadMany,
                 RootObject  = rootA,
-                Application = application
+                Application = application,
+                IsActive    = true,
             };
             _db.Add(docType);
 
@@ -51,7 +52,8 @@ public partial class MainMenu
                 Description = "Official Drug Test Results",
                 StorageMode = EnumStorageMode.WriteOnceReadMany,
                 RootObject  = rootA,
-                Application = application
+                Application = application,
+                IsActive    = true,
             };
             _db.Add(docType);
 
@@ -62,7 +64,8 @@ public partial class MainMenu
                 Description = "Draft of a work plan",
                 StorageMode = EnumStorageMode.Editable,
                 RootObject  = rootA,
-                Application = application
+                Application = application,
+                IsActive    = true,
             };
             _db.Add(docType);
 
@@ -73,7 +76,8 @@ public partial class MainMenu
                 Description = "Notes taken during a meeting",
                 StorageMode = EnumStorageMode.Temporary,
                 RootObject  = rootA,
-                Application = application
+                Application = application,
+                IsActive    = true,
             };
             _db.Add(docType);
 
@@ -81,7 +85,7 @@ public partial class MainMenu
         }
         catch (Exception ex)
         {
-            _logger.LogError("SeedAbsenceMgtAsync:  Error: {Error}  InnerError: {InnerError}",
+            _logger.LogError("SeedSomeAppDataAsync:  Error: {Error}  InnerError: {InnerError}",
                              ex.Message,
                              ex.InnerException != null ? ex.InnerException.Message : "N/A");
         }
@@ -96,9 +100,9 @@ public partial class MainMenu
     {
         await SeedStorageNodesAsync();
 
-        await SeedAbsenceMgtAsync();
+        await SeedSomeAppDataAsync();
 
-        // Load Unity Data
+        // Load App A Data
         Application application = new()
         {
             Name = "AppA"
@@ -125,7 +129,7 @@ public partial class MainMenu
     public async Task SeedStorageNodesAsync()
     {
         StorageNode snode = new("AbsenceMgt Primary",
-                                "Primary Storage for Absence Mgt",
+                                "Primary Storage for app",
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
@@ -133,7 +137,7 @@ public partial class MainMenu
         _db.Add(snode);
 
         snode = new StorageNode("AbsenceMgt Secondary",
-                                "Secondary Storage for Absence Mgt",
+                                "Secondary Storage for Some App",
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,

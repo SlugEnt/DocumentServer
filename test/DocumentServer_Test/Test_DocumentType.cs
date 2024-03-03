@@ -1,5 +1,4 @@
-﻿using DocumentServer.ClientLibrary;
-using DocumentServer.Core;
+﻿using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SlugEnt.DocumentServer.Core;

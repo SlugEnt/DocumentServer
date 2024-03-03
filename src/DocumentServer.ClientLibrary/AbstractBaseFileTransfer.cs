@@ -1,8 +1,9 @@
 ﻿using System.IO.Abstractions;
 using Microsoft.AspNetCore.Http;
+using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 
-namespace DocumentServer.ClientLibrary;
+namespace SlugEnt.DocumentServer.ClientLibrary;
 
 public abstract class AbstractBaseFileTransfer
 {
@@ -11,7 +12,7 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is returned when retrieving a document.
     ///   - Is only sent when document is possibly replacing an existing one with same DocTypeExternalId
     /// </summary>
-    public long CurrentStoredDocumentId { get; set; }
+    public long CurrentStoredDocumentId { get; set; } = 0;
 
 
     /// <summary>
@@ -27,21 +28,21 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is returned when retrieving a document.
     ///   - Should be sent when saving a document.
     /// </summary>
-    public string Description { get; set; }
+    public string Description { get; set; } = "";
 
     /// <summary>
     ///     This is the external (calling) systems key or Id for this document.  Like an Invoice # or Bill #
     ///   - Is returned when retrieving a document.
     ///   - Should be sent when saving a document.
     /// </summary>
-    public string? DocTypeExternalId { get; set; }
+    public string? DocTypeExternalId { get; set; } = "";
 
     /// <summary>
     ///     File Extension of the document
     ///   - Is NOT returned when retrieving a document.
     ///   - Should be sent when saving a document.  It is informational only
     /// </summary>
-    public string FileExtension { get; set; } = "";
+    public string FileExtension { get; set; }
 
     /// <summary>
     ///     This is the external (Calling) systems primary relation ID, Ie, the primary thing this is related to, for instance a Claim
@@ -50,4 +51,11 @@ public abstract class AbstractBaseFileTransfer
     ///   - Must be sent when saving a document.
     /// </summary>
     public string RootObjectId { get; set; }
+
+
+    /// <summary>
+    /// This is essentially the type of physical document this is (jpg, png, pdf, doc, xls, etc).
+    /// <para>This is optional.  If not specified the File Extension is used.</para>
+    /// </summary>
+    public EnumMediaTypes MediaType { get; set; }
 }

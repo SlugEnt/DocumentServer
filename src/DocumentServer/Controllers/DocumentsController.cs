@@ -1,7 +1,9 @@
-﻿using System.Text;
-using DocumentServer.ClientLibrary;
+﻿using System.Net;
+using System.Net.Mime;
 using DocumentServer.Core;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -45,10 +47,23 @@ public class DocumentsController : ControllerBase
     [HttpGet("{id}/{name}")]
     public async Task<ActionResult<TransferDocumentDto>> GetStoredDocument(long id)
     {
+        // Testing
+        string      val = MediaTypeNames.Application.Json;
+        ContentType ct  = new ContentType(MediaTypeNames.Application.Pdf);
+
+
         // For testing
         Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
+        if (result.IsFailed)
+            return BadRequest(result.ToString());
 
-        return Ok(result.Value);
+
+        // Send the file.
+        string contentType = MediaTypes.GetContentType(result.Value.TransferDocument.MediaType);
+        return new FileContentResult(result.Value.FileInBytes, contentType);
+
+        // Another way to return a file do it via stream???
+        //return File(result.Result, "image/png", "test.jpg");
     }
 
 
@@ -63,76 +78,30 @@ public class DocumentsController : ControllerBase
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "PostStoredDocument")]
-    public async Task<ActionResult<string>> PostStoredDocument([FromForm] TransferDocumentDto transferDocumentDto)
+    public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer)
     {
         try
         {
-/*            if (transferDocumentDto.FileInFormFile == null || transferDocumentDto.FileInFormFile.Length == 0)
+            TransferDocumentContainer txfDocumentContainer = new TransferDocumentContainer()
             {
-                return BadRequest("No File provided");
-            }
-*/
-            return Ok();
+                TransferDocument = documentContainer.Info,
+                FileInFormFile   = documentContainer.File,
+            };
+
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer);
+            if (result.IsSuccess)
+                return Ok(result.Value.Id);
+
+
+            return Problem("things went real bad");
         }
         catch (Exception ex)
         {
             return BadRequest("ff");
         }
     }
-    /*
-    public async Task<ActionResult<string>> PostStoredDocument(TransferDocumentDto transferDocumentDto = null)
-    {
-        try
-        {
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(transferDocumentDto);
-
-            if (result.IsSuccess)
-            {
-                long id = result.Value.Id;
-                var val = new
-                {
-                    Id = id
-                };
-                return Ok(val);
-            }
 
 
-            // TODO - return the errors from the Result
-            StringBuilder sb = new();
-            foreach (IError resultError in result.Errors)
-                sb.Append(resultError + Environment.NewLine);
-            return Problem(
-                           sb.ToString(),
-                           title: "Error Storing the Document"
-                          );
-        }
-        catch (Exception ex)
-        {
-            int j = 2;
-            return Problem(ex.Message);
-        }
-    }
-
-    */
-
-
-    //(************************************************************************
-    /// <summary>
-    ///     &&&&&&&
-    /// </summary>
-    /// <returns></returns>
-
-    // GET: api/<DocumentsController>
-    /*
-    [HttpGet]
-    public IEnumerable<string> Get()
-    {
-        return new string[]
-        {
-            "value1", "value2"
-        };
-    }
-    */
 
     // PUT api/<DocumentsController>/5
     [HttpPut("{id}")]

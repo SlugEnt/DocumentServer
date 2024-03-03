@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
-using DocumentServer.ClientLibrary;
 using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
@@ -46,6 +46,7 @@ public partial class MainMenu
         Console.WriteLine("Press:  ");
         Console.WriteLine(" ( T ) Testing");
         Console.WriteLine(" ( U ) To Upload a randonly generated file");
+        Console.WriteLine(" ( R ) To Retrieve a file");
         Console.WriteLine(" ( Z ) To Seed the database");
     }
 
@@ -61,9 +62,9 @@ public partial class MainMenu
                 switch (keyInfo.Key)
                 {
                     case ConsoleKey.S:
-                        for (int i = 0; i < 1000; i++)
+                        for (int i = 0; i < 100; i++)
                         {
-                            string? answer = await _documentServerHttpClient.GetDocument();
+                            await _documentServerHttpClient.DoDownload(1);
                         }
 
                         break;
@@ -72,14 +73,15 @@ public partial class MainMenu
                         FileInfo fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
                         TransferDocumentDto transferDocumentDto = new()
                         {
-                            DocumentTypeId = 1,
+                            //DocumentTypeId = 3,
                             Description    = "Some document about something",
                             FileExtension  = fileToSave.Extension,
+                            RootObjectId   = "1",
                         };
 
                         // TODO Fix this - it is not reading any file in.
                         //transferDocumentDto.ReadFileIn(fileToSave.FullName);
-                        Result<int> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto);
+                        Result<long> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto, fileToSave.FullName);
 
                         if (result.IsSuccess)
                             Console.WriteLine("Document Stored   |   ID = " + result.Value);
@@ -103,7 +105,9 @@ public partial class MainMenu
 
                         break;
 
-                    case ConsoleKey.R: break;
+                    case ConsoleKey.R:
+                        await _documentServerHttpClient.DoDownload(1);
+                        break;
 
                     case ConsoleKey.X: return false;
                 }
