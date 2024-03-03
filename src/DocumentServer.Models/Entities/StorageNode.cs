@@ -1,13 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using DocumentServer.Models.Enums;
+using SlugEnt.DocumentServer.Models.Enums;
 
-namespace DocumentServer.Models.Entities;
+namespace SlugEnt.DocumentServer.Models.Entities;
 
 public class StorageNode : AbstractBaseEntity
 {
     /// <summary>
-    /// Constructor
+    ///     Constructor
     /// </summary>
     /// <param name="name"></param>
     /// <param name="description"></param>
@@ -26,7 +26,7 @@ public class StorageNode : AbstractBaseEntity
         Description         = description;
         IsTestNode          = isTestNode;
         StorageNodeLocation = storageNodeLocation;
-        storageNodeSpeed    = StorageSpeed;
+        StorageSpeed        = storageNodeSpeed;
         NodePath            = nodePath;
 
         IsActive = false;
@@ -34,13 +34,32 @@ public class StorageNode : AbstractBaseEntity
 
 
     /// <summary>
-    /// Empty constructor
+    ///     Empty constructor
     /// </summary>
     public StorageNode() { }
 
 
 
     [MaxLength(400)] public string Description { get; set; }
+
+
+    /// <summary>
+    ///     For displaying information about this in an error type message
+    /// </summary>
+    [NotMapped]
+    public string ErrorMessage
+    {
+        get
+        {
+            string className = GetType().Name;
+            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                       className,
+                                       Id,
+                                       Name);
+            return msg;
+        }
+    }
+
     [Key] public int Id { get; set; }
 
     /// <summary>
@@ -77,30 +96,12 @@ public class StorageNode : AbstractBaseEntity
 
 
         // @formatter:off — disable formatter after this line
-        public List<DocumentType> ActiveNode1DocumentTypes { get; set; }
-        public List<DocumentType> ActiveNode2DocumentTypes { get; set; }
-        public List<DocumentType> ArchivalNode1DocumentTypes { get; set; }
-        public List<DocumentType> ArchivalNode2DocumentTypes { get; set; }
+        public List<DocumentType>? ActiveNode1DocumentTypes { get; set; }
+        public List<DocumentType>? ActiveNode2DocumentTypes { get; set; }
+        public List<DocumentType>? ArchivalNode1DocumentTypes { get; set; }
+        public List<DocumentType>? ArchivalNode2DocumentTypes { get; set; }
 
         public List<StoredDocument> PrimaryNodeStoredDocuments { get; set; }
         public List<StoredDocument> SecondaryNodeStoredDocuments { get; set; }
     // @formatter:on — disable formatter after this line
-
-
-    /// <summary>
-    /// For displaying information about this in an error type message
-    /// </summary>
-    [NotMapped]
-    public string ErrorMessage
-    {
-        get
-        {
-            string className = this.GetType().Name;
-            string msg = String.Format("{0}:  [Id: {1} | Name: {2} ]",
-                                       className,
-                                       Id,
-                                       Name);
-            return msg;
-        }
-    }
 }

@@ -1,18 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<AssemblyName>SlugEnt.$(MSBuildProjectName)</AssemblyName>
+		<RootNamespace>SlugEnt.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.1" />
-		<PackageReference Include="SlugEnt.FluentResults.Extensions.AspNetCore" Version="3.16.0" />
+		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.2" />
+		<PackageReference Include="SlugEnt.FluentResults.Extensions.AspNetCore" Version="3.16.1" />
 		<PackageReference Include="TestableIO.System.IO.Abstractions" Version="20.0.15" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.2" />
 
 	</ItemGroup>
 

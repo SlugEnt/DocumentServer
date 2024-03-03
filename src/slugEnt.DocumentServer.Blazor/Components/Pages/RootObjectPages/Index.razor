@@ -1,0 +1,30 @@
+﻿@page "/rootobjects"
+@using SlugEnt.DocumentServer.Db
+@using Microsoft.AspNetCore.Components.QuickGrid
+@rendermode InteractiveServer
+@inject DocServerDbContext DB
+@inject NavigationManager NavigationManager
+
+<PageTitle>Index Title</PageTitle>
+
+<h1>Index</h1>
+
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
+
+<QuickGrid Class="table" Items="DB.RootObjects.Where(ro => ro.IsActive == true)">
+    <PropertyColumn Property="rootobject => rootobject.Name"/>
+    <PropertyColumn Property="rootobject => rootobject.Description"/>
+    <PropertyColumn Property="rootobject => rootobject.ApplicationId"/>
+
+    <TemplateColumn Context="rootobject">
+        <a href="@($"rootobjects/crud/E/{rootobject.Id}")">Edit</a> |
+        <a href="@($"rootobjects/crud/V/{rootobject.Id}")">Details</a> |
+        <a href="@($"rootobjects/crud/D/{rootobject.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code
+{
+    protected void AddNew() { NavigationManager.NavigateTo("rootobjects/crud/C"); }
+
+}

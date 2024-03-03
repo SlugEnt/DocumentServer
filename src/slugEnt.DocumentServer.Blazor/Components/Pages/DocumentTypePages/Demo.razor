@@ -1,0 +1,70 @@
+﻿@rendermode InteractiveServer
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Models.DTOS
+@using SlugEnt.DocumentServer.Db
+@using global::DocumentServer.Core
+@inherits AbstractCRUDComponent
+
+
+@inject DocServerDbContext DB
+@inject DocumentServerEngine docEngine
+
+<h3>Demo</h3>
+
+
+<RadzenColumn Size="2" SizeMD="2">
+    <RadzenText TextStyle="TextStyle.Body2" class="mb-2">Populate children on parent expand.</RadzenText>
+    <RadzenTree Data="@_applications"@bind-value="@appAndRootSelection" Expand="@OnExpandApp" Change="@OnChangeApp" Style="height: 300px">
+        <RadzenTreeLevel TextProperty="Name"/>
+    </RadzenTree>
+</RadzenColumn>
+
+
+@code {
+    private readonly DocumentType               _documentType           = new();
+    private          List<ApplicationSelectDto> _applicationsSelectDtos = new();
+    private          IEnumerable<Application>   _applications;
+    private          IEnumerable<RootObject>    _rootObjects;
+    object                                      appAndRootSelection;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isInitializeed)
+            return;
+
+
+        _applications = DB.Applications;
+        _rootObjects  = DB.RootObjects;
+
+        await base.OnInitializedAsync();
+        _isInitializeed = true;
+    }
+
+
+    public void OnExpandApp(TreeExpandEventArgs args)
+    {
+        Application application = args.Value as Application;
+        args.Children.Data         = _rootObjects.Where(ro => ro.ApplicationId == application.Id);
+        args.Children.TextProperty = "Name";
+        args.Children.HasChildren  = RootObject => false;
+    }
+
+
+
+    public void OnChangeApp()
+    {
+        if (appAndRootSelection is Application application)
+        {
+            _documentType.ApplicationId = application.Id;
+            Console.WriteLine("App set to " + _documentType.ApplicationId);
+        }
+        else if (appAndRootSelection is RootObject rootObject)
+        {
+            _documentType.RootObjectId = rootObject.Id;
+            Console.WriteLine("RootObj set to " + _documentType.RootObjectId);
+        }
+    }
+
+
+}

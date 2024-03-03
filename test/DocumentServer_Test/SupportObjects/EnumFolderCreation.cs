@@ -1,4 +1,4 @@
-﻿namespace DocumentServer_Test.SupportObjects;
+﻿namespace Test_DocumentServer.SupportObjects;
 
 public enum EnumFolderCreation
 {

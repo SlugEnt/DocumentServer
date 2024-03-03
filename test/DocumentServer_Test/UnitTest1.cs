@@ -1,62 +1,73 @@
-using System.IO.Abstractions.TestingHelpers;
-using DocumentServer.Core;
-using DocumentServer.Db;
-using DocumentServer.Models.Entities;
-using DocumentServer_Test.SupportObjects;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using NSubstitute;
+using SlugEnt.DocumentServer.Models.Entities;
+using Test_DocumentServer.SupportObjects;
 
 //using ILogger = Castle.Core.Logging.ILogger;
 
-namespace DocumentServer_Test
+namespace Test_DocumentServer;
+
+[TestFixture]
+public class Tests
 {
-    public class Tests
+    // Tests that CreatedAT timestamp field is automatically saved on all entity saves.
+    [Test]
+    public async Task CreatedAtUTC_SetOnSave()
     {
-        [SetUp]
-        public void Setup() { }
+        SupportMethods sm = new();
 
 
+        Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 
-        // Tests that CreatedAT timestamp field is automatically saved on all entity saves.
-        [Test]
-        public async Task CreatedAtUTC_SetOnSave()
+
+        IEnumerable<string> paths = sm.FileSystem.AllPaths;
+
+
+        Application appNew = new()
         {
-            SupportMethods sm = new SupportMethods();
+            Name = "A new app"
+        };
+        sm.DB.Add(appNew);
+        await sm.DB.SaveChangesAsync();
+
+        // TODO fix this Nunit error about dates cannot be null.
+        //Assert.That(app.CreatedAtUTC, Is.Not.Null, "A10:");
+        //Assert.That(app.ModifiedAtUTC, Is.Not.Null, "A20:");
+    }
 
 
-            Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
+    // Tests that ModifiedAT timestamp field is automatically saved on all entity saves.
+    [Test]
+    public async Task ModifiedAtUTC_SetOnUpdate()
+    {
+        SupportMethods sm = new();
+
+        Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
+
+        app.Name = "app_ad";
+
+        await sm.DB.SaveChangesAsync();
+
+        // TODO fix this Nunit error about dates cannot be null.
+        //Assert.That(app.CreatedAtUTC, Is.Not.Null, "A30:");
+        //Assert.That(app.ModifiedAtUTC, Is.Not.Null, "A40:");
+    }
 
 
-            IEnumerable<string> paths = sm.FileSystem.AllPaths;
+    [SetUp]
+    public void Setup() { }
 
 
-            Application appNew = new()
-            {
-                Name = "A new app"
-            };
-            sm.DB.Add<Application>(appNew);
-            await sm.DB.SaveChangesAsync();
+    [Test]
+    public void FormFileFile()
+    {
+        SupportMethods sm = new();
+        string fileName = sm.WriteRandomFile(sm.FileSystem,
+                                             "",
+                                             "pdf",
+                                             1024);
 
-            Assert.IsNotNull(appNew.CreatedAtUTC, "A10:");
-            Assert.IsNull(appNew.ModifiedAtUTC, "A20");
-        }
-
-
-        // Tests that ModifiedAT timestamp field is automatically saved on all entity saves.
-        [Test]
-        public async Task ModifiedAtUTC_SetOnUpdate()
-        {
-            SupportMethods sm = new SupportMethods();
-
-            Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
-
-            app.Name = "app_ad";
-
-            await sm.DB.SaveChangesAsync();
-
-            Assert.IsNotNull(app.CreatedAtUTC, "A10:");
-            Assert.IsNotNull(app.ModifiedAtUTC, "A20");
-        }
+        string   fullName = sm.FileSystem.Path.Combine("", fileName);
+        FormFile x        = sm.GetFormFile(fileName);
     }
 }

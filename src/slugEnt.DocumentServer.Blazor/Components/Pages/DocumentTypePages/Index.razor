@@ -1,0 +1,109 @@
+﻿@page "/documenttypes"
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@using System.Text
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+@inject DocServerDbContext DB
+@inject DialogService DialogService
+@inject TooltipService TooltipService
+
+<PageTitle>Index</PageTitle>
+<RadzenDialog/>
+
+<h1>Index</h1>
+
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" Icon="label" Text="Add New" Click="@AddNew"/>
+
+<!--<RadzenButton Text="Hello" Click="@(() => OpenDetails(2))" MouseEnter="@(args => ShowTooltipLifetime(args))"/>-->
+
+<RadzenDataGrid Data="@_documentTypes" TItem="DocumentType" AllowSorting="true" AllowPaging="true" PageSize="5">
+    <Columns>
+        <RadzenDataGridColumn TItem="DocumentType" Property="Name" Title="Name"/>
+        <RadzenDataGridColumn TItem="DocumentType" Property="StorageMode" Title="Storage Mode"/>
+        <RadzenDataGridColumn TItem="DocumentType" Property="IsActive" Title="Active?"/>
+        <RadzenDataGridColumn TItem="DocumentType" Property="AllowSameDTEKeys" Title="Dup ExtKeys?"/>
+        <RadzenDataGridColumn TItem="DocumentType" Property="Description" Title="Description"/>
+        <RadzenDataGridColumn TItem="DocumentType" Property="StorageFolderName" Title="Storage Folder"/>
+        
+        <!--
+        <RadzenDataGridColumn Width="160px" TItem="DocumentType" Property="ID" Title="Document Actions">
+            <Template Context="data">
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => ProcessAction(data.Id, "Details")) Text="Details"/>
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => ProcessAction(data.Id, "Edit")) Text="Details"/>
+            </Template>
+        </RadzenDataGridColumn>
+        -->
+    </Columns>
+</RadzenDataGrid>
+
+
+@code
+{
+    IEnumerable<DocumentType>? _documentTypes;
+
+    bool _isInitialized;
+
+
+    protected void AddNew() { NavigationManager.NavigateTo("documenttypes/crud/C"); }
+
+
+    /// <summary>
+    ///     Method invoked when the component is ready to start, having received its
+    ///     initial parameters from its parent in the render tree.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (_isInitialized)
+            return;
+
+        _documentTypes = DB.DocumentTypes.ToList();
+        _isInitialized = true;
+
+        base.OnInitialized();
+    }
+
+
+    
+
+
+
+    /// <summary>
+    ///     Displays the Lifetime Tooltip
+    /// </summary>
+    /// <param name="elementReference"></param>
+    /// <param name="options"></param>
+    protected void ShowTooltipLifetime(ElementReference elementReference,
+                                       TooltipOptions options = null)
+    {
+        options = new TooltipOptions
+        {
+            Duration = 20000
+        };
+        StringBuilder sb = new("The Inactive Lifetime Setting determines how long after a particular Stored Document is no longer marked As Alive, before it can be considered for Archival or permanent removal.");
+        TooltipService.Open(elementReference, sb.ToString(), options);
+    }
+
+
+    public void GoToServicePageInt<T>(string title,
+                                      int Id,
+                                      string width = "720px",
+                                      string height = "520px") where T : ComponentBase
+    {
+        Dictionary<string, object> parameters = new()
+        {
+            {
+                "Id", Id
+            }
+        };
+
+        DialogOptions dialogOptions = new()
+        {
+            Width  = "700px",
+            Height = "520px"
+        };
+
+        // Call the Dialog
+        DialogService.Open<T>(title, parameters, dialogOptions);
+    }
+}

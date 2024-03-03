@@ -1,17 +1,15 @@
-﻿using System.Net;
-using System.Net.Http;
+﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Mime;
-using System.Runtime.InteropServices.JavaScript;
-using System.Text;
+using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using DocumentServer.ClientLibrary;
-using DocumentServer.Models.Entities;
-using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+using SlugEnt.DocumentServer.ClientLibrary;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -20,9 +18,9 @@ namespace ConsoleTesting;
 
 public class AccessDocumentServerHttpClient : IDisposable
 {
-    private HttpClient                              _httpClient;
-    private ILogger<AccessDocumentServerHttpClient> _logger;
-    private JsonSerializerOptions                   _options;
+    private readonly HttpClient                              _httpClient;
+    private readonly ILogger<AccessDocumentServerHttpClient> _logger;
+    private readonly JsonSerializerOptions                   _options;
 
 
     public AccessDocumentServerHttpClient(HttpClient httpClient,
@@ -33,7 +31,7 @@ public class AccessDocumentServerHttpClient : IDisposable
 
         _options = new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
         };
 
         _httpClient.BaseAddress = new Uri("https://localhost:7223/api/");
@@ -43,114 +41,121 @@ public class AccessDocumentServerHttpClient : IDisposable
     }
 
 
-    public async Task<string> GetDocument()
+
+    public void Dispose() => _httpClient?.Dispose();
+
+
+    public async Task DoDownload(long id)
+    {
+        string tmpFileName = Guid.NewGuid().ToString();
+        string path        = Path.Join($"T:\\temp", tmpFileName);
+
+        await GetDocumentFileAsStream(id, path);
+    }
+
+
+    public async Task GetDocumentFileAsStream(long documentId,
+                                              string saveFileName)
     {
         try
         {
-            //StoredDocument storedDocument = new StoredDocument { AppAreaId = "WC", AppName = "MDOS", CreatedAt = DateTime.Now, Id= new Guid(), StorageFolder = @"C:\temp"};
-            /*
-            using StringContent json = new(JsonSerializer.Serialize(storedDocument, new JsonSerializerOptions(JsonSerializerDefaults.Web)), Encoding.UTF8,
-                                           MediaTypeNames.Application.Json);
-            */
-            Guid id = Guid.NewGuid();
-
-            string q = "documents/" + "12345" + "/scott";
-            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(q, HttpCompletionOption.ResponseHeadersRead))
+            string qry = "documents/" + documentId;
+            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
-                Stream         stream         = await httpResponse.Content.ReadAsStreamAsync();
-                StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
-            }
+                Stream stream = await httpResponse.Content.ReadAsStreamAsync();
 
-            return "yeep";
+                using (FileStream outputStream = new FileStream(saveFileName, FileMode.CreateNew))
+                {
+                    await stream.CopyToAsync(outputStream);
+                }
+
+                Console.WriteLine("SUCCESS:  Saved File: {0}", saveFileName);
+                return;
+
+                //StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
+            }
         }
         catch (Exception exception)
         {
             _logger.LogError("Something wong:  {Error}", exception);
-            return "no";
         }
     }
 
 
-
-    /// <summary>
-    /// Saves the given document to storage.
-    /// </summary>
-    /// <param name="name">The name of the file</param>
-    /// <param name="extension">The extension the file has.</param>
-    /// <param name="fileBytesInBase64">String of bytes.  MUST BE IN BASE64 format</param>
-    /// <returns></returns>
-    public async Task<Result<string>> SaveDocumentAsync(string name,
-                                                        string extension,
-                                                        string fileBytesInBase64)
+    public async Task<DocumentContainer> GetDocumentAndInfo(long documentId)
     {
-        TransferDocumentDto transferDocumentDto = new()
-        {
-            Description        = name,
-            FileExtension      = extension,
-            FileInBase64Format = fileBytesInBase64
-        };
+        string content = string.Empty;
 
-        return await SaveDocumentInternalAsync(transferDocumentDto);
-    }
-
-
-
-    /// <summary>
-    /// Saves the given document to storage.  Will Read the provided file and store into the storage library.
-    /// </summary>
-    /// <param name="fileToSave">The FileInfo of the file you wish to save into storage.</param>
-    /// <returns></returns>
-    public async Task<Result<string>> SaveDocumentAsync(FileInfo fileToSave)
-    {
         try
         {
-            string file = Convert.ToBase64String(File.ReadAllBytes(fileToSave.FullName));
-
-            TransferDocumentDto transferDocumentDto = new()
-            {
-                DocumentTypeId     = 1,
-                Description        = fileToSave.Name,
-                FileExtension      = fileToSave.Extension,
-                FileInBase64Format = file
-            };
-
-            return await SaveDocumentInternalAsync(transferDocumentDto);
+            string             action            = "documents/" + documentId + "/all";
+            DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
+            return documentContainer;
         }
         catch (Exception exception)
         {
-            _logger.LogError("Failed to save Document:  {FileToSave}", fileToSave.FullName);
-            return Result.Fail(exception.ToString());
+            _logger.LogError("Error during GetDocumentAndInfo:  {Error}", exception);
+            return null;
         }
     }
 
 
 
     /// <summary>
-    /// Saves the given document to storage.  This is the internal method that does the actual saving.
+    ///     Saves the given document to storage.  This is the internal method that does the actual saving.
     /// </summary>
     /// <param name="transferDocumentDto"></param>
+    /// <param name="fileName">The full path and file name of file to send</param>
     /// <returns></returns>
-    private async Task<Result<string>> SaveDocumentInternalAsync(TransferDocumentDto transferDocumentDto)
+    public async Task<Result<long>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto,
+                                                      string fileName)
     {
-        HttpResponseMessage response = null;
-        string              content  = "";
-        dynamic             json     = null;
+        HttpResponseMessage response        = null;
+        string              content         = "";
+        dynamic             json            = null;
+        string              responseContent = string.Empty;
+
         try
         {
-            // Call API
-            response = await _httpClient.PostAsJsonAsync("documents", transferDocumentDto);
-            content  = await response.Content.ReadAsStringAsync();
-            json     = JsonNode.Parse(content);
+            DocumentContainer documentContainer = new DocumentContainer()
+            {
+                Info = transferDocumentDto,
+            };
+
+            MultipartFormDataContent form = new MultipartFormDataContent();
+
+            // Fill out the rest of data
+            form.Add(new StringContent(transferDocumentDto.Description), "Info.Description");
+            form.Add(new StringContent(transferDocumentDto.DocumentTypeId.ToString()), "Info.DocumentTypeId");
+            form.Add(new StringContent(transferDocumentDto.FileExtension), "Info.FileExtension");
+            form.Add(new StringContent(transferDocumentDto.RootObjectId.ToString()), "Info.RootObjectId");
+            form.Add(new StringContent(transferDocumentDto.DocTypeExternalId), "Info.DocTypeExternalId");
+            form.Add(new StringContent(transferDocumentDto.CurrentStoredDocumentId.ToString()), "Info.CurrentStoredDocumentId");
+
+            // Add File
+            await using var stream = System.IO.File.OpenRead(fileName);
+            form.Add(new StreamContent(stream), "File", fileName);
+            response = await _httpClient.PostAsync("documents", form);
+
+            responseContent = await response.Content.ReadAsStringAsync();
 
             response.EnsureSuccessStatusCode();
 
-            string id = (string)json["id"];
-            return Result.Ok(id);
+            if (!long.TryParse(responseContent, out long value))
+                return Result.Ok(0L);
+            else
+                return Result.Ok(value);
         }
         catch (Exception exception)
         {
-            string msg = (string)json["detail"];
+            string msg = "";
+            if (json != null)
+                msg = (string)json["detail"];
+            if (msg == string.Empty)
+                msg = exception.Message + " |  " + responseContent;
+
+
             _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",
                              transferDocumentDto.Description,
                              transferDocumentDto.FileExtension,
@@ -160,8 +165,4 @@ public class AccessDocumentServerHttpClient : IDisposable
             return Result.Fail(msg);
         }
     }
-
-
-
-    public void Dispose() => _httpClient?.Dispose();
 }

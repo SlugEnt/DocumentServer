@@ -1,16 +1,14 @@
-﻿using System.Configuration;
+﻿using System.Reflection;
+using ConsoleTesting;
+using DocumentServer.Core;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
-using System.Reflection;
-using DocumentServer.Core;
-using Microsoft.Extensions.Configuration;
-using ConsoleTesting;
-using DocumentServer.Db;
-using Microsoft.Extensions.Logging;
+using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
-using Microsoft.EntityFrameworkCore;
 
 
 
@@ -18,8 +16,7 @@ namespace SlugEnt.DocumentServer.ConsoleTesting;
 
 public class Program
 {
-    private static ILogger        _logger;
-    private static IConfiguration _configuration;
+    private static ILogger _logger;
 
 
     public static async Task Main(string[] args)
@@ -50,7 +47,7 @@ public class Program
 
         // Load Environment Specific App Setting file
         string environmentName    = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-        string appSettingFileName = $"appsettings." + environmentName + ".json";
+        string appSettingFileName = "appsettings." + environmentName + ".json";
         string appSettingEnvFile  = Path.Join(appRoot, appSettingFileName);
         DisplayAppSettingStatus(appSettingEnvFile);
 
@@ -71,7 +68,8 @@ public class Program
                                // Add our custom config from above to the default configuration
                                .ConfigureAppConfiguration(config => { config.AddConfiguration(configuration); })
                                .UseSerilog()
-                               .ConfigureServices((_, services) =>
+                               .ConfigureServices((_,
+                                                   services) =>
 
                                                       // The main program     
                                                       services
@@ -82,7 +80,7 @@ public class Program
 
                                                                   // IF Debug then log all SQL to Console
 #if (DEBUG || SWAGGER)
-                                                                  .LogTo(Console.WriteLine, LogLevel.Debug)
+                                                                  .LogTo(Console.WriteLine)
                                                                   .EnableDetailedErrors();
 
 #endif
@@ -92,7 +90,7 @@ public class Program
                                                           .AddTransient<DocumentServerEngine>()
                                                           .AddHttpClient<AccessDocumentServerHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
                                                           {
-                                                              return new SocketsHttpHandler()
+                                                              return new SocketsHttpHandler
                                                               {
                                                                   PooledConnectionLifetime = TimeSpan.FromMinutes(2)
                                                               };
@@ -113,7 +111,7 @@ public class Program
 
 
     /// <summary>
-    /// Logs whether a given AppSettings file was found to exist.
+    ///     Logs whether a given AppSettings file was found to exist.
     /// </summary>
     /// <param name="appSettingFileName"></param>
     private static void DisplayAppSettingStatus(string appSettingFileName)

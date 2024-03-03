@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.ExceptionServices;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentServer.Models.Entities;
+﻿using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 
 namespace DocumentServer.Core;
 
 /// <summary>
-/// Represents a Document that attempted to have some operation done to it along with some status information,  such as errors when trying to store, etc.
+///     Represents a Document that attempted to have some operation done to it along with some status information,  such as
+///     errors when trying to store, etc.
 /// </summary>
 public class DocumentOperationStatus : Result<StoredDocument>
 {

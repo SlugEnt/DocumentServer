@@ -4,19 +4,20 @@
 //    database.
 #define ENABLE_TRANSACTIONS
 
-using System.IO.Abstractions;
-using System.IO.Abstractions.TestingHelpers;
 using Bogus;
-using DocumentServer.ClientLibrary;
 using DocumentServer.Core;
-using DocumentServer.Db;
-using DocumentServer.Models.Entities;
-using Microsoft.Identity.Client.Extensions.Msal;
+using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using SlugEnt;
+using SlugEnt.DocumentServer.Core;
+using SlugEnt.DocumentServer.Db;
+using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
+using SlugEnt.DocumentServer.ClientLibrary;
 
-namespace DocumentServer_Test.SupportObjects;
+namespace Test_DocumentServer.SupportObjects;
 
 /// <summary>
 ///     This sets up a Test Data class of common items that are needed for each test scenario
@@ -27,9 +28,9 @@ namespace DocumentServer_Test.SupportObjects;
 /// </summary>
 public class SupportMethods
 {
+    private static   Faker                            _faker;
     private readonly MockLogger<DocumentServerEngine> _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
-    private static   Faker                            _faker      = null;
-    private          UniqueKeys                       _uniqueKeys = new("");
+    private readonly UniqueKeys                       _uniqueKeys = new("");
 
 
     /// <summary>
@@ -40,15 +41,29 @@ public class SupportMethods
                           bool useTransactions = true)
     {
         if (_faker == null)
-            _faker = new("en");
+            _faker = new Faker();
 
         FileSystem = new MockFileSystem();
 
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
         DB = DatabaseSetup_Test.CreateContext();
         LoadDatabaseInfo();
+        string tmsg = "";
+
+
+        ConsoleColor color = ConsoleColor.Green;
         if (useTransactions)
+        {
             DB.Database.BeginTransaction();
+            tmsg =
+                "This means nothing is committed to the database from this unit test.  In some test scenarios this can cause unexpected results.  It can be turned off in those cases.";
+            color = ConsoleColor.DarkRed;
+        }
+
+        Console.ForegroundColor = color;
+        Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
+        Console.WriteLine(tmsg);
+        Console.ForegroundColor = ConsoleColor.White;
 
         DocumentServerEngine = new DocumentServerEngine(_logger, DB, FileSystem);
 
@@ -71,7 +86,7 @@ public class SupportMethods
     /// <summary>
     ///     Returns the DB Context
     /// </summary>
-    public DocServerDbContext DB { get; }
+    public DocServerDbContext DB { get; private set; }
 
 
     /// <summary>
@@ -79,14 +94,41 @@ public class SupportMethods
     /// </summary>
     public DocumentServerEngine DocumentServerEngine { get; }
 
+    /// <summary>
+    ///     Returns the Document Type for a Replaceable document
+    /// </summary>
+    public int DocumentType_Prod_Replaceable_A { get; private set; }
 
     /// <summary>
-    /// Returns the faker instance
+    ///     Returns the Production Document Type Y - Temporary
     /// </summary>
-    public Faker Faker
-    {
-        get { return _faker; }
-    }
+    public int DocumentType_Prod_Temp_Y { get; private set; }
+
+    /// <summary>
+    ///     Returns the Production Document Type X - WORM
+    /// </summary>
+    public int DocumentType_Prod_Worm_X { get; private set; }
+
+    /// <summary>
+    ///     Returns the Test Document Type C - Editable
+    /// </summary>
+    public int DocumentType_Test_Edit_C { get; private set; }
+
+    /// <summary>
+    ///     Returns the Test Document Type B - Temporary
+    /// </summary>
+    public int DocumentType_Test_Temp_B { get; private set; }
+
+    /// <summary>
+    ///     Returns the Test Document Type A - WORM
+    /// </summary>
+    public int DocumentType_Test_Worm_A { get; private set; }
+
+
+    /// <summary>
+    ///     Returns the faker instance
+    /// </summary>
+    public Faker Faker => _faker;
 
 
     /// <summary>
@@ -98,22 +140,42 @@ public class SupportMethods
     /// <summary>
     ///     Returns the Mocked File System
     /// </summary>
-    public MockFileSystem FileSystem { get; private set; }
+    public MockFileSystem FileSystem { get; }
 
+    public string Folder_Prod => TestConstants.FOLDER_PROD;
+    public string Folder_Prod_Primary => TestConstants.FOLDER_PROD_PRIMARY;
+    public string Folder_Prod_Secondary => TestConstants.FOLDER_PROD_SECONDARY;
+
+
+    // Some Folders 
+    public string Folder_Test => TestConstants.FOLDER_TEST;
+    public string Folder_Test_Primary => TestConstants.FOLDER_TEST_PRIMARY;
+    public string Folder_Test_Secondary => TestConstants.FOLDER_TEST_SECONDARY;
 
     /// <summary>
-    /// Creaates the Test Node Storage Folders
+    ///     Returns Production Storage Node X Id
     /// </summary>
-    public void CreateTestFolders()
-    {
-        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST);
-        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST_PRIMARY);
-        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST_SECONDARY);
-    }
+    public int StorageNode_Prod_X { get; private set; }
+
+    /// <summary>
+    ///     Returns Production Storage Node Y Id
+    /// </summary>
+    public int StorageNode_Prod_Y { get; private set; }
 
 
     /// <summary>
-    /// Creates the Production Node Storage Folders
+    ///     Returns Test Storage Node A Id
+    /// </summary>
+    public int StorageNode_Test_A { get; private set; }
+
+    /// <summary>
+    ///     Returns Test Storage Node B Id
+    /// </summary>
+    public int StorageNode_Test_B { get; private set; }
+
+
+    /// <summary>
+    ///     Creates the Production Node Storage Folders
     /// </summary>
     public void CreateProdFolders()
     {
@@ -123,69 +185,20 @@ public class SupportMethods
     }
 
 
-    // Some Folders 
-    public string Folder_Test => TestConstants.FOLDER_TEST;
-    public string Folder_Test_Primary => TestConstants.FOLDER_TEST_PRIMARY;
-    public string Folder_Test_Secondary => TestConstants.FOLDER_TEST_SECONDARY;
-    public string Folder_Prod => TestConstants.FOLDER_PROD;
-    public string Folder_Prod_Primary => TestConstants.FOLDER_PROD_PRIMARY;
-    public string Folder_Prod_Secondary => TestConstants.FOLDER_PROD_SECONDARY;
-
-
     /// <summary>
-    /// Returns Test Storage Node A Id
+    ///     Creaates the Test Node Storage Folders
     /// </summary>
-    public int StorageNode_Test_A { get; private set; }
-
-    /// <summary>
-    /// Returns Test Storage Node B Id
-    /// </summary>
-    public int StorageNode_Test_B { get; private set; }
-
-    /// <summary>
-    /// Returns Production Storage Node X Id
-    /// </summary>
-    public int StorageNode_Prod_X { get; private set; }
-
-    /// <summary>
-    /// Returns Production Storage Node Y Id
-    /// </summary>
-    public int StorageNode_Prod_Y { get; private set; }
-
-    /// <summary>
-    /// Returns the Test Document Type A - WORM
-    /// </summary>
-    public int DocumentType_Test_Worm_A { get; private set; }
-
-    /// <summary>
-    /// Returns the Test Document Type B - Temporary
-    /// </summary>
-    public int DocumentType_Test_Temp_B { get; private set; }
-
-    /// <summary>
-    /// Returns the Test Document Type C - Editable
-    /// </summary>
-    public int DocumentType_Test_Edit_C { get; private set; }
-
-    /// <summary>
-    /// Returns the Production Document Type X - WORM
-    /// </summary>
-    public int DocumentType_Prod_Worm_X { get; private set; }
-
-    /// <summary>
-    /// Returns the Production Document Type Y - Temporary
-    /// </summary>
-    public int DocumentType_Prod_Temp_Y { get; private set; }
-
-    /// <summary>
-    /// Returns the Document Type for a Replaceable document
-    /// </summary>
-    public int DocumentType_Prod_Replaceable_A { get; private set; }
+    public void CreateTestFolders()
+    {
+        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST);
+        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST_PRIMARY);
+        FileSystem.Directory.CreateDirectory(TestConstants.FOLDER_TEST_SECONDARY);
+    }
 
 
 
     /// <summary>
-    /// Loads Key Values for database records into properties
+    ///     Loads Key Values for database records into properties
     /// </summary>
     private void LoadDatabaseInfo()
     {
@@ -215,6 +228,73 @@ public class SupportMethods
 
 
     /// <summary>
+    ///     Resets the DB Context, by creating a new one, which means it is completely empty.
+    /// </summary>
+    /// <returns></returns>
+    public DocServerDbContext ResetContext()
+    {
+        DB = DatabaseSetup_Test.CreateContext();
+        return DB;
+    }
+
+
+
+    /// <summary>
+    ///     Generates a random upload file
+    /// </summary>
+    /// <param name="sm"></param>
+    /// <param name="expectedDescription"></param>
+    /// <param name="expectedExtension"></param>
+    /// <param name="expectedDocTypeId"></param>
+    /// <returns></returns>
+    public Result<TransferDocumentContainer> TFX_GenerateUploadFile(SupportMethods sm,
+                                                                    string expectedDescription,
+                                                                    string expectedExtension,
+                                                                    int expectedDocTypeId,
+                                                                    string expectedRootObjectId,
+                                                                    string? expectedDocExtKey,
+                                                                    int sizeInKB = 3)
+    {
+        // A10. Create A Document
+
+        string fileName = sm.WriteRandomFile(sm.FileSystem,
+                                             sm.Folder_Test,
+                                             expectedExtension,
+                                             sizeInKB);
+        string fullPath = Path.Combine(sm.Folder_Test, fileName);
+        Console.WriteLine("Generated FileName: " + fullPath);
+        Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "TFX_GenerateUploadFile:");
+
+
+        // Get FormFile 
+        FormFile formFile = GetFormFile(fullPath);
+        Assert.That(formFile.Length, Is.Not.EqualTo(0), "TFX_GenerateUploadFile Formfile is zero length");
+
+        // A20. Read the File
+        //string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
+        TransferDocumentContainer transferDocumentContainer = new TransferDocumentContainer()
+        {
+            FileInFormFile = formFile,
+
+//            FileInBase64Format = file,
+        };
+
+        // B.  Now Store it in the DocumentServer
+        TransferDocumentDto upload = new()
+        {
+            Description       = expectedDescription,
+            DocumentTypeId    = expectedDocTypeId,
+            FileExtension     = expectedExtension,
+            RootObjectId      = expectedRootObjectId,
+            DocTypeExternalId = expectedDocExtKey
+        };
+        transferDocumentContainer.TransferDocument = upload;
+
+        return Result.Ok(transferDocumentContainer);
+    }
+
+
+    /// <summary>
     ///     Writes a random file out with a random filename
     /// </summary>
     /// <param name="fileSystem"></param>
@@ -235,6 +315,7 @@ public class SupportMethods
 
         byte[] data = new byte[1024];
         Random rng  = new();
+        rng.NextBytes(data);
 
 
         MockFileStream stream = new(FileDataAccessor, fullPath, FileMode.Create);
@@ -244,51 +325,59 @@ public class SupportMethods
             stream.Write(data, 0, data.Length);
         }
 
+        stream.Close();
         return fileName;
     }
 
 
+    /// <summary>
+    /// Creates a FormFile object from a physical file
+    /// </summary>
+    /// <param name="fullFileName"></param>
+    /// <returns></returns>
+    public FormFile GetFormFile(string fullFileName)
+    {
+        FormFile       file;
+        MockFileStream stream2 = new(FileDataAccessor, fullFileName, FileMode.Open);
+
+        file = new FormFile(stream2,
+                            0,
+                            stream2.Length,
+                            null,
+                            Path.GetFileName(fullFileName))
+        {
+            Headers     = new HeaderDictionary(),
+            ContentType = "application/pdf"
+        };
+
+
+        return file;
+    }
+
 
     /// <summary>
-    /// Generates a random upload file
+    /// Creates a FormFile from a Byte Array
     /// </summary>
-    /// <param name="sm"></param>
-    /// <param name="expectedDescription"></param>
-    /// <param name="expectedExtension"></param>
-    /// <param name="expectedDocTypeId"></param>
+    /// <param name="fileBytes"></param>
     /// <returns></returns>
-    public Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
-                                                              string expectedDescription,
-                                                              string expectedExtension,
-                                                              int expectedDocTypeId,
-                                                              string expectedRootObjectId,
-                                                              string? expectedDocExtKey)
+    public FormFile GetFormFile(byte[] fileBytes)
     {
-        // A10. Create A Document
-
-        string fileName = sm.WriteRandomFile(sm.FileSystem,
-                                             sm.Folder_Test,
-                                             expectedExtension,
-                                             3);
-        string fullPath = Path.Combine(sm.Folder_Test, fileName);
-        Console.WriteLine("Generated FileName: " + fullPath);
-        Assert.IsTrue(sm.FileSystem.FileExists(fullPath), "TFX_GenerateUploadFile:");
-
-
-        // A20. Read the File
-        string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
-
-
-        // B.  Now Store it in the DocumentServer
-        TransferDocumentDto upload = new TransferDocumentDto()
+        FormFile     file;
+        MemoryStream ms = new MemoryStream(fileBytes);
+        file = new FormFile(ms,
+                            0,
+                            ms.Length,
+                            null,
+                            "somefile.pdf")
         {
-            Description        = expectedDescription,
-            DocumentTypeId     = expectedDocTypeId,
-            FileExtension      = expectedExtension,
-            FileInBase64Format = file,
-            RootObjectId       = expectedRootObjectId,
-            DocTypeExternalId  = expectedDocExtKey
+            Headers     = new HeaderDictionary(),
+            ContentType = "application/pdf"
         };
-        return Result.Ok<TransferDocumentDto>(upload);
+
+        ms.Seek(0, SeekOrigin.Begin);
+
+
+        file.OpenReadStream();
+        return file;
     }
 }

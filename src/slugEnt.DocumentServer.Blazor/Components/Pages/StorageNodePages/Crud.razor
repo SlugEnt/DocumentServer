@@ -1,0 +1,189 @@
+﻿@page "/storagenodes/crud/{mode}"
+@page "/storagenodes/crud/{mode}/{recordId:int}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.DTOS
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@using global::DocumentServer.Core
+@using SlugEnt.DocumentServer.Models.Enums
+@inherits AbstractCRUDComponent
+
+
+@inject DocServerDbContext DB
+@inject DocumentServerEngine docEngine
+
+
+<h1>@_pageTitle</h1>
+<hr />
+<RadzenRow Gap="1rem">
+    <RadzenColumn Size="12" SizeSM="6">
+        @if (_errMsg != string.Empty)
+        {
+            <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+        }
+        @if (_successMsg != string.Empty)
+        {
+            <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
+        }
+
+
+
+        <RadzenStack>
+            
+            <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
+                <RadzenTextBox @bind-Value="@_storageNode.Name" ReadOnly="@_canEdit"/>
+            </RadzenFormField>
+        
+            
+            <RadzenFormField Text="Desccription" Variant="@radDisplay" Style="width: 100%">
+                <RadzenTextBox @bind-Value="@_storageNode.Description" ReadOnly="@_canEdit"/>
+            </RadzenFormField>
+        
+            
+            <RadzenFormField Text="Node Path" Variant="@radDisplay" Style="width: 100%">
+                <RadzenTextBox @bind-Value="@_storageNode.NodePath" ReadOnly="@_canEdit"/>
+            </RadzenFormField>
+        
+        
+            <RadzenFormField Text="Type of Storage" Variant="@radDisplay" Style="max-width: 200px">
+                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeLocation)).Cast<Enum>())" @bind-Value="@_storageNode.StorageNodeLocation"
+                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="width: 100%; " Name="DropDownStorageMode" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+            </RadzenFormField>
+        
+        
+            <RadzenFormField Text="Node Speed" Variant="@radDisplay" Style="max-width: 200px">
+                <RadzenDropDown Data="@(Enum.GetValues(typeof(EnumStorageNodeSpeed)).Cast<Enum>())" @bind-Value="@_storageNode.StorageSpeed"
+                                AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownStorageMode" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+            </RadzenFormField>
+        
+        
+            <RadzenFormField Text="Is Active" Variant="@radDisplay" Style="max-width: 200px;">
+                <Start>
+                    <RadzenCheckBox @bind-Value="@_storageNode.IsActive" Name="ActiveCheckbox" Class="rz-my-4"></RadzenCheckBox>
+                </Start>
+                <ChildContent>
+                    <RadzenLabel Text="Is Active" Component="ActiveCheckbox" Class="rz-mx-4"></RadzenLabel>
+                </ChildContent>
+            </RadzenFormField>
+            
+
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
+            @if (_isCreateMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddEntity"/>
+            }
+            else if (_isEditMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save Changes" Click="@UpdateEntity"/>
+            }
+            else if (_isDeleteMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="delete" Text="Confirm Deletion" Click="@DeleteEntity"/>
+            }
+            else if (_wasDeleted)
+            {
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="check_circle" Text="Return To List" Click="@ReturnToList"/>
+            }
+            @if (_isCreateMode || _isEditMode || _isDeleteMode)
+            {
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel"/>
+            }
+
+        </RadzenStack>
+
+    </RadzenColumn>
+</RadzenRow>
+
+
+
+
+@code {
+    private readonly StorageNode _storageNode  = new();
+    
+
+
+    // Constructor
+    public Crud() : base("Storage Node", "storagenodes") { }
+
+
+    /// <summary>
+    ///     Method invoked when the component is ready to start, having received its
+    ///     initial parameters from its parent in the render tree.
+    ///     Override this method if you will perform an asynchronous operation and
+    ///     want the component to refresh when that operation is completed.
+    /// </summary>
+    /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isInitializeed)
+            return;
+
+        _isInitializeed = true;
+
+        await base.OnInitializedAsync();
+    }
+
+
+    /// <summary>
+    ///     Do after parameter set stuff, such as load the entity record, etc
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task PostSetParametersAsync()
+    {
+        bool retrieveRecord = _storageNode == null || _storageNode.Id != recordId ? true : false;
+
+        if (!retrieveRecord)
+            return;
+
+        StorageNode? ro = await DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == recordId);
+        if (ro == null)
+            _errMsg = "Unable to locate the StorageNode with Id of [ " + recordId + " ].  Unable to continue";
+    }
+
+
+
+    /// <summary>
+    ///     Creates a new RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task AddEntity()
+    {
+        DB.StorageNodes.Add(_storageNode);
+        await DB.SaveChangesAsync();
+        ReturnToList();
+    }
+
+
+    /// <summary>
+    ///     Updates the RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task UpdateEntity()
+    {
+        DB.StorageNodes.Update(_storageNode);
+        await DB.SaveChangesAsync();
+        _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully updated.", _storageNode.Name, _storageNode.Id);
+    }
+
+
+    /// <summary>
+    ///     Deletes the RootOBject
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteEntity()
+    {
+        bool result = await docEngine.RootObjectDeleteAsync(_storageNode.Id);
+        if (result)
+        {
+            _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully inactivated.", _storageNode.Name, _storageNode.Id);
+            _wasDeleted = true;
+            _isDeleteMode = false;
+        }
+        else
+            _errMsg = "StorageNode was not inactivated.  Unknown reason.";
+    }
+
+
+}

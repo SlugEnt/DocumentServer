@@ -1,32 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentServer.Models.Interfaces;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using SlugEnt.DocumentServer.Models.Interfaces;
 
-namespace DocumentServer.Models.Entities;
+namespace SlugEnt.DocumentServer.Models.Entities;
 
 /// <summary>
-/// Contains some base fields used by all Entites
+///     Contains some base fields used by all Entites
 /// </summary>
 public class AbstractBaseEntity : IBaseEntity
 {
     /// <summary>
-    /// When it was created.
+    ///     True if the object is currently active, false if not.
+    /// </summary>
+    public bool IsActive { get; set; }
+
+    /// <summary>
+    ///     When it was created.
     /// </summary>
     [Required]
     public DateTime CreatedAtUTC { get; set; }
 
+
+    public virtual bool HasWormFields() => false;
+
     /// <summary>
-    /// When it was last updated.
+    ///     When it was last updated.
     /// </summary>
     public DateTime? ModifiedAtUTC { get; set; }
 
 
-    /// <summary>
-    /// True if the object is currently active, false if not.
-    /// </summary>
-    public bool IsActive { get; set; }
+    public virtual void OnEditRemoveWORMFields(EntityEntry entityEntry) { }
 }
