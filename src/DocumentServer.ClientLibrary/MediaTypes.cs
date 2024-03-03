@@ -61,5 +61,34 @@ namespace SlugEnt.DocumentServer.ClientLibrary
                 "md"   => EnumMediaTypes.MarkDown,
                 _      => EnumMediaTypes.Other,
             };
+
+
+        /// <summary>
+        /// Returns a MediaType based upon File Extension
+        /// </summary>
+        /// <param name="fileExtension"></param>
+        /// <returns></returns>
+        public static string GetExtension(EnumMediaTypes mediaType) =>
+            mediaType switch
+            {
+                EnumMediaTypes.Pdf          => "pdf",
+                EnumMediaTypes.Png          => "png",
+                EnumMediaTypes.Jpeg         => "jpg",
+                EnumMediaTypes.Tiff         => "tiff",
+                EnumMediaTypes.Zip          => "zip",
+                EnumMediaTypes.Excel        => "xls",
+                EnumMediaTypes.Word         => "docx",
+                EnumMediaTypes.OutlookEmail => "msg",
+                EnumMediaTypes.Bmp          => "bmp",
+                EnumMediaTypes.Csv          => "csv",
+                EnumMediaTypes.Html         => "html",
+                EnumMediaTypes.Json         => "json",
+                EnumMediaTypes.Xml          => "xml",
+                EnumMediaTypes.WebP         => "webp",
+                EnumMediaTypes.PlainText    => "txt",
+                EnumMediaTypes.Rtf          => "rtf",
+                EnumMediaTypes.MarkDown     => "md",
+                _                           => ".unk",
+            };
     }
 }

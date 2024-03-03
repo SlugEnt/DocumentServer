@@ -2,12 +2,25 @@
 
 namespace SlugEnt.DocumentServer.ClientLibrary;
 
+/// <summary>
+/// Container used to Send and retrieve information about documents, back and forth.
+/// </summary>
 public class DocumentContainer
 {
     public TransferDocumentDto Info { get; set; }
 
+
+    /// <summary>
+    /// Information about the file contained in this object.
+    /// </summary>
+    public FileInfo FileInfo { get; set; }
+
+
     public IFormFile File { get; set; }
 
+
+
+#region "SupportMethods"
 
     /// <summary>
     /// Creates a FormFile object from a physical file
@@ -21,7 +34,6 @@ public class DocumentContainer
         IFormFile file;
         Stream    stream = new FileStream(fullFileName, FileMode.Open);
 
-//        MockFileStream stream2 = new(FileDataAccessor, fullFileName, FileMode.Open);
 
         file = new FormFile(stream,
                             0,
@@ -65,4 +77,6 @@ public class DocumentContainer
         file.OpenReadStream();
         return file;
     }
+
+#endregion
 }

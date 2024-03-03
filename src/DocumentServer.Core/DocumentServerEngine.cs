@@ -10,6 +10,7 @@ using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
+using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 
 [assembly: InternalsVisibleTo("Test_DocumentServer")]
 
@@ -157,6 +158,9 @@ public class DocumentServerEngine
             string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
 
             transferDocument.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
+            string extension = Path.GetExtension(fileName);
+            if (extension == string.Empty)
+                extension = MediaTypes.GetExtension(storedDocument.MediaType);
 
 
             // Load the TransferDocument info
@@ -168,6 +172,7 @@ public class DocumentServerEngine
                 DocTypeExternalId       = storedDocument.DocTypeExternalKey,
                 RootObjectId            = storedDocument.RootObjectExternalKey,
                 MediaType               = storedDocument.MediaType,
+                FileExtension           = extension,
             };
 
 

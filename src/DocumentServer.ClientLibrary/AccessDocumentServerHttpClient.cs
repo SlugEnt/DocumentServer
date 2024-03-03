@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
@@ -46,18 +47,15 @@ public class AccessDocumentServerHttpClient : IDisposable
 
     public async Task DoDownload(long id)
     {
-        Stream fileStream = await GetDocumentFileAsStream(id);
-        if (fileStream != null)
-        {
-            using (FileStream outputStream = new FileStream($"T:\\Temp\\newfile", FileMode.CreateNew))
-            {
-                await outputStream.CopyToAsync(fileStream);
-            }
-        }
+        string tmpFileName = Guid.NewGuid().ToString();
+        string path        = Path.Join($"T:\\temp", tmpFileName);
+
+        await GetDocumentFileAsStream(id, path);
     }
 
 
-    public async Task<Stream> GetDocumentFileAsStream(long documentId)
+    public async Task GetDocumentFileAsStream(long documentId,
+                                              string saveFileName)
     {
         try
         {
@@ -66,7 +64,14 @@ public class AccessDocumentServerHttpClient : IDisposable
             {
                 httpResponse.EnsureSuccessStatusCode();
                 Stream stream = await httpResponse.Content.ReadAsStreamAsync();
-                return stream;
+
+                using (FileStream outputStream = new FileStream(saveFileName, FileMode.CreateNew))
+                {
+                    await stream.CopyToAsync(outputStream);
+                }
+
+                Console.WriteLine("SUCCESS:  Saved File: {0}", saveFileName);
+                return;
 
                 //StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
             }
@@ -74,7 +79,24 @@ public class AccessDocumentServerHttpClient : IDisposable
         catch (Exception exception)
         {
             _logger.LogError("Something wong:  {Error}", exception);
-            return Stream.Null;
+        }
+    }
+
+
+    public async Task<DocumentContainer> GetDocumentAndInfo(long documentId)
+    {
+        string content = string.Empty;
+
+        try
+        {
+            string             action            = "documents/" + documentId + "/all";
+            DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
+            return documentContainer;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError("Error during GetDocumentAndInfo:  {Error}", exception);
+            return null;
         }
     }
 

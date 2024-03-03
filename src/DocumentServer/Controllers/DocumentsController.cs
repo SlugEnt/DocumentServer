@@ -8,6 +8,7 @@ using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -44,7 +45,7 @@ public class DocumentsController : ControllerBase
 
 
     // GET api/<DocumentsController>/5
-    [HttpGet("{id}/{name}")]
+    [HttpGet("{id}")]
     public async Task<ActionResult<TransferDocumentDto>> GetStoredDocument(long id)
     {
         // Testing
@@ -61,6 +62,45 @@ public class DocumentsController : ControllerBase
         // Send the file.
         string contentType = MediaTypes.GetContentType(result.Value.TransferDocument.MediaType);
         return new FileContentResult(result.Value.FileInBytes, contentType);
+
+        // Another way to return a file do it via stream???
+        //return File(result.Result, "image/png", "test.jpg");
+    }
+
+
+
+    // GET api/<DocumentsController>/5
+    [HttpGet("{id}/all")]
+    public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id)
+    {
+        // Testing
+        string      val = MediaTypeNames.Application.Json;
+        ContentType ct  = new ContentType(MediaTypeNames.Application.Pdf);
+
+
+        // For testing
+        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
+        if (result.IsFailed)
+            return BadRequest(result.ToString());
+
+
+        // Build Return Object
+        TransferDocumentContainer tdc = result.Value;
+        DocumentContainer documentContainer = new DocumentContainer()
+        {
+            FileInfo = new FileInfo()
+            {
+                Extension   = tdc.TransferDocument.FileExtension,
+                Size        = tdc.FileSize,
+                FileInBytes = tdc.FileInBytes,
+            },
+        };
+
+        // Send the file.
+        //string contentType = MediaTypes.GetContentType(result.Value.TransferDocument.MediaType);
+        return Ok(documentContainer);
+
+        //return new FileContentResult(result.Value.FileInBytes, contentType);
 
         // Another way to return a file do it via stream???
         //return File(result.Result, "image/png", "test.jpg");
@@ -93,7 +133,7 @@ public class DocumentsController : ControllerBase
                 return Ok(result.Value.Id);
 
 
-            return Problem("things went real bad");
+            return Problem(result.ToString());
         }
         catch (Exception ex)
         {

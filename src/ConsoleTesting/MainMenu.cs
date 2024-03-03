@@ -70,10 +70,10 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.U:
-                        FileInfo fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
+                        System.IO.FileInfo fileToSave = new(Path.Combine(@"T:\RetarusFaxReport.pdf"));
                         TransferDocumentDto transferDocumentDto = new()
                         {
-                            //DocumentTypeId = 3,
+                            DocumentTypeId = 3,
                             Description    = "Some document about something",
                             FileExtension  = fileToSave.Extension,
                             RootObjectId   = "1",
@@ -107,6 +107,9 @@ public partial class MainMenu
 
                     case ConsoleKey.R:
                         await _documentServerHttpClient.DoDownload(1);
+                        break;
+                    case ConsoleKey.G:
+                        await _documentServerHttpClient.GetDocumentAndInfo(1);
                         break;
 
                     case ConsoleKey.X: return false;
