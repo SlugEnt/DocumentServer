@@ -13,7 +13,7 @@ public class DocumentContainer
     /// <summary>
     /// Information about the file contained in this object.
     /// </summary>
-    public FileInfo FileInfo { get; set; }
+    public FileInfo? FileInfo { get; set; }
 
 
     public IFormFile File { get; set; }

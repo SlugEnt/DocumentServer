@@ -1,6 +1,9 @@
 #define SWAGGER
 
+using System.Configuration;
+using System.Drawing;
 using System.Reflection;
+using Azure.Core.Extensions;
 using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -62,10 +65,12 @@ public class Program
         builder.Configuration.AddJsonFile(appSettingFile, true);
         DisplayAppSettingStatus(appSettingFile);
 
+        var debugView = builder.Configuration.GetDebugView();
+        Console.WriteLine("Configuration:  {0}", debugView);
+
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
-        ;
 
 
         builder.Services.AddControllers();
@@ -95,6 +100,8 @@ public class Program
         });
 
 
+        builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
+
         WebApplication app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -119,6 +126,7 @@ public class Program
 
 
         app.MapControllers();
+
 
         app.Run();
     }

@@ -142,7 +142,11 @@ public class DocumentServerEngine
     }
 
 
-
+    /// <summary>
+    /// Retrieves a Stored Document
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public async Task<Result<TransferDocumentContainer>> GetStoredDocumentAsync(long id)
     {
         TransferDocumentContainer transferDocument = new();
@@ -161,6 +165,10 @@ public class DocumentServerEngine
             string extension = Path.GetExtension(fileName);
             if (extension == string.Empty)
                 extension = MediaTypes.GetExtension(storedDocument.MediaType);
+            else
+
+                // Strip the returned period.
+                extension = extension.Substring(1);
 
 
             // Load the TransferDocument info
