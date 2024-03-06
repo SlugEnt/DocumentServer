@@ -15,6 +15,7 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Castle.Core.Configuration;
 using SlugEnt.DocumentServer.ClientLibrary;
 
 namespace Test_DocumentServer.SupportObjects;
@@ -65,7 +66,14 @@ public class SupportMethods
         Console.WriteLine(tmsg);
         Console.ForegroundColor = ConsoleColor.White;
 
-        DocumentServerEngine = new DocumentServerEngine(_logger, DB, FileSystem);
+
+        // Setup DocumentServer Engine
+        DocumentServerInformation dsi = new DocumentServerInformation();
+        dsi.PostSetup(DB);
+        DocumentServerEngine = new DocumentServerEngine(_logger,
+                                                        DB,
+                                                        dsi,
+                                                        FileSystem);
 
         switch (createFolders)
         {

@@ -25,7 +25,7 @@ public class Program
         Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
                                               .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
 #else
-			Log._logger = new LoggerConfiguration().MinimumLevel.Information()
+			Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
 			                                      .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
 #endif
                                               .Enrich.FromLogContext()

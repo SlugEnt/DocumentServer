@@ -8,16 +8,18 @@
         /// <summary>
         /// The Extension that the file should have
         /// </summary>
-        public string Extension { get; set; }
+        public string? Extension { get; set; }
 
         /// <summary>
         /// The actual bytes that make up the file
         /// </summary>
-        public byte[] FileInBytes { get; set; }
+        public byte[]? FileInBytes { get; set; }
 
         /// <summary>
         /// Size in Bytes
         /// </summary>
-        public long Size { get; set; }
+        public long? Size { get; set; }
+
+        public string? Description { get; set; }
     }
 }

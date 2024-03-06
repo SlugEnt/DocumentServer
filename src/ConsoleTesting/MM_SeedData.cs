@@ -36,48 +36,52 @@ public partial class MainMenu
             // Create Document Types
             DocumentType docType = new()
             {
-                Name        = "Referral Acceptance Form",
-                Description = "Signed Referral Acceptance Form",
-                StorageMode = EnumStorageMode.WriteOnceReadMany,
-                RootObject  = rootA,
-                Application = application,
-                IsActive    = true,
+                Name                 = "Referral Acceptance Form",
+                Description          = "Signed Referral Acceptance Form",
+                StorageMode          = EnumStorageMode.WriteOnceReadMany,
+                RootObject           = rootA,
+                Application          = application,
+                IsActive             = true,
+                ActiveStorageNode1Id = 1,
             };
             _db.Add(docType);
 
 
             docType = new DocumentType
             {
-                Name        = "Drug Results",
-                Description = "Official Drug Test Results",
-                StorageMode = EnumStorageMode.WriteOnceReadMany,
-                RootObject  = rootA,
-                Application = application,
-                IsActive    = true,
+                Name                 = "Drug Results",
+                Description          = "Official Drug Test Results",
+                StorageMode          = EnumStorageMode.WriteOnceReadMany,
+                RootObject           = rootA,
+                Application          = application,
+                IsActive             = true,
+                ActiveStorageNode1Id = 1,
             };
             _db.Add(docType);
 
 
             docType = new DocumentType
             {
-                Name        = "Draft Work Plan",
-                Description = "Draft of a work plan",
-                StorageMode = EnumStorageMode.Editable,
-                RootObject  = rootA,
-                Application = application,
-                IsActive    = true,
+                Name                 = "Draft Work Plan",
+                Description          = "Draft of a work plan",
+                StorageMode          = EnumStorageMode.Editable,
+                RootObject           = rootA,
+                Application          = application,
+                IsActive             = true,
+                ActiveStorageNode1Id = 1,
             };
             _db.Add(docType);
 
 
             docType = new DocumentType
             {
-                Name        = "Temporary Notes",
-                Description = "Notes taken during a meeting",
-                StorageMode = EnumStorageMode.Temporary,
-                RootObject  = rootA,
-                Application = application,
-                IsActive    = true,
+                Name                 = "Temporary Notes",
+                Description          = "Notes taken during a meeting",
+                StorageMode          = EnumStorageMode.Temporary,
+                RootObject           = rootA,
+                Application          = application,
+                IsActive             = true,
+                ActiveStorageNode1Id = 1,
             };
             _db.Add(docType);
 
@@ -128,12 +132,24 @@ public partial class MainMenu
     /// <returns></returns>
     public async Task SeedStorageNodesAsync()
     {
+        ServerHost shost = new()
+        {
+            IsActive = true,
+            FQDN     = "ScottPC23.slug.local",
+            NameDNS  = "ScottPC23",
+            Path     = @"T:\ProgrammingTesting\StoreHost",
+        };
+        _db.Add(shost);
+        await _db.SaveChangesAsync();
+
         StorageNode snode = new("AbsenceMgt Primary",
                                 "Primary Storage for app",
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 @"T:\ProgrammingTesting\absmgt_primary1");
+        snode.ServerHostId = 1;
+        snode.IsActive     = true;
         _db.Add(snode);
 
         snode = new StorageNode("AbsenceMgt Secondary",
@@ -142,6 +158,8 @@ public partial class MainMenu
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 @"T:\ProgrammingTesting\absmgt_secondary1");
+        snode.ServerHostId = 1;
+        snode.IsActive     = true;
         _db.Add(snode);
     }
 }

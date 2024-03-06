@@ -11,12 +11,13 @@ using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 
 namespace ConsoleTesting;
 
-public class AccessDocumentServerHttpClient : IDisposable
+public sealed class AccessDocumentServerHttpClient : IDisposable
 {
     private readonly HttpClient                              _httpClient;
     private readonly ILogger<AccessDocumentServerHttpClient> _logger;
@@ -120,7 +121,8 @@ public class AccessDocumentServerHttpClient : IDisposable
         {
             DocumentContainer documentContainer = new DocumentContainer()
             {
-                Info = transferDocumentDto,
+                Info     = transferDocumentDto,
+                FileInfo = new FileInfo(),
             };
 
             MultipartFormDataContent form = new MultipartFormDataContent();

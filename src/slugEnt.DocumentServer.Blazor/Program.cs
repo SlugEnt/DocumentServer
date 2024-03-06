@@ -33,7 +33,7 @@ public class Program
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // 10 - Logging Setup
-        //_logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+        //_logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.FromAppSettings(builder.FromAppSettings).Enrich.FromLogContext().CreateLogger();
         _logger = new LoggerConfiguration().WriteTo.Debug().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
@@ -72,10 +72,10 @@ public class Program
                    .EnableDetailedErrors();
         });
 #else
-           builder.Services.AddDbContext<DocServerDbContext>(options =>
-                                                              {
-                                                                  options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()));
-                                                              });
+        builder.Services.AddDbContext<DocServerDbContext>(options =>
+        {
+            options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()));
+        });
 #endif
 
 

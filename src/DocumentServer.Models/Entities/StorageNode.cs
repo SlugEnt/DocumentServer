@@ -82,11 +82,22 @@ public class StorageNode : AbstractBaseEntity
     [MaxLength(500)]
     public string NodePath { get; set; }
 
+
+    /// <summary>
+    /// The host this node is on.
+    /// </summary>
+    [Column(TypeName = "smallint")]
+    public short ServerHostId { get; set; }
+
+    public ServerHost ServerHost { get; set; }
+
     /// <summary>
     ///     Where this storage node stores its data - SMB or S3.
     /// </summary>
     [Column(TypeName = "tinyint")]
     public EnumStorageNodeLocation StorageNodeLocation { get; set; }
+
+
 
     /// <summary>
     ///     Indicates how fast this storage node is.
@@ -103,5 +114,7 @@ public class StorageNode : AbstractBaseEntity
 
         public List<StoredDocument> PrimaryNodeStoredDocuments { get; set; }
         public List<StoredDocument> SecondaryNodeStoredDocuments { get; set; }
+        
+
     // @formatter:on — disable formatter after this line
 }

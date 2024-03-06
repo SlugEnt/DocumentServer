@@ -1,10 +1,17 @@
 #define SWAGGER
 
+using System.Configuration;
+using System.Drawing;
 using System.Reflection;
+using Azure.Core.Extensions;
 using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using SlugEnt.APIInfo;
+using SlugEnt.APIInfo.HealthInfo;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
+using SlugEnt.ResourceHealthChecker;
 using ILogger = Serilog.ILogger;
 
 namespace DocumentServer;
@@ -30,10 +37,12 @@ public class Program
 
     public static void Main(string[] args)
     {
+        Console.WriteLine("API Starting Up");
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // 10 - Logging Setup
         _logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+        builder.Logging.ClearProviders();
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
         builder.Host.UseSerilog(_logger);
@@ -65,13 +74,18 @@ public class Program
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
-        ;
 
 
+        // 35 - Setup APIInfo and Health Checks
+        APIInfoBase apiInfoBase = SetupAPIInfoBase();
+        builder.Services.Configure<DocumentServerFromAppSettings>(builder.Configuration.GetSection("DocumentServer"));
+
+        builder.Services.AddSingleton<IAPIInfoBase>(apiInfoBase);
+        builder.Services.AddSingleton<HealthCheckProcessor>();
+        builder.Services.AddHostedService<HealthCheckerBackgroundProcessor>();
+        builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
         builder.Services.AddControllers();
         builder.Services.AddProblemDetails();
-
-        //           builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -79,6 +93,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 #endif
+
 
         // E.  Add Database access
         builder.Services.AddDbContext<DocServerDbContext>(options =>
@@ -91,11 +106,14 @@ public class Program
                    .EnableDetailedErrors();
 
 #endif
-            ;
         });
 
 
+        builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
+
         WebApplication app = builder.Build();
+
+        app.UseRouting();
 
         // Configure the HTTP request pipeline.
         //TODO Uncomment
@@ -117,9 +135,35 @@ public class Program
 
         app.UseAuthorization();
 
+        // 4.C Endpoints
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapSlugEntPing();
+            endpoints.MapSlugEntSimpleInfo();
+            endpoints.MapSlugEntConfig();
+            endpoints.MapSlugEntHealth();
+        });
 
-        app.MapControllers();
+
+        // Configure The Document Server Engine for first time.
+        DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
+
 
         app.Run();
+    }
+
+
+    /// <summary>
+    /// Sets up the API Info Base object
+    /// </summary>
+    /// <returns></returns>
+    private static APIInfoBase SetupAPIInfoBase()
+    {
+        // This is how you override the api endpoint to something other than info
+        APIInfoBase apiInfoBase = new();
+        apiInfoBase.AddConfigHideCriteria("password");
+        apiInfoBase.AddConfigHideCriteria("os");
+        return apiInfoBase;
     }
 }

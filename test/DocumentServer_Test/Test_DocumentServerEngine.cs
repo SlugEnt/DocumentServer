@@ -49,6 +49,7 @@ public class Test_DocumentServerEngine
                                       EnumStorageNodeLocation.HostedSMB,
                                       EnumStorageNodeSpeed.Hot,
                                       nodePath);
+        storageNode.ServerHostId = 1;
         sm.DB.Add(storageNode);
         await sm.DB.SaveChangesAsync();
 
@@ -71,9 +72,9 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
-        string         fileName = uniqueKeys.GetKey();
-        DocumentType   docType  = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == sm.DocumentType_Test_Edit_C);
-        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID);
+        string                  fileName = uniqueKeys.GetKey();
+        DocumentType            docType  = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == sm.DocumentType_Test_Edit_C);
+        Result<StoragePathInfo> result   = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID);
 
         Assert.That(result.IsFailed, Is.True, "Z10:");
     }
@@ -107,6 +108,7 @@ public class Test_DocumentServerEngine
                                       EnumStorageNodeLocation.HostedSMB,
                                       EnumStorageNodeSpeed.Hot,
                                       nodePath);
+        storageNode.ServerHostId = 1;
         sm.DB.Add(storageNode);
         await sm.DB.SaveChangesAsync();
 
@@ -129,10 +131,14 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
+        // Load Server Host
+        ServerHost serverHost = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == 1);
+
+
         // B.
-        string         fileName = sm.Faker.Random.Word();
-        DocumentType   docType  = randomDocType;
-        Result<string> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
+        string                  fileName = sm.Faker.Random.Word();
+        DocumentType            docType  = randomDocType;
+        Result<StoragePathInfo> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
 
         Assert.That(result.IsSuccess, Is.True, "B10: " + result);
 
@@ -151,11 +157,14 @@ public class Test_DocumentServerEngine
 
         // Paths should be:  NodePath\ModeLetter\DocTypeFolder\ymd\filename
         string ymdPath = DatePath(storageMode, randomDocType.InActiveLifeTime);
-        string expected = Path.Combine(storageNode.NodePath,
-                                       modeLetter,
-                                       randomDocType.StorageFolderName,
-                                       ymdPath);
-        Assert.That(result.Value, Is.EqualTo(expected), "Z10:");
+        string expectedStoredDocPath = Path.Combine(storageNode.NodePath,
+                                                    modeLetter,
+                                                    randomDocType.StorageFolderName,
+                                                    ymdPath);
+        string expectedWithHostPath = Path.Combine(serverHost.Path, expectedStoredDocPath);
+
+        Assert.That(result.Value.ActualPath, Is.EqualTo(expectedWithHostPath), "Z10: The path should start with Host Path");
+        Assert.That(result.Value.StoredDocumentPath, Is.EqualTo(expectedStoredDocPath), "Z20: The Stored Document Path should not include the host path");
     }
 
 
@@ -193,13 +202,16 @@ public class Test_DocumentServerEngine
         // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
         //     you need to carefully consider why it failed.  
         // Calculate the full storage node path that the file should have been written at.
-        DocumentType   a          = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == expectedDocTypeId);
-        StorageNode    b          = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
+        DocumentType a = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == expectedDocTypeId);
+        StorageNode  b = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
+        ServerHost   h = await sm.DB.ServerHosts.SingleAsync(sh => sh.Id == b.ServerHostId);
+
         Result<string> modeResult = documentServerEngine.GetModeLetter(a.StorageMode);
         Assert.That(modeResult.IsSuccess, Is.True, "Y10:");
         string modeLetter = modeResult.Value;
 
-        string expectedPath = Path.Join(b.NodePath,
+        string expectedPath = Path.Join(h.Path,
+                                        b.NodePath,
                                         a.StorageFolderName,
                                         modeLetter,
                                         DatePath(a.StorageMode, a.InActiveLifeTime));
@@ -363,8 +375,10 @@ public class Test_DocumentServerEngine
 
         //***  W.  Validate document is stored in temporary folder path
         StorageNode storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(s => s.Id == randomDocType.ActiveStorageNode1Id);
+        ServerHost  serverHost  = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == storageNode.ServerHostId);
+
         Assert.That(storageNode, Is.Not.Null, "W10:");
-        string expectedBeginPath = Path.Join(storageNode.NodePath, "T");
+        string expectedBeginPath = Path.Join(serverHost.Path, storageNode.NodePath, "T");
         Assert.That(storedDocument.StorageFolder.StartsWith(expectedBeginPath), Is.True, "W20:");
 
         // Verify it is actually stored where it is supposed to be.
