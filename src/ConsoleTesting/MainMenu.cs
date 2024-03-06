@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
-using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 
 namespace ConsoleTesting;
 
@@ -15,25 +15,22 @@ public partial class MainMenu
     private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
     private readonly ILogger                        _logger;
     private readonly JsonSerializerOptions          _options;
-    private          IHttpClientFactory             _httpClientFactory;
-    private          IServiceProvider               _serviceProvider;
-    private          bool                           _started;
-
-    private long lastDocSaved = 0;
+    private          long                           lastDocSaved = 0;
+    private          IConfiguration                 _configuration;
 
 
     public MainMenu(ILogger<MainMenu> logger,
-                    IServiceProvider serviceProvider,
                     IHttpClientFactory httpClientFactory,
+                    IConfiguration configuration,
                     AccessDocumentServerHttpClient documentServerHttpClient,
                     DocServerDbContext db)
     {
         _logger                   = logger;
-        _serviceProvider          = serviceProvider;
-        _httpClientFactory        = httpClientFactory;
         _documentServerHttpClient = documentServerHttpClient;
         _db                       = db;
+        _configuration            = configuration;
 
+        _documentServerHttpClient.BaseAddress = new Uri(_configuration["DocumentServer:Host"]);
 
         _options = new JsonSerializerOptions
         {
@@ -68,16 +65,19 @@ public partial class MainMenu
                     case ConsoleKey.S:
                         for (int j = 0; j < 100; j++)
                         {
-                            await _documentServerHttpClient.DoDownload(1);
+                            string tmpFileName = Guid.NewGuid().ToString();
+                            string path        = Path.Join($"T:\\temp", tmpFileName);
+
+                            await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, path);
                         }
 
                         break;
 
                     case ConsoleKey.V:
-                        //System.IO.FileInfo fileToSave2 = new(Path.Combine(@"T:\Temp\RadzenBlazorStudioSetup.exe"));
+                        //System.IO.ReturnedDocumentInfo fileToSave2 = new(Path.Combine(@"T:\Temp\RadzenBlazorStudioSetup.exe"));
                         System.IO.FileInfo fileToSave2 = new(Path.Combine(@"T:\downloads\discordsetup.exe"));
 
-                        //System.IO.FileInfo fileToSave2 = new(Path.Combine(@"T:\crystaldiskinfo.exe"));
+                        //System.IO.ReturnedDocumentInfo fileToSave2 = new(Path.Combine(@"T:\crystaldiskinfo.exe"));
                         TransferDocumentDto transferDocumentDto2 = new()
                         {
                             DocumentTypeId = 3,
@@ -128,11 +128,11 @@ public partial class MainMenu
 
 
                     case ConsoleKey.Y:
-                        List<long>           uploadedDocIds = new List<long>();
+                        List<long>           uploadedDocIds = new();
                         int                  upI            = -1;
                         long                 totalSizeUp    = 0;
                         Stopwatch            swUp           = Stopwatch.StartNew();
-                        DirectoryInfo        directoryInfo  = new DirectoryInfo(@"T:\ProgrammingTesting\Original");
+                        DirectoryInfo        directoryInfo  = new(@"T:\ProgrammingTesting\Original");
                         System.IO.FileInfo[] origFiles      = directoryInfo.GetFiles();
 
                         foreach (System.IO.FileInfo xyz in origFiles)
@@ -172,12 +172,12 @@ public partial class MainMenu
                         Stopwatch swDown = Stopwatch.StartNew();
                         foreach (long docId in uploadedDocIds)
                         {
-                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAndInfo(docId);
-                            string            extension = documentContainerDown.FileInfo.Extension != string.Empty ? "." + documentContainerDown.FileInfo.Extension : string.Empty;
-                            string            fileName = documentContainerDown.FileInfo.Description + extension;
+                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAsync(docId);
+                            string extension = documentContainerDown.DocumentInfo.Extension != string.Empty ? "." + documentContainerDown.DocumentInfo.Extension : string.Empty;
+                            string fileName = documentContainerDown.DocumentInfo.Description + extension;
                             fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
-                            await File.WriteAllBytesAsync(fileName, documentContainerDown.FileInfo.FileInBytes);
-                            Console.WriteLine("Downloaded File: {0} [ {1} ]", documentContainerDown.FileInfo.Description, docId);
+                            await File.WriteAllBytesAsync(fileName, documentContainerDown.DocumentInfo.FileInBytes);
+                            Console.WriteLine("Downloaded File: {0} [ {1} ]", documentContainerDown.DocumentInfo.Description, docId);
                         }
 
                         swDown.Stop();
@@ -198,7 +198,11 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.R:
-                        await _documentServerHttpClient.DoDownload(1);
+
+                        string tmpFileNameR = Guid.NewGuid().ToString();
+                        string pathR        = Path.Join($"T:\\temp", tmpFileNameR);
+
+                        await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, pathR);
                         break;
                     case ConsoleKey.G:
                         Stopwatch sw        = Stopwatch.StartNew();
@@ -208,14 +212,14 @@ public partial class MainMenu
                         lastDocSaved = 3;
                         for (i = 0; i < 1; i++)
                         {
-                            DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAndInfo(lastDocSaved);
-                            string            extension         = documentContainer.FileInfo.Extension != string.Empty ? "." + documentContainer.FileInfo.Extension : string.Empty;
-                            string            fileName          = Guid.NewGuid().ToString() + extension;
+                            DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved);
+                            string            extension = documentContainer.DocumentInfo.Extension != string.Empty ? "." + documentContainer.DocumentInfo.Extension : string.Empty;
+                            string            fileName = Guid.NewGuid().ToString() + extension;
 
-                            totalSize += (long)documentContainer.FileInfo.Size;
+                            totalSize += (long)documentContainer.DocumentInfo.Size;
 
                             fileName = Path.Join($"T:\\temp", fileName);
-                            await File.WriteAllBytesAsync(fileName, documentContainer.FileInfo.FileInBytes);
+                            await File.WriteAllBytesAsync(fileName, documentContainer.DocumentInfo.FileInBytes);
                             File.Delete(fileName);
                         }
 

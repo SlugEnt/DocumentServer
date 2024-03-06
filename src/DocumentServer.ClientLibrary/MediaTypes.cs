@@ -29,6 +29,7 @@ namespace SlugEnt.DocumentServer.ClientLibrary
                 EnumMediaTypes.Word         => MediaTypeNames.Application.Octet,
                 EnumMediaTypes.OutlookEmail => MediaTypeNames.Application.Octet,
                 EnumMediaTypes.Other        => MediaTypeNames.Application.Octet,
+                _                           => MediaTypeNames.Application.Octet
             };
 
 

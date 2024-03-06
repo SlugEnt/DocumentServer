@@ -1,22 +1,13 @@
-﻿using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Net.Mime;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
+﻿using SlugEnt.FluentResults;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore.ValueGeneration.Internal;
-using Microsoft.Extensions.Logging;
-using SlugEnt.DocumentServer.ClientLibrary;
-using SlugEnt.DocumentServer.Models.Entities;
-using SlugEnt.FluentResults;
-using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 
 
-namespace ConsoleTesting;
+namespace SlugEnt.DocumentServer.ClientLibrary;
 
+/// <summary>
+/// This class provides a standardized means of communicating to the Document Server.  It will handle automatically some of
+/// the decisions of where to send documents to in a distributed system.
+/// </summary>
 public sealed class AccessDocumentServerHttpClient : IDisposable
 {
     private readonly HttpClient                              _httpClient;
@@ -24,6 +15,11 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     private readonly JsonSerializerOptions                   _options;
 
 
+    /// <summary>
+    /// Constructs a Document Server Client Interface
+    /// </summary>
+    /// <param name="httpClient"></param>
+    /// <param name="logger"></param>
     public AccessDocumentServerHttpClient(HttpClient httpClient,
                                           ILogger<AccessDocumentServerHttpClient> logger)
     {
@@ -35,9 +31,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             PropertyNameCaseInsensitive = true,
         };
 
-        _httpClient.BaseAddress = new Uri("https://localhost:7223/api/");
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
-        _httpClient.Timeout = new TimeSpan(0, 0, 1200);
+        _httpClient.Timeout = new TimeSpan(0, 0, 10);
         _httpClient.DefaultRequestHeaders.Clear();
     }
 
@@ -46,17 +41,24 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     public void Dispose() => _httpClient?.Dispose();
 
 
-    public async Task DoDownload(long id)
+    /// <summary>
+    /// Sets/Retreives the HttpClient Base Address
+    /// </summary>
+    public Uri BaseAddress
     {
-        string tmpFileName = Guid.NewGuid().ToString();
-        string path        = Path.Join($"T:\\temp", tmpFileName);
-
-        await GetDocumentFileAsStream(id, path);
+        get { return _httpClient.BaseAddress; }
+        set { _httpClient.BaseAddress = value; }
     }
 
 
-    public async Task GetDocumentFileAsStream(long documentId,
-                                              string saveFileName)
+    /// <summary>
+    /// Retrieves just the document and saves it to the file name
+    /// </summary>
+    /// <param name="documentId"></param>
+    /// <param name="saveFileName"></param>
+    /// <returns></returns>
+    public async Task GetDocumentAndSaveToFileSystem(long documentId,
+                                                     string saveFileName)
     {
         try
         {
@@ -66,7 +68,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
                 httpResponse.EnsureSuccessStatusCode();
                 Stream stream = await httpResponse.Content.ReadAsStreamAsync();
 
-                using (FileStream outputStream = new FileStream(saveFileName, FileMode.CreateNew))
+                using (FileStream outputStream = new(saveFileName, FileMode.CreateNew))
                 {
                     await stream.CopyToAsync(outputStream);
                 }
@@ -84,19 +86,24 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     }
 
 
-    public async Task<DocumentContainer> GetDocumentAndInfo(long documentId)
-    {
-        string content = string.Empty;
 
+    /// <summary>
+    /// Retrieves the document AND additional metadata about the document from the Document Server.  Use this if you want to
+    /// figure out what to do with the file bytes (save them, send them somewhere else etc...
+    /// </summary>
+    /// <param name="documentId">Id of document to retreive</param>
+    /// <returns></returns>
+    public async Task<DocumentContainer?> GetDocumentAsync(long documentId)
+    {
         try
         {
-            string             action            = "documents/" + documentId + "/all";
+            string             action            = "documents/" + documentId;
             DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
             return documentContainer;
         }
         catch (Exception exception)
         {
-            _logger.LogError("Error during GetDocumentAndInfo:  {Error}", exception);
+            _logger.LogError("Error during GetDocumentAsync:  {Error}", exception);
             return null;
         }
     }
@@ -104,28 +111,26 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
 
 
     /// <summary>
-    ///     Saves the given document to storage.  This is the internal method that does the actual saving.
+    ///     Saves the given document to Document Server.  
     /// </summary>
-    /// <param name="transferDocumentDto"></param>
-    /// <param name="fileName">The full path and file name of file to send</param>
+    /// <param name="transferDocumentDto">Information required to save the document to the Document Server</param>
+    /// <param name="fileName">The full path and file name of file/document to save</param>
     /// <returns></returns>
     public async Task<Result<long>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto,
                                                       string fileName)
     {
-        HttpResponseMessage response        = null;
-        string              content         = "";
-        dynamic             json            = null;
+        HttpResponseMessage response;
         string              responseContent = string.Empty;
 
         try
         {
-            DocumentContainer documentContainer = new DocumentContainer()
+            DocumentContainer documentContainer = new()
             {
-                Info     = transferDocumentDto,
-                FileInfo = new FileInfo(),
+                Info         = transferDocumentDto,
+                DocumentInfo = new ReturnedDocumentInfo(),
             };
 
-            MultipartFormDataContent form = new MultipartFormDataContent();
+            MultipartFormDataContent form = new();
 
             // Fill out the rest of data
             form.Add(new StringContent(transferDocumentDto.Description), "Info.Description");
@@ -152,8 +157,6 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         catch (Exception exception)
         {
             string msg = "";
-            if (json != null)
-                msg = (string)json["detail"];
             if (msg == string.Empty)
                 msg = exception.Message + " |  " + responseContent;
 

@@ -1,9 +1,9 @@
 ﻿namespace SlugEnt.DocumentServer.ClientLibrary
 {
     /// <summary>
-    /// Used to Send Information about a given file
+    /// Used by DocumentServer  when returning a document to the caller.  Provides some needed information.
     /// </summary>
-    public class FileInfo
+    public class ReturnedDocumentInfo
     {
         /// <summary>
         /// The Extension that the file should have
@@ -20,6 +20,9 @@
         /// </summary>
         public long? Size { get; set; }
 
+        /// <summary>
+        /// The description stored on the Document.
+        /// </summary>
         public string? Description { get; set; }
     }
 }

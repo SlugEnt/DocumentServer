@@ -57,7 +57,7 @@ public class Test_DocumentServerEngine
         int INVALID_STORAGE_MODE = 0;
 
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         DocumentType randomDocType = new()
         {
@@ -115,7 +115,7 @@ public class Test_DocumentServerEngine
 
         // Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         DocumentType randomDocType = new()
         {
@@ -132,7 +132,7 @@ public class Test_DocumentServerEngine
 
 
         // Load Server Host
-        ServerHost serverHost = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == 1);
+        ServerHost? serverHost = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == 1);
 
 
         // B.
@@ -206,7 +206,7 @@ public class Test_DocumentServerEngine
         StorageNode  b = await sm.DB.StorageNodes.SingleAsync(s => s.Id == a.ActiveStorageNode1Id);
         ServerHost   h = await sm.DB.ServerHosts.SingleAsync(sh => sh.Id == b.ServerHostId);
 
-        Result<string> modeResult = documentServerEngine.GetModeLetter(a.StorageMode);
+        Result<string> modeResult = DocumentServerEngine.GetModeLetter(a.StorageMode);
         Assert.That(modeResult.IsSuccess, Is.True, "Y10:");
         string modeLetter = modeResult.Value;
 
@@ -248,7 +248,7 @@ public class Test_DocumentServerEngine
         string expectedDescription  = sm.Faker.Random.String2(32);
         string expectedRootObjectId = sm.Faker.Random.String2(10);
         string expectedExternalId   = sm.Faker.Random.String2(15);
-        int    sizeInKB             = 3;
+
 
         // A.  Generate File and store it
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -294,12 +294,6 @@ public class Test_DocumentServerEngine
     }
 
 
-
-    [Test]
-    public async Task TemporaryDocumentsSaveInTempFolder() { }
-
-
-
     /// <summary>
     ///     Validates that temporary documents:
     ///     - Have an expiringDocuments entry
@@ -338,7 +332,7 @@ public class Test_DocumentServerEngine
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         DocumentType randomDocType = new()
         {
@@ -374,8 +368,8 @@ public class Test_DocumentServerEngine
 
 
         //***  W.  Validate document is stored in temporary folder path
-        StorageNode storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(s => s.Id == randomDocType.ActiveStorageNode1Id);
-        ServerHost  serverHost  = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == storageNode.ServerHostId);
+        StorageNode? storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(s => s.Id == randomDocType.ActiveStorageNode1Id);
+        ServerHost?  serverHost  = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == storageNode.ServerHostId);
 
         Assert.That(storageNode, Is.Not.Null, "W10:");
         string expectedBeginPath = Path.Join(serverHost.Path, storageNode.NodePath, "T");
@@ -394,7 +388,7 @@ public class Test_DocumentServerEngine
         Assert.That(storedDocument.IsAlive, Is.False, "Y10:");
 
         // Read the ExpiredDocument
-        ExpiringDocument expired = await sm.DB.ExpiringDocuments.SingleOrDefaultAsync(e => e.StoredDocumentId == storedDocument.Id);
+        ExpiringDocument? expired = await sm.DB.ExpiringDocuments.SingleOrDefaultAsync(e => e.StoredDocumentId == storedDocument.Id);
         Assert.That(expired, Is.Not.Null, "Y20:");
 
         //***  Z. Datetime Checks
@@ -555,7 +549,7 @@ public class Test_DocumentServerEngine
             _                                 => throw new Exception("Unknown StorageMode value of [ " + storageMode + " ]")
         };
 
-        Result<string> actualResult = documentServerEngine.GetModeLetter(storageMode);
+        Result<string> actualResult = DocumentServerEngine.GetModeLetter(storageMode);
         Assert.That(actualResult.IsSuccess, Is.True, "Z10:");
         Assert.That(actualResult.Value, Is.EqualTo(expectedModeLetter), "Z20: Invalid mode letter returned");
     }
@@ -576,7 +570,7 @@ public class Test_DocumentServerEngine
 
 
         // Load a Document Type
-        DocumentType documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
+        DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
 
         // Create a dummy StoredDocument
         StoredDocument storedDocument = new(expectedExtension,
@@ -622,7 +616,7 @@ public class Test_DocumentServerEngine
 
 
         // Load a Document Type
-        DocumentType documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
+        DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
 
         // Create a dummy StoredDocument
         int badStorageNode = 999999;
@@ -788,7 +782,7 @@ public class Test_DocumentServerEngine
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         DocumentType randomDocType = new()
         {
@@ -856,7 +850,7 @@ public class Test_DocumentServerEngine
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
 
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         DocumentType randomDocType = new()

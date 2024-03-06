@@ -54,7 +54,7 @@ public class Test_RootObject
 
 
         //***  Z.  Validate
-        RootObject r2 = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == newId);
+        RootObject? r2 = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == newId);
         Assert.That(r2, Is.Not.Null, "Z10:");
         Assert.That(r2.Name, Is.EqualTo(newName), "Z20:");
         Assert.That(r2.Description, Is.EqualTo(newDescription), "Z30:");

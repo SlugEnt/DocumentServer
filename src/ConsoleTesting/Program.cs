@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
 
@@ -36,19 +37,19 @@ public class Program
 
 
         // Get Sensitive Appsettings.json file location
-        string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+        string? sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
 
 
         // 1.B.  We keep the AppSettings file in the root App folder on the servers so it never gets overwritten
-        string        versionPath          = Directory.GetCurrentDirectory();
-        DirectoryInfo appRootDirectoryInfo = Directory.GetParent(versionPath);
-        string        appRoot              = appRootDirectoryInfo.FullName;
+        string         versionPath          = Directory.GetCurrentDirectory();
+        DirectoryInfo? appRootDirectoryInfo = Directory.GetParent(versionPath);
+        string?        appRoot              = appRootDirectoryInfo.FullName;
         Console.WriteLine("Running from Directory:  " + appRoot);
 
         // Load Environment Specific App Setting file
-        string environmentName    = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-        string appSettingFileName = "appsettings." + environmentName + ".json";
-        string appSettingEnvFile  = Path.Join(appRoot, appSettingFileName);
+        string? environmentName    = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        string  appSettingFileName = "appsettings." + environmentName + ".json";
+        string  appSettingEnvFile  = Path.Join(appRoot, appSettingFileName);
         DisplayAppSettingStatus(appSettingEnvFile);
 
 

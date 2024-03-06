@@ -11,7 +11,6 @@ using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
-using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 
 [assembly: InternalsVisibleTo("Test_DocumentServer")]
 
@@ -36,7 +35,7 @@ public class DocumentServerEngine
     public DocumentServerEngine(ILogger<DocumentServerEngine> logger,
                                 DocServerDbContext dbContext,
                                 DocumentServerInformation documentServerInformation,
-                                IFileSystem fileSystem = null)
+                                IFileSystem? fileSystem = null)
     {
         _logger                    = logger;
         _db                        = dbContext;
@@ -50,8 +49,6 @@ public class DocumentServerEngine
             _fileSystem = new FileSystem();
     }
 
-
-    public DocumentServerFromAppSettings FromAppSettings { get; set; }
 
 
     /// <summary>
@@ -72,10 +69,10 @@ public class DocumentServerEngine
     internal async Task<Result<DocumentType>> LoadDocumentType_ForSavingStoredDocument(int documentTypeId)
     {
         // Retrieve the DocumentType
-        DocumentType docType = await _db.DocumentTypes
-                                        .Include(i => i.ActiveStorageNode1)
-                                        .Include(i => i.ActiveStorageNode2)
-                                        .SingleOrDefaultAsync(d => d.Id == documentTypeId);
+        DocumentType? docType = await _db.DocumentTypes
+                                         .Include(i => i.ActiveStorageNode1)
+                                         .Include(i => i.ActiveStorageNode2)
+                                         .SingleOrDefaultAsync(d => d.Id == documentTypeId);
 
         if (docType == null)
         {
@@ -116,7 +113,7 @@ public class DocumentServerEngine
                                             StoredDocument storedDocument,
                                             bool isFirstSave = true)
     {
-        ExpiringDocument expiring = null;
+        ExpiringDocument? expiring = null;
 
         if (isFirstSave)
             if (documentType.StorageMode == EnumStorageMode.Temporary)
@@ -157,7 +154,7 @@ public class DocumentServerEngine
         TransferDocumentContainer transferDocument = new();
         try
         {
-            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
+            StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
             if (storedDocument == null)
                 return Result.Fail("Unable to find a Stored Document with that Id");
 
@@ -204,45 +201,13 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    ///     Reads a document from the library and returns it to the caller.  Returns the File Bytes Only
-    /// </summary>
-    /// <param name="Id"></param>
-    /// <returns>Result.Success and the file in Base64  or returns Result.Fail with error message</returns>
-    [Obsolete]
-    public async Task<Result<string>> GetStoredDocumentFileBytesAsync(long Id)
-    {
-        try
-        {
-            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == Id);
-            if (storedDocument == null)
-                return Result.Fail("Unable to find a Stored Document with that Id");
-
-
-            // Now Load the Stored Document.
-            string fileName     = storedDocument.FileName;
-            string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
-            string file         = Convert.ToBase64String(_fileSystem.File.ReadAllBytes(fullFileName));
-
-            // TODO update the number of times accessed
-            return Result.Ok(file);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("GetStoredDocumentFileBytesAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", Id, ex.Message);
-            return Result.Fail(new Error("Unable to read document from library.").CausedBy(ex));
-        }
-    }
-
-
-
-    /// <summary>
     ///     Replaces a Replaceable document with a new one.  Marks for deletion the old one.
     /// </summary>
     /// <returns></returns>
-    public async Task<Result<StoredDocument>> ReplaceDocument(ReplacementDto replacementDto)
+    public async Task<Result<StoredDocument>> ReplaceDocument(TransferDocumentDto replacementDto)
     {
         // Lets read current stored document
-        StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
+        StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
         if (storedDocument == null)
             return Result.Fail(new Error("Unable to find existing StoredDocument with Id [ " + replacementDto.CurrentStoredDocumentId + " ]"));
 
@@ -311,7 +276,7 @@ public class DocumentServerEngine
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
     public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentContainer transferDocumentContainer)
     {
-        IDbContextTransaction   transaction             = null;
+        IDbContextTransaction?  transaction             = null;
         bool                    fileSavedToStorage      = false;
         string                  fullFileName            = "";
         DocumentOperationStatus documentOperationStatus = new();
@@ -428,9 +393,9 @@ public class DocumentServerEngine
     /// Determines and sets the Media Type based upon the passed MediaType or Extension.  
     /// </summary>
     /// <param name="storedDocument"></param>
-    internal void SetMediaType(EnumMediaTypes mediaType,
-                               string fileExtension,
-                               StoredDocument storedDocument)
+    internal static void SetMediaType(EnumMediaTypes mediaType,
+                                      string fileExtension,
+                                      StoredDocument storedDocument)
     {
         // Use user specified Media Type if available.
         if (mediaType != EnumMediaTypes.NotSpecified)
@@ -458,8 +423,7 @@ public class DocumentServerEngine
                                                                      int storageNodeId,
                                                                      IFormFile formFile)
     {
-        string         fullFileName = "";
-        Result<string> result       = new Result();
+        string fullFileName = "";
 
         try
         {
@@ -501,7 +465,7 @@ public class DocumentServerEngine
         // - Update StoredDocument
         // - Delete Old File
 
-        IDbContextTransaction  transaction  = null;
+        IDbContextTransaction? transaction  = null;
         string                 fullFileName = "";
         bool                   docSaved     = false;
         string                 oldFileName  = "";
@@ -509,7 +473,7 @@ public class DocumentServerEngine
         try
         {
             // We need to load the existing StoredDocument to retrieve some info.
-            StoredDocument storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.TransferDocument.CurrentStoredDocumentId);
+            StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.TransferDocument.CurrentStoredDocumentId);
             if (storedDocument == null)
             {
                 string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.TransferDocument.CurrentStoredDocumentId);
@@ -575,16 +539,6 @@ public class DocumentServerEngine
 #region "Support Functions"
 
     /// <summary>
-    ///     Loads / Reloads the master data tables.
-    /// </summary>
-    /// <returns></returns>
-    public async Task LoadMasterDataTables()
-    {
-        Dictionary<int, StorageNode> tempStorageNodes = new();
-    }
-
-
-    /// <summary>
     ///     Computes the complete path including the actual file name.  Note.  Does not include the HostName Path part.
     ///     All files are stored in a folder by
     ///     storageNodePath\StorageModeLetter\DocumentTypePath\year\month
@@ -628,15 +582,15 @@ public class DocumentServerEngine
 
             // Retrieve Storage Node
             //StorageNode storageNode = await _db.StorageNodes.SingleOrDefaultAsync(n => n.Id == storageNodeId);
-            StorageNode storageNode = await _db.StorageNodes
-                                               .Include(sh => sh.ServerHost).SingleOrDefaultAsync(n => n.Id == storageNodeId);
+            StorageNode? storageNode = await _db.StorageNodes
+                                                .Include(sh => sh.ServerHost).SingleOrDefaultAsync(n => n.Id == storageNodeId);
             if (storageNode == null)
             {
                 string nodeMsg = string.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
                 return Result.Fail(new Error(nodeMsg));
             }
 
-            if (storageNode.ServerHostId == null)
+            if (storageNode.ServerHost == null)
             {
                 string nodeMsg = string.Format("{0} had a server host that was null.  It must exist.", documentType.ErrorMessage);
                 return Result.Fail(new Error(nodeMsg));
@@ -651,7 +605,7 @@ public class DocumentServerEngine
             string modePath = modeResult.Value;
 
 
-            StoragePathInfo storagePathInfo = new StoragePathInfo();
+            StoragePathInfo storagePathInfo = new();
             storagePathInfo.StoredDocumentPath = Path.Combine(storageNode.NodePath,
                                                               modePath,
                                                               documentType.StorageFolderName,
@@ -718,7 +672,7 @@ public class DocumentServerEngine
     /// <param name="storageMode"></param>
     /// <returns></returns>
     /// <exception cref="NotSupportedException"></exception>
-    internal Result<string> GetModeLetter(EnumStorageMode storageMode)
+    internal static Result<string> GetModeLetter(EnumStorageMode storageMode)
     {
         try
         {

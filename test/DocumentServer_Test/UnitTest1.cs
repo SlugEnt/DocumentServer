@@ -17,7 +17,7 @@ public class Tests
         SupportMethods sm = new();
 
 
-        Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
+        Application? app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 
 
         IEnumerable<string> paths = sm.FileSystem.AllPaths;
@@ -42,7 +42,7 @@ public class Tests
     {
         SupportMethods sm = new();
 
-        Application app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
+        Application? app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 
         app.Name = "app_ad";
 

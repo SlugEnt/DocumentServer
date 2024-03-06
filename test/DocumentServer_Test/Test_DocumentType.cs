@@ -160,7 +160,7 @@ public class Test_DocumentType
 
         //***  B. Createa A new Document Type.
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
 
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Word(),
                                                                          sm.Faker.Random.Words(4),
@@ -255,7 +255,7 @@ public class Test_DocumentType
 
         // B. Createa A new Document Type.
         // Need to get RootObject's Application ID.
-        RootObject rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == sRootObjId);
+        RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == sRootObjId);
 
         DocumentType docType = new()
         {
@@ -289,7 +289,7 @@ public class Test_DocumentType
         string                eStorageFolder = sm.Faker.Random.String2(5);
         EnumDocumentLifetimes eDocLifetime   = EnumDocumentLifetimes.YearOne;
         EnumStorageMode       eStorageMode   = EnumStorageMode.Temporary;
-        DocumentType          docType2       = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == eId);
+        DocumentType?         docType2       = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == eId);
 
         docType2.Name                   = eName;
         docType2.Description            = eDesc;
@@ -306,7 +306,7 @@ public class Test_DocumentType
         await sm.DB.SaveChangesAsync();
         sm.ResetContext();
 
-        DocumentType docType3 = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == eId);
+        DocumentType? docType3 = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == eId);
 
 
         // Z.  Validate

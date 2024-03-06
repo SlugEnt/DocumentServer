@@ -3,17 +3,23 @@
 namespace SlugEnt.DocumentServer.ClientLibrary;
 
 /// <summary>
-/// Container used to Send and retrieve information about documents, back and forth.
+/// This is a transport container used to Send and retrieve information about documents, back and forth to the Server, including the actual document.
 /// </summary>
 public class DocumentContainer
 {
+    public DocumentContainer() { Info = new(); }
+
+
+    /// <summary>
+    /// This is information about the document that is being uploaded to server
+    /// </summary>
     public TransferDocumentDto Info { get; set; }
 
 
     /// <summary>
-    /// Information about the file contained in this object.
+    /// Used to return information from the Document Server.
     /// </summary>
-    public FileInfo? FileInfo { get; set; }
+    public ReturnedDocumentInfo? DocumentInfo { get; set; }
 
 
     public IFormFile File { get; set; }
@@ -60,7 +66,7 @@ public class DocumentContainer
                                         string mediaTypeNameValue)
     {
         FormFile     file;
-        MemoryStream ms = new MemoryStream(fileBytes);
+        MemoryStream ms = new(fileBytes);
         file = new FormFile(ms,
                             0,
                             ms.Length,

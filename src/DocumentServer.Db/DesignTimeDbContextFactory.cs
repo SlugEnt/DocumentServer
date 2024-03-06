@@ -8,9 +8,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DocServerD
 {
     public DocServerDbContext CreateDbContext(string[] args)
     {
-        string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
-        string sensitiveFileName    = "SlugEnt.DocumentServer.API_AppSettingsSensitive.json";
-        string sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
+        string? sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+        string? sensitiveFileName    = "SlugEnt.DocumentServer.API_AppSettingsSensitive.json";
+        string? sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
 
 
         IConfigurationRoot                          configuration    = new ConfigurationBuilder().AddJsonFile(sensitiveSettingFile).Build();
