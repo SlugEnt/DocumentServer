@@ -5,25 +5,25 @@
 namespace SlugEnt.DocumentServer.Db.Migrations
 {
     /// <inheritdoc />
-    public partial class StoredDocaddMediaType : Migration
+    public partial class AddFQDNtoServerHost : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "MediaType",
-                table: "StoredDocuments",
-                type: "int",
+            migrationBuilder.AddColumn<string>(
+                name: "FQDN",
+                table: "ServerHosts",
+                type: "nvarchar(max)",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "MediaType",
-                table: "StoredDocuments");
+                name: "FQDN",
+                table: "ServerHosts");
         }
     }
 }

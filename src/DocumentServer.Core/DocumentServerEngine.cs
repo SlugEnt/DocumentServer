@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
@@ -21,10 +22,10 @@ namespace DocumentServer.Core;
 /// </summary>
 public class DocumentServerEngine
 {
-    private readonly IFileSystem                  _fileSystem;
-    private readonly ILogger                      _logger;
-    private          DocServerDbContext           _db;
-    private          Dictionary<int, StorageNode> _storageNodes;
+    private readonly IFileSystem               _fileSystem;
+    private readonly ILogger                   _logger;
+    private          DocServerDbContext        _db;
+    private          DocumentServerInformation _documentServerInformation;
 
 
     /// <summary>
@@ -34,10 +35,12 @@ public class DocumentServerEngine
     /// <param name="fileSystem"></param>
     public DocumentServerEngine(ILogger<DocumentServerEngine> logger,
                                 DocServerDbContext dbContext,
+                                DocumentServerInformation documentServerInformation,
                                 IFileSystem fileSystem = null)
     {
-        _logger = logger;
-        _db     = dbContext;
+        _logger                    = logger;
+        _db                        = dbContext;
+        _documentServerInformation = documentServerInformation;
 
         if (fileSystem != null)
             _fileSystem = fileSystem;
@@ -47,6 +50,8 @@ public class DocumentServerEngine
             _fileSystem = new FileSystem();
     }
 
+
+    public DocumentServerFromAppSettings FromAppSettings { get; set; }
 
 
     /// <summary>
@@ -160,6 +165,7 @@ public class DocumentServerEngine
             // Now Load the Stored Document.
             string fileName     = storedDocument.FileName;
             string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
+
 
             transferDocument.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
             string extension = Path.GetExtension(fileName);
@@ -438,61 +444,6 @@ public class DocumentServerEngine
     }
 
 
-    /// <summary>
-    ///     Determines where to store the file and then stores it.
-    /// </summary>
-    /// <param name="storedDocument">The StoredDocument that will be updated with path info</param>
-    /// <param name="documentType">DocumentType this document is</param>
-    /// <param name="storageNodeId">Node Id to store file at</param>
-    /// <param name="fileInBase64Format">Contents of the file</param>
-    /// <returns>Result string where string is the full file name </returns>
-    [Obsolete]
-    internal async Task<Result<string>> StoreFileOnStorageMediaAsync(StoredDocument storedDocument,
-                                                                     DocumentType documentType,
-                                                                     int storageNodeId,
-                                                                     string fileInBase64Format)
-    {
-        throw new NotImplementedException();
-
-        string         fullFileName = "";
-        Result<string> result       = new Result();
-
-        try
-        {
-            Result<string> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
-            if (resultB.IsFailed)
-            {
-                resultB.WithError("Failed to compute Where the document should be stored.");
-                return resultB;
-            }
-
-            // Store the path and make sure all the paths exist.
-            string storeAtPath = resultB.Value;
-            _fileSystem.Directory.CreateDirectory(storeAtPath);
-
-
-            // Decode the file bytes
-            byte[] binaryFile;
-
-            binaryFile   = Convert.FromBase64String(fileInBase64Format);
-            fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
-
-            // Only if file is in bytes.
-            _fileSystem.File.WriteAllBytesAsync(fullFileName, binaryFile);
-
-//            fileSavedToStorage = true;
-
-            // Save the path in the StoredDocument
-            storedDocument.StorageFolder = storeAtPath;
-            return Result.Ok(fullFileName);
-        }
-        catch (Exception ex)
-        {
-            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
-        }
-    }
-
-
 
     /// <summary>
     ///     Determines where to store the file and then stores it.
@@ -512,15 +463,12 @@ public class DocumentServerEngine
 
         try
         {
-            Result<string> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
+            Result<StoragePathInfo> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
             if (resultB.IsFailed)
-            {
-                resultB.WithError("Failed to compute Where the document should be stored.");
-                return resultB;
-            }
+                return Result.Fail(new Error("Failed to compute Where the document should be stored.").CausedBy(resultB.Errors));
 
             // Store the path and make sure all the paths exist.
-            string storeAtPath = resultB.Value;
+            string storeAtPath = resultB.Value.ActualPath;
             _fileSystem.Directory.CreateDirectory(storeAtPath);
 
 
@@ -637,15 +585,15 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    ///     Computes the complete path including the actual file name.
+    ///     Computes the complete path including the actual file name.  Note.  Does not include the HostName Path part.
     ///     All files are stored in a folder by
     ///     storageNodePath\StorageModeLetter\DocumentTypePath\year\month
     /// </summary>
     /// <param name="documentType">The DocumentType</param>
     /// <param name="storageNodeId">The StorageNode Id to store on</param>
     /// <returns>Result</returns>
-    internal async Task<Result<string>> ComputeStorageFullNameAsync(DocumentType documentType,
-                                                                    int storageNodeId)
+    internal async Task<Result<StoragePathInfo>> ComputeStorageFullNameAsync(DocumentType documentType,
+                                                                             int storageNodeId)
     {
         try
         {
@@ -679,26 +627,43 @@ public class DocumentServerEngine
 
 
             // Retrieve Storage Node
-            StorageNode storageNode = await _db.StorageNodes.SingleOrDefaultAsync(n => n.Id == storageNodeId);
+            //StorageNode storageNode = await _db.StorageNodes.SingleOrDefaultAsync(n => n.Id == storageNodeId);
+            StorageNode storageNode = await _db.StorageNodes
+                                               .Include(sh => sh.ServerHost).SingleOrDefaultAsync(n => n.Id == storageNodeId);
             if (storageNode == null)
             {
                 string nodeMsg = string.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
                 return Result.Fail(new Error(nodeMsg));
             }
 
+            if (storageNode.ServerHostId == null)
+            {
+                string nodeMsg = string.Format("{0} had a server host that was null.  It must exist.", documentType.ErrorMessage);
+                return Result.Fail(new Error(nodeMsg));
+            }
+
+
             // Get letter for Mode.
             Result<string> modeResult = GetModeLetter(documentType.StorageMode);
             if (modeResult.IsFailed)
-                return modeResult;
+                return Result.Fail(new Error("Failed to get Mode for StorageMode").CausedBy(modeResult.Errors));
 
             string modePath = modeResult.Value;
 
-            string path = Path.Combine(storageNode.NodePath,
-                                       modePath,
-                                       documentType.StorageFolderName,
-                                       year,
-                                       month);
-            return Result.Ok(path);
+
+            StoragePathInfo storagePathInfo = new StoragePathInfo();
+            storagePathInfo.StoredDocumentPath = Path.Combine(storageNode.NodePath,
+                                                              modePath,
+                                                              documentType.StorageFolderName,
+                                                              year,
+                                                              month);
+
+            Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHost, storageNode, storagePathInfo.StoredDocumentPath);
+            if (resultCP.IsFailed)
+                return Result.Fail(new Error("Failed to determine host path").CausedBy(resultCP.Errors));
+
+            storagePathInfo.ActualPath = resultCP.Value;
+            return Result.Ok(storagePathInfo);
         }
         catch (InvalidOperationException ex)
         {
@@ -720,6 +685,29 @@ public class DocumentServerEngine
                               ex.Message);
             return Result.Fail(msg);
         }
+    }
+
+
+
+    /// <summary>
+    /// Computes the physical location on the node that the document is stored at.
+    /// </summary>
+    /// <param name="serverHost"></param>
+    /// <param name="documentPath"></param>
+    /// <returns></returns>
+    internal Result<string> ComputePhysicalStoragePath(ServerHost serverHost,
+                                                       StorageNode node,
+                                                       string documentPath)
+    {
+        if (_documentServerInformation.ServerHostInfo.ServerHostId != serverHost.Id)
+        {
+            string msg = String.Format("This host is not the host that can write for this StorageNode.  Host: [ " + _documentServerInformation.ServerHostInfo.ServerHostName +
+                                       " ]  Requested StorageNode [ " + node.Name + " - " + node.Id + " ]");
+            _logger.LogCritical(msg);
+            return Result.Fail(msg);
+        }
+
+        return Result.Ok(Path.Join(serverHost.Path, documentPath));
     }
 
 

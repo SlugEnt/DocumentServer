@@ -36,7 +36,7 @@ public class DocServerDbContext : DbContext
     public DbSet<ExpiringDocument> ExpiringDocuments { get; set; }
     public DbSet<RootObject> RootObjects { get; set; }
     public DbSet<StorageNode> StorageNodes { get; set; }
-
+    public DbSet<ServerHost> ServerHosts { get; set; }
 
     // Models 
     public DbSet<StoredDocument> StoredDocuments { get; set; }

@@ -5,8 +5,6 @@ VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTesting", "ConsoleTesting\ConsoleTesting.csproj", "{DDD6DC79-C15A-4FEF-8A8D-71A4CEA08484}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.API", "DocumentServer\DocumentServer.API.csproj", "{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Core", "DocumentServer.Core\DocumentServer.Core.csproj", "{ABE0F304-807F-49E7-AB0F-195892F2432E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Db", "DocumentServer.Db\DocumentServer.Db.csproj", "{7091A296-777F-47A5-98D2-2F8DBDA66EB6}"
@@ -27,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.ClientLibrar
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlugEnt.DocumentServer.Blazor", "slugEnt.DocumentServer.Blazor\SlugEnt.DocumentServer.Blazor.csproj", "{B450B424-71E3-4812-BCED-A14C83A711AC}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.API", "DocumentServer.API\DocumentServer.API.csproj", "{BA6767AC-C449-4F01-B724-3C0C313FA412}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,10 +37,6 @@ Global
 		{DDD6DC79-C15A-4FEF-8A8D-71A4CEA08484}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDD6DC79-C15A-4FEF-8A8D-71A4CEA08484}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDD6DC79-C15A-4FEF-8A8D-71A4CEA08484}.Release|Any CPU.Build.0 = Release|Any CPU
-		{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{719DA488-2FAC-472A-9EC6-EEA7FA626AD8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ABE0F304-807F-49E7-AB0F-195892F2432E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ABE0F304-807F-49E7-AB0F-195892F2432E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABE0F304-807F-49E7-AB0F-195892F2432E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -65,6 +61,10 @@ Global
 		{B450B424-71E3-4812-BCED-A14C83A711AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B450B424-71E3-4812-BCED-A14C83A711AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B450B424-71E3-4812-BCED-A14C83A711AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA6767AC-C449-4F01-B724-3C0C313FA412}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA6767AC-C449-4F01-B724-3C0C313FA412}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA6767AC-C449-4F01-B724-3C0C313FA412}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA6767AC-C449-4F01-B724-3C0C313FA412}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

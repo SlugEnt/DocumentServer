@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SlugEnt.DocumentServer.Db.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialServerHost3 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -40,24 +40,20 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StorageNodes",
+                name: "ServerHosts",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<short>(type: "smallint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Description = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
+                    NameDNS = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Path = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    IsTestNode = table.Column<bool>(type: "bit", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    NodePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    StorageNodeLocation = table.Column<byte>(type: "tinyint", nullable: false),
-                    StorageSpeed = table.Column<byte>(type: "tinyint", nullable: false),
                     CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StorageNodes", x => x.Id);
+                    table.PrimaryKey("PK_ServerHosts", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -80,6 +76,34 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                         name: "FK_RootObjects_Applications_ApplicationId",
                         column: x => x.ApplicationId,
                         principalTable: "Applications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StorageNodes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Description = table.Column<string>(type: "nvarchar(400)", maxLength: 400, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    IsTestNode = table.Column<bool>(type: "bit", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    NodePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ServerHostId = table.Column<short>(type: "smallint", nullable: false),
+                    StorageNodeLocation = table.Column<byte>(type: "tinyint", nullable: false),
+                    StorageSpeed = table.Column<byte>(type: "tinyint", nullable: false),
+                    CreatedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAtUTC = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StorageNodes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StorageNodes_ServerHosts_ServerHostId",
+                        column: x => x.ServerHostId,
+                        principalTable: "ServerHosts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -156,6 +180,7 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     IsAlive = table.Column<bool>(type: "bit", nullable: false),
                     IsArchived = table.Column<bool>(type: "bit", nullable: false),
                     LastAccessedUTC = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    MediaType = table.Column<int>(type: "int", nullable: false),
                     NumberOfTimesAccessed = table.Column<int>(type: "int", nullable: false),
                     PrimaryStorageNodeId = table.Column<int>(type: "int", nullable: true),
                     RootObjectExternalKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
@@ -224,6 +249,11 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                 column: "ApplicationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StorageNodes_ServerHostId",
+                table: "StorageNodes",
+                column: "ServerHostId");
+
+            migrationBuilder.CreateIndex(
                 name: "IDX_Ext_Keys",
                 table: "StoredDocuments",
                 columns: new[] { "RootObjectExternalKey", "DocTypeExternalKey" });
@@ -264,6 +294,9 @@ namespace SlugEnt.DocumentServer.Db.Migrations
 
             migrationBuilder.DropTable(
                 name: "Applications");
+
+            migrationBuilder.DropTable(
+                name: "ServerHosts");
         }
     }
 }

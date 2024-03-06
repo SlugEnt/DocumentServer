@@ -5,6 +5,7 @@ using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using FileInfo = SlugEnt.DocumentServer.ClientLibrary.FileInfo;
 
 namespace ConsoleTesting;
 
@@ -110,8 +111,6 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        // TODO Fix this - it is not reading any file in.
-                        //transferDocumentDto.ReadFileIn(fileToSave.FullName);
                         Result<long> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto, fileToSave.FullName);
 
                         if (result.IsSuccess)
@@ -128,6 +127,64 @@ public partial class MainMenu
                         break;
 
 
+                    case ConsoleKey.Y:
+                        List<long>           uploadedDocIds = new List<long>();
+                        int                  upI            = -1;
+                        long                 totalSizeUp    = 0;
+                        Stopwatch            swUp           = Stopwatch.StartNew();
+                        DirectoryInfo        directoryInfo  = new DirectoryInfo(@"T:\ProgrammingTesting\Original");
+                        System.IO.FileInfo[] origFiles      = directoryInfo.GetFiles();
+
+                        foreach (System.IO.FileInfo xyz in origFiles)
+                        {
+                            TransferDocumentDto tdo = new()
+                            {
+                                DocumentTypeId = 3,
+                                Description    = xyz.Name,
+                                FileExtension  = xyz.Extension,
+                                RootObjectId   = "1",
+                            };
+                            Result<long> resultUp = await _documentServerHttpClient.SaveDocumentAsync(tdo, xyz.FullName);
+                            swUp.Stop();
+
+                            if (resultUp.IsSuccess)
+                            {
+                                totalSizeUp += xyz.Length;
+                                Console.WriteLine("Document Stored   |   ID = " + resultUp.Value);
+                                uploadedDocIds.Add(resultUp.Value);
+                                lastDocSaved = resultUp.Value;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Document failed to be stored due to errors:  ");
+                                throw new ApplicationException(resultUp.ToString());
+                            }
+
+                            foreach (IError resultError in resultUp.Errors)
+                                Console.WriteLine("Error: " + resultError);
+                        }
+
+                        Console.WriteLine("Total Upload Size: {0}", (totalSizeUp / (1024 * 1024)));
+                        Console.WriteLine("Total Time {0} ms", swUp.ElapsedMilliseconds);
+
+                        Console.WriteLine(Environment.NewLine + "Downloading Documents!");
+
+                        Stopwatch swDown = Stopwatch.StartNew();
+                        foreach (long docId in uploadedDocIds)
+                        {
+                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAndInfo(docId);
+                            string            extension = documentContainerDown.FileInfo.Extension != string.Empty ? "." + documentContainerDown.FileInfo.Extension : string.Empty;
+                            string            fileName = documentContainerDown.FileInfo.Description + extension;
+                            fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
+                            await File.WriteAllBytesAsync(fileName, documentContainerDown.FileInfo.FileInBytes);
+                            Console.WriteLine("Downloaded File: {0} [ {1} ]", documentContainerDown.FileInfo.Description, docId);
+                        }
+
+                        swDown.Stop();
+                        Console.WriteLine("Total Time {0} ms", swDown.ElapsedMilliseconds);
+
+
+                        break;
                     case ConsoleKey.Z:
                         Console.WriteLine("Seeding the Database...");
                         await SeedDataAsync();
@@ -148,8 +205,8 @@ public partial class MainMenu
                         long      totalSize = 0;
                         int       i         = 0;
 
-                        lastDocSaved = 7;
-                        for (i = 0; i < 100; i++)
+                        lastDocSaved = 3;
+                        for (i = 0; i < 1; i++)
                         {
                             DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAndInfo(lastDocSaved);
                             string            extension         = documentContainer.FileInfo.Extension != string.Empty ? "." + documentContainer.FileInfo.Extension : string.Empty;

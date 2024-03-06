@@ -12,8 +12,8 @@ using SlugEnt.DocumentServer.Db;
 namespace SlugEnt.DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240303104728_StoredDoc add MediaType")]
-    partial class StoredDocaddMediaType
+    [Migration("20240304231251_InitialServerHost3")]
+    partial class InitialServerHost3
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -176,6 +176,36 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.ToTable("RootObjects");
                 });
 
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.ServerHost", b =>
+                {
+                    b.Property<short>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUTC")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAtUTC")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NameDNS")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ServerHosts");
+                });
+
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.StorageNode", b =>
                 {
                     b.Property<int>("Id")
@@ -211,6 +241,9 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<short>("ServerHostId")
+                        .HasColumnType("smallint");
+
                     b.Property<byte>("StorageNodeLocation")
                         .HasColumnType("tinyint");
 
@@ -218,6 +251,8 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                         .HasColumnType("tinyint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ServerHostId");
 
                     b.ToTable("StorageNodes");
                 });
@@ -354,6 +389,17 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                         .IsRequired();
 
                     b.Navigation("Application");
+                });
+
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.StorageNode", b =>
+                {
+                    b.HasOne("SlugEnt.DocumentServer.Models.Entities.ServerHost", "ServerHost")
+                        .WithMany()
+                        .HasForeignKey("ServerHostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServerHost");
                 });
 
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.StoredDocument", b =>

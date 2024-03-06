@@ -2,6 +2,7 @@
 
 
 
+using System.Net;
 using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -107,6 +108,18 @@ public static class DatabaseSetup_Test
         db.Add(rootC);
         db.SaveChanges();
 
+        //  Add ServerHost
+        string localHost = Dns.GetHostName();
+        ServerHost hostA = new()
+        {
+            IsActive = true,
+            NameDNS  = localHost,
+            FQDN     = localHost + ".abc.local",
+            Path     = "hostA",
+        };
+        db.Add(hostA);
+        db.SaveChanges();
+
 
         // Add Storage Nodes
         StorageNode testA = new(TestConstants.STORAGE_NODE_TEST_A,
@@ -115,6 +128,7 @@ public static class DatabaseSetup_Test
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 TestConstants.FOLDER_TEST_PRIMARY);
+        testA.ServerHostId = hostA.Id;
 
         StorageNode testB = new(TestConstants.STORAGE_NODE_TEST_B,
                                 "Test Node B - Secondary",
@@ -122,6 +136,7 @@ public static class DatabaseSetup_Test
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 TestConstants.FOLDER_TEST_SECONDARY);
+        testB.ServerHostId = hostA.Id;
 
         // True Production Nodes
         StorageNode prodX = new(TestConstants.STORAGE_NODE_PROD_X,
@@ -130,6 +145,7 @@ public static class DatabaseSetup_Test
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 TestConstants.FOLDER_PROD_PRIMARY);
+        prodX.ServerHostId = hostA.Id;
 
         StorageNode prodY = new(TestConstants.STORAGE_NODE_PROD_Y,
                                 "Production Node Y - Secondary",
@@ -137,6 +153,7 @@ public static class DatabaseSetup_Test
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
                                 TestConstants.FOLDER_PROD_SECONDARY);
+        prodY.ServerHostId = hostA.Id;
         db.AddRange(testA,
                     testB,
                     prodX,

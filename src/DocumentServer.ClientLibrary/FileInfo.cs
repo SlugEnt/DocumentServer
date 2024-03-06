@@ -19,5 +19,7 @@
         /// Size in Bytes
         /// </summary>
         public long? Size { get; set; }
+
+        public string? Description { get; set; }
     }
 }

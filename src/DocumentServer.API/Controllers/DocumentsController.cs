@@ -3,6 +3,7 @@ using System.Net.Mime;
 using DocumentServer.Core;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+using Microsoft.Extensions.Options;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
@@ -28,12 +29,13 @@ public class DocumentsController : ControllerBase
     /// </summary>
     /// <param name="db"></param>
     public DocumentsController(DocServerDbContext db,
-                               DocumentServerEngine documentServerEngine)
+                               DocumentServerEngine documentServerEngine,
+                               IOptions<DocumentServerFromAppSettings> docOptions)
     {
-        _db        = db;
-        _docEngine = documentServerEngine;
+        _db                        = db;
+        _docEngine                 = documentServerEngine;
+        _docEngine.FromAppSettings = docOptions.Value;
 
-        //_docEngine        = new DocumentServerEngine();
 
         _storageDirectory = @"T:\ProgrammingTesting";
     }
@@ -93,6 +95,7 @@ public class DocumentsController : ControllerBase
                 Extension   = tdc.TransferDocument.FileExtension,
                 Size        = tdc.FileSize,
                 FileInBytes = tdc.FileInBytes,
+                Description = tdc.TransferDocument.Description,
             },
         };
 
