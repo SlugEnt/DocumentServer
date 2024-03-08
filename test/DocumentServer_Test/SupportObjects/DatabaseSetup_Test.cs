@@ -70,11 +70,13 @@ public static class DatabaseSetup_Test
         // Add Applications
         Application appA = new()
         {
-            Name = "App_A"
+            Name  = "App_A",
+            Token = TestConstants.APPA_TOKEN,
         };
         Application appB = new()
         {
-            Name = "App_B"
+            Name  = "App_B",
+            Token = TestConstants.APPB_TOKEN,
         };
         db.Add(appA);
         db.Add(appB);

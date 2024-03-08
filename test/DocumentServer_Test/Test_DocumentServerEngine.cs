@@ -42,6 +42,10 @@ public class Test_DocumentServerEngine
         int                  invalid_storageNode_ID = 999999999;
         string               nodePath               = @"x\y";
 
+
+        await sm.Initialize;
+
+
         // Create a random Storage
         StorageNode storageNode = new(sm.Faker.Music.Genre(),
                                       sm.Faker.Random.Words(3),
@@ -100,6 +104,10 @@ public class Test_DocumentServerEngine
         UniqueKeys           uniqueKeys = new("");
         string               filePart   = uniqueKeys.GetKey("fn");
         string               nodePath   = @"a\b\c\d";
+
+
+        await sm.Initialize;
+
 
         // Create a random StorageNode
         StorageNode storageNode = new(sm.Faker.Music.Genre(),
@@ -185,9 +193,8 @@ public class Test_DocumentServerEngine
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = null;
 
+        await sm.Initialize;
 
-        // TODO - for test only.  DElete please now!
-//        sm.DB.ChangeTracker.Clear();
 
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                                     expectedDescription,
@@ -249,6 +256,7 @@ public class Test_DocumentServerEngine
         string expectedRootObjectId = sm.Faker.Random.String2(10);
         string expectedExternalId   = sm.Faker.Random.String2(15);
 
+        await sm.Initialize;
 
         // A.  Generate File and store it
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -329,6 +337,7 @@ public class Test_DocumentServerEngine
         string  expectedRootObjectId = sm.Faker.Random.String2(10);
         string? expectedExternalId   = null;
 
+        await sm.Initialize;
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
@@ -568,6 +577,7 @@ public class Test_DocumentServerEngine
         string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
         byte[]               fileBytes             = sm.Faker.Random.Bytes(20);
 
+        await sm.Initialize;
 
         // Load a Document Type
         DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
@@ -611,9 +621,9 @@ public class Test_DocumentServerEngine
         string               expectedStorageFolder = sm.Faker.Random.String2(6);
         string               expectedRootObjectId  = sm.Faker.Random.String2(9);
         string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
+        byte[]               fileBytes             = sm.Faker.Random.Bytes(20);
 
-        byte[] fileBytes = sm.Faker.Random.Bytes(20);
-
+        await sm.Initialize;
 
         // Load a Document Type
         DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
@@ -655,6 +665,7 @@ public class Test_DocumentServerEngine
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = null;
 
+        await sm.Initialize;
 
         //***  B. Generate a file and store it
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -740,6 +751,7 @@ public class Test_DocumentServerEngine
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
 
+        await sm.Initialize;
 
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                                     expectedDescription,
@@ -779,6 +791,7 @@ public class Test_DocumentServerEngine
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
 
+        await sm.Initialize;
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
@@ -848,6 +861,8 @@ public class Test_DocumentServerEngine
         string               expectedDescription  = sm.Faker.Random.String2(32);
         string               expectedRootObjectId = sm.Faker.Random.String2(10);
         string?              expectedExternalId   = sm.Faker.Random.String2(8);
+
+        await sm.Initialize;
 
         // Need to get RootObject's Application ID.
         RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);

@@ -1,26 +1,84 @@
 ﻿@page "/applications"
 @using SlugEnt.DocumentServer.Db
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.Entities
 @inject DocServerDbContext DB
-
+@inject NavigationManager NavigationManager
 
 <PageTitle>Index</PageTitle>
 
 <h1>Index</h1>
 
-<p>
-    <a href="applications/create">Create New</a>
-</p>
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
 
-<QuickGrid Class="table" Items="DB.Applications">
-    <PropertyColumn Property="application => application.Name"/>
-    <PropertyColumn Property="application => application.IsActive"/>
-    <PropertyColumn Property="application => application.CreatedAtUTC"/>
-    <PropertyColumn Property="application => application.ModifiedAtUTC"/>
+<div>
+    <RadzenCheckBox @bind-Value="@SetIsActive" Name="cb1"/>
+    <RadzenLabel Text="Show Inactive Applications" Component="cb1" Style="margin-left: 8px;"></RadzenLabel>
+</div>
 
-    <TemplateColumn Context="application">
-        <a href="@($"applications/edit?id={application.Id}")">Edit</a> |
-        <a href="@($"applications/details?id={application.Id}")">Details</a> |
-        <a href="@($"applications/delete?id={application.Id}")">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@_applications" TItem="Application" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedApplications">
+    <Columns>
+        <RadzenDataGridColumn TItem="Application" Property="Name" Title="Application Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn TItem="Application" Property="CreatedAtUTC" Title="Created At" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn TItem="Application" Property="IsActive" Title="Active" Frozen="true" Width="18px">
+            <Template>
+                <RadzenCheckBox @bind-Value=@context.IsActive ReadOnly="true"></RadzenCheckBox>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="18px">
+            <Template>
+                <RadzenCheckBox @bind-Value=@context.IsTestNode ReadOnly="true"></RadzenCheckBox>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+
+@code
+{
+    protected IEnumerable<Application> _applications = Enumerable.Empty<Application>();
+    protected IList<Application>?      _selectedApplications;
+    protected bool                     _showInActive;
+
+    protected bool SetIsActive
+    {
+        get { return _showInActive; }
+        set
+        {
+            _showInActive = value;
+            LoadApplicationsAsync(_showInActive);
+        }
+    }
+
+    protected Variant radDisplay = Variant.Outlined;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadApplicationsAsync();
+
+        await base.OnInitializedAsync();
+    }
+
+
+    public async Task ShowInactive(bool value) { await LoadApplicationsAsync(_showInActive); }
+
+
+
+    public async Task LoadApplicationsAsync(bool showInActive = false)
+    {
+        if (!showInActive)
+            _applications = await DB.Applications.Where(sn => sn.IsActive == true).ToListAsync();
+        else
+            _applications = await DB.Applications.Where(sn => sn.IsActive == false).ToListAsync();
+    }
+
+
+    protected void AddNew() { NavigationManager.NavigateTo("applications/crud/C"); }
+
+    protected void OnEdit(int Id) { }
+    protected void OnDetails(int Id) { }
+}

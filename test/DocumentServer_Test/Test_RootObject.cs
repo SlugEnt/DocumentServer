@@ -25,6 +25,9 @@ public class Test_RootObject
         bool                 expIsActive    = true;
         string               expName        = "The Name is";
 
+        await sm.Initialize;
+
+
         RootObject rootObject = new()
         {
             ApplicationId = expAppId,

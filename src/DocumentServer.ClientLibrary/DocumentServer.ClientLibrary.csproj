@@ -6,7 +6,32 @@
 		<Nullable>enable</Nullable>
 		<AssemblyName>SlugEnt.$(MSBuildProjectName)</AssemblyName>
 		<RootNamespace>SlugEnt.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+		<Title>Library Interface for accessing the SlugEnt Document Server</Title>
+		<Version>0.1.0</Version>
+		<Authors>Scott Herrmann</Authors>
+		<Company>SlugEnt</Company>
+		<Description>Library to make accessing and using the DocumentServer API a little easier.  Contains DTO objects used to communicate back and forth</Description>
+		<Copyright>2024 Scott Herrmann</Copyright>
+		<PackageProjectUrl>https://github.com/SlugEnt/DocumentServer</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/SlugEnt/DocumentServer</RepositoryUrl>
+		<PackageReleaseNotes>Initial Alpha Release</PackageReleaseNotes>
+		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+		<IncludeSymbols>True</IncludeSymbols>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<IsPackable>true</IsPackable>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\..\LICENSE.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	  <None Include="..\..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.2" />

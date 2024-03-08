@@ -24,4 +24,8 @@ public static class TestConstants
     // Storage Node Names
     public const string STORAGE_NODE_TEST_A = "NodeA";
     public const string STORAGE_NODE_TEST_B = "NodeB";
+
+    // Application Tokens
+    public const string APPA_TOKEN = "abc";
+    public const string APPB_TOKEN = "def";
 }

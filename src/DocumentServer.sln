@@ -13,12 +13,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.Models", "Do
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test_DocumentServer", "..\test\DocumentServer_Test\Test_DocumentServer.csproj", "{9708D1D1-35AB-4D7E-89BF-4C9447D3DD33}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NewFolder1", "NewFolder1", "{0C41F923-BDFD-4BD4-995D-FF92E40AD4D3}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution ITems", "Solution ITems", "{BDE19127-A55A-4EE1-B6D8-86C44B3ECC8F}"
 	ProjectSection(SolutionItems) = preProject
 		GlobalUsings.cs = GlobalUsings.cs
 		..\README.md = ..\README.md
+		..\Scripts\PushToNuget_Local.cmd = ..\Scripts\PushToNuget_Local.cmd
+		..\Scripts\ReleaseToPublicNuget.cmd = ..\Scripts\ReleaseToPublicNuget.cmd
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.ClientLibrary", "DocumentServer.ClientLibrary\DocumentServer.ClientLibrary.csproj", "{CB38DB8B-F697-4963-8FB9-955A5B275301}"

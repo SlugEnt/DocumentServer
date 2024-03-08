@@ -9,6 +9,7 @@
     <RootNamespace>SlugEnt.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <NeutralLanguage>en-US</NeutralLanguage>
 	<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+	<Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

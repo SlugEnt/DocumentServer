@@ -1,0 +1,85 @@
+﻿@page "/serverhosts"
+@using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.Models.Entities
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@inject DocServerDbContext DB
+@inject NavigationManager NavigationManager
+
+<PageTitle>Index Title</PageTitle>
+
+<h1>Index</h1>
+
+<RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
+
+<div>
+    <RadzenCheckBox @bind-Value="@SetIsActive" Name="cb1"/>
+    <RadzenLabel Text="Show Inactive Server Hosts" Component="cb1" Style="margin-left: 8px;"></RadzenLabel>
+</div>
+
+
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                Data="@_serverHosts"  TItem="ServerHost" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedHosts">
+    <Columns>
+        <RadzenDataGridColumn TItem="ServerHost" Property="NameDNS" Title="DNS Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left" />
+        <RadzenDataGridColumn TItem="ServerHost" Property="FQDN" Title="Fully Qualified Domain Name" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn TItem="ServerHost" Property="Path" Title="Folder Path on Server" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left" />
+        <RadzenDataGridColumn TItem="ServerHost" Property="IsActive" Title="Active" Frozen="true" Width="18px">
+            <Template>
+                <RadzenCheckBox @bind-Value=@context.IsActive ReadOnly="true"></RadzenCheckBox>
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="18px">
+            <Template>
+                <RadzenCheckBox @bind-Value=@context.IsTestNode ReadOnly="true"></RadzenCheckBox>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+
+@code
+{
+    protected IEnumerable<ServerHost> _serverHosts = Enumerable.Empty<ServerHost>();
+    protected IList<ServerHost>?      _selectedHosts;
+    protected bool                    _showInActive;
+
+    protected bool SetIsActive
+    {
+        get { return _showInActive; }
+        set
+        {
+            _showInActive = value;
+            LoadServerHostsAsync(_showInActive);
+        }
+    }
+
+    protected Variant radDisplay = Variant.Outlined;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadServerHostsAsync();
+
+        await base.OnInitializedAsync();
+    }
+
+
+    public async Task ShowInactive(bool value) { await LoadServerHostsAsync(_showInActive); }
+
+
+
+    public async Task LoadServerHostsAsync(bool showInActive = false)
+    {
+        if (!showInActive)
+            _serverHosts = await DB.ServerHosts.Where(sn => sn.IsActive == true).ToListAsync();
+        else
+            _serverHosts = await DB.ServerHosts.Where(sn => sn.IsActive == false).ToListAsync();
+    }
+
+
+    protected void AddNew() { NavigationManager.NavigateTo("serverhosts/crud/C"); }
+
+    protected void OnEdit(int Id) { }
+    protected void OnDetails(int Id) { }
+}

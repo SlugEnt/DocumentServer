@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using SlugEnt.DocumentServer.Models.Entities;
 using Test_DocumentServer.SupportObjects;
 
-//using ILogger = Castle.Core.Logging.ILogger;
 
 namespace Test_DocumentServer;
 
@@ -15,7 +14,7 @@ public class Tests
     public async Task CreatedAtUTC_SetOnSave()
     {
         SupportMethods sm = new();
-
+        await sm.Initialize;
 
         Application? app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 
@@ -25,7 +24,8 @@ public class Tests
 
         Application appNew = new()
         {
-            Name = "A new app"
+            Name  = "A new app",
+            Token = sm.Faker.Random.String2(4),
         };
         sm.DB.Add(appNew);
         await sm.DB.SaveChangesAsync();
@@ -41,6 +41,7 @@ public class Tests
     public async Task ModifiedAtUTC_SetOnUpdate()
     {
         SupportMethods sm = new();
+        await sm.Initialize;
 
         Application? app = await sm.DB.Applications.SingleOrDefaultAsync(s => s.Name == "App_A");
 

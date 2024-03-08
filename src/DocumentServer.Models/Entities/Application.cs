@@ -43,4 +43,11 @@ public class Application : AbstractBaseEntity
     /// </summary>
     [MaxLength(75)]
     public string Name { get; set; }
+
+
+    /// <summary>
+    /// The token required to read / update any documents in the App library
+    /// </summary>
+    [MaxLength(32)]
+    public string Token { get; set; }
 }

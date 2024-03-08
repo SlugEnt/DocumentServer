@@ -17,22 +17,42 @@ namespace SlugEnt.DocumentServer.Core
     /// </summary>
     public class DocumentServerInformation
     {
-        public DocumentServerInformation(IConfiguration configuration,
-                                         IOptions<DocumentServerFromAppSettings> docOptions)
-        {
-            string                                      sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
-            DbContextOptionsBuilder<DocServerDbContext> options = new();
-            options.UseSqlServer(sqlConn);
-            DocServerDbContext db = new(options.Options);
+        public DocumentServerInformation() { }
 
-            Setup(db);
+
+        public DocumentServerInformation(DocServerDbContext docServerDbContext)
+        {
+            ServerHostInfo = new ServerHostInfo();
+            Initialize     = SetupAsync(docServerDbContext);
         }
 
 
+        public DocumentServerInformation(IConfiguration configuration,
+                                         IOptions<DocumentServerFromAppSettings> docOptions)
+        {
+            string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+            DbContextOptionsBuilder<DocServerDbContext> options = new();
+            options.UseSqlServer(sqlConn);
+            DocServerDbContext db = new(options.Options);
+            ServerHostInfo = new ServerHostInfo();
+            Initialize     = SetupAsync(db);
+        }
 
-        public DocumentServerInformation() { }
 
-        public void PostSetup(DocServerDbContext docServerDbContext) { Setup(docServerDbContext); }
+        /// <summary>
+        /// Task used to perform setup during object creation.
+        /// </summary>
+        public Task Initialize { get; }
+
+
+        /// <summary>
+        /// Returns true if initialization has completed.
+        /// </summary>
+        public bool IsInitialized { get; private set; } = false;
+
+
+        //[Obsolete]
+        //public void PostSetup(DocServerDbContext docServerDbContext) { SetupAsync(docServerDbContext); }
 
 
         /// <summary>
@@ -40,26 +60,37 @@ namespace SlugEnt.DocumentServer.Core
         /// </summary>
         /// <param name="db"></param>
         /// <exception cref="ApplicationException"></exception>
-        private void Setup(DocServerDbContext db)
+        private async Task SetupAsync(DocServerDbContext db)
         {
             string localHost = Dns.GetHostName();
 
 
-            ServerHost host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
+            ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
             if (host == null)
                 throw new ApplicationException("Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ]");
 
 
             // Load the ServerHost Information
-            ServerHostInfo                = new ServerHostInfo();
             ServerHostInfo.Path           = host.Path;
             ServerHostInfo.ServerHostId   = host.Id;
             ServerHostInfo.ServerHostName = host.NameDNS;
             ServerHostInfo.ServerFQDN     = host.FQDN;
+
+
+            // Load applications from DB into an internal Dictionary so we can speed up Application token authentication
+            List<Application> apps = await db.Applications.Where(a => a.IsActive == true).ToListAsync();
+            foreach (Application app in apps)
+            {
+                ApplicationTokenLookup.Add(app.Token, app);
+            }
+
+            IsInitialized = true;
         }
 
 
         public ServerHostInfo ServerHostInfo { get; set; }
+
+        public Dictionary<string, Application> ApplicationTokenLookup { get; private set; } = new Dictionary<string, Application>();
     }
 
 

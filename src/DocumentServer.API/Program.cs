@@ -118,11 +118,13 @@ public class Program
         // Configure the HTTP request pipeline.
         //TODO Uncomment
 #if SWAGGER
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+
+        //if (app.Environment.IsDevelopment())
+        // {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+
+        // }
 #endif
         if (app.Environment.IsDevelopment())
             app.UseDeveloperExceptionPage();

@@ -37,6 +37,7 @@ public class Test_DocumentType
         DocumentServerEngine dse   = sm.DocumentServerEngine;
         string               eName = sm.Faker.Random.Word();
 
+
         //***  Y. Create DocumentType
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(eName,
                                                                          sm.Faker.Random.Words(4),
@@ -71,15 +72,15 @@ public class Test_DocumentType
     public async Task DocumentTypeMustBeActive_ToStoreADocument(bool markDocumentTypeActive)
     {
         //***  A. Setup
-        SupportMethods       sm         = new(EnumFolderCreation.Test, false);
-        DocumentServerEngine dse        = sm.DocumentServerEngine;
-        string               folderName = sm.Faker.Random.AlphaNumeric(6);
+        SupportMethods       sm                   = new(EnumFolderCreation.Test, false);
+        DocumentServerEngine dse                  = sm.DocumentServerEngine;
+        string               folderName           = sm.Faker.Random.AlphaNumeric(6);
+        string               expectedExtension    = sm.Faker.Random.String2(3);
+        string               expectedDescription  = sm.Faker.Random.String2(32);
+        string               expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?              expectedExternalId   = null;
 
-        string  expectedExtension    = sm.Faker.Random.String2(3);
-        string  expectedDescription  = sm.Faker.Random.String2(32);
-        string  expectedRootObjectId = sm.Faker.Random.String2(10);
-        string? expectedExternalId   = null;
-
+        await sm.Initialize;
 
         //***  B. Createa A new Document Type.
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Word(),
@@ -157,6 +158,8 @@ public class Test_DocumentType
         string               expectedExtension   = sm.Faker.Random.String2(3);
         string               expectedDescription = sm.Faker.Random.String2(32);
 
+        await sm.Initialize;
+
 
         //***  B. Createa A new Document Type.
         // Need to get RootObject's Application ID.
@@ -207,6 +210,7 @@ public class Test_DocumentType
         string               expectedExtension   = sm.Faker.Random.String2(3);
         string               expectedDescription = sm.Faker.Random.String2(32);
 
+        await sm.Initialize;
 
         //***  B. Createa A new Document Type.
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Word(),
@@ -252,6 +256,7 @@ public class Test_DocumentType
         EnumStorageMode       sStorageMode   = EnumStorageMode.Versioned;
         EnumDocumentLifetimes sDocLifetime   = EnumDocumentLifetimes.HoursTwelve;
 
+        await sm.Initialize;
 
         // B. Createa A new Document Type.
         // Need to get RootObject's Application ID.

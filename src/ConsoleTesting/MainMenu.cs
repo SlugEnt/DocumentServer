@@ -22,15 +22,17 @@ public partial class MainMenu
     public MainMenu(ILogger<MainMenu> logger,
                     IHttpClientFactory httpClientFactory,
                     IConfiguration configuration,
-                    AccessDocumentServerHttpClient documentServerHttpClient,
-                    DocServerDbContext db)
+                    AccessDocumentServerHttpClient documentServerHttpClient)
     {
         _logger                   = logger;
         _documentServerHttpClient = documentServerHttpClient;
-        _db                       = db;
         _configuration            = configuration;
 
+        // Testing only
         _documentServerHttpClient.BaseAddress = new Uri(_configuration["DocumentServer:Host"]);
+
+        //_documentServerHttpClient.BaseAddress = new Uri(@"http://testdummy3.slug.local:35676/api"]);
+
 
         _options = new JsonSerializerOptions
         {
@@ -173,8 +175,7 @@ public partial class MainMenu
                         foreach (long docId in uploadedDocIds)
                         {
                             DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAsync(docId);
-                            string extension = documentContainerDown.DocumentInfo.Extension != string.Empty ? "." + documentContainerDown.DocumentInfo.Extension : string.Empty;
-                            string fileName = documentContainerDown.DocumentInfo.Description + extension;
+                            string            fileName              = documentContainerDown.DocumentInfo.Description;
                             fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
                             await File.WriteAllBytesAsync(fileName, documentContainerDown.DocumentInfo.FileInBytes);
                             Console.WriteLine("Downloaded File: {0} [ {1} ]", documentContainerDown.DocumentInfo.Description, docId);

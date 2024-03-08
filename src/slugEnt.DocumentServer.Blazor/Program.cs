@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Radzen;
 using Serilog;
 using SlugEnt.DocumentServer.Blazor.Components;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
 
@@ -85,6 +86,7 @@ public class Program
         builder.Services.AddScoped<DialogService>();
         builder.Services.AddScoped<TooltipService>();
         builder.Services.AddScoped<DocumentServerEngine>();
+        builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
 
 
         // WSH End 

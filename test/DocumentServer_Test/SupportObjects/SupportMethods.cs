@@ -39,7 +39,8 @@ public class SupportMethods
     /// </summary>
     /// <param name="databaseSetupTest"></param>
     public SupportMethods(EnumFolderCreation createFolders = EnumFolderCreation.None,
-                          bool useTransactions = true)
+                          bool useTransactions = true,
+                          bool useDatabase = true)
     {
         if (_faker == null)
             _faker = new Faker();
@@ -68,8 +69,10 @@ public class SupportMethods
 
 
         // Setup DocumentServer Engine
-        DocumentServerInformation dsi = new DocumentServerInformation();
-        dsi.PostSetup(DB);
+        DocumentServerInformation dsi = new DocumentServerInformation(DB);
+        Initialize = dsi.Initialize;
+
+        //dsi.PostSetup(DB);
         DocumentServerEngine = new DocumentServerEngine(_logger,
                                                         DB,
                                                         dsi,
@@ -90,6 +93,8 @@ public class SupportMethods
         }
     }
 
+
+    public Task Initialize { get; }
 
     /// <summary>
     ///     Returns the DB Context

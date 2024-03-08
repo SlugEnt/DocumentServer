@@ -536,6 +536,24 @@ public class DocumentServerEngine
     }
 
 
+    /// <summary>
+    /// Saves the requested application object to the database.  It creates the Token prior to save and returns its value.
+    /// </summary>
+    /// <param name="application"></param>
+    /// <returns></returns>
+    public async Task<string> ApplicationSave(Application application)
+    {
+        string guid = Guid.NewGuid().ToString().Substring(0,16);
+        application.Token = guid;
+
+        _db.Applications.Add(application);
+        await _db.SaveChangesAsync();
+
+        return guid;
+    }
+
+
+
 #region "Support Functions"
 
     /// <summary>
