@@ -8,6 +8,12 @@ namespace SlugEnt.DocumentServer.ClientLibrary;
 public abstract class AbstractBaseFileTransfer
 {
     /// <summary>
+    /// The token that corresponds to the application this document is a member of.
+    /// </summary>
+    public string ApplicationToken { get; set; } = "";
+
+
+    /// <summary>
     /// If this is a versioned or replacable StoredDocument and this is the latest iteration you must provide the Current StoredDocument's ID this is replacing.
     ///   - Is returned when retrieving a document.
     ///   - Is only sent when document is possibly replacing an existing one with same DocTypeExternalId
@@ -42,7 +48,7 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is NOT returned when retrieving a document.
     ///   - Should be sent when saving a document.  It is informational only
     /// </summary>
-    public string FileExtension { get; set; }
+    public string FileExtension { get; set; } = "";
 
     /// <summary>
     ///     This is the external (Calling) systems primary relation ID, Ie, the primary thing this is related to, for instance a Claim

@@ -35,16 +35,15 @@ public class Test_DocumentServerEngine
     public async Task ComputeStorageFolder_ReturnsFailure_On_InvalidNode()
     {
         // A. Setup
-        SupportMethods       sm                     = new();
-        DocumentServerEngine dse                    = sm.DocumentServerEngine;
-        UniqueKeys           uniqueKeys             = new("");
-        string               filePart               = uniqueKeys.GetKey("fn");
-        int                  invalid_storageNode_ID = 999999999;
-        string               nodePath               = @"x\y";
+        SupportMethods sm                     = new();
+        UniqueKeys     uniqueKeys             = new("");
+        string         filePart               = uniqueKeys.GetKey("fn");
+        int            invalid_storageNode_ID = 999999999;
+        string         nodePath               = @"x\y";
 
 
         await sm.Initialize;
-
+        DocumentServerEngine dse = sm.DocumentServerEngine;
 
         // Create a random Storage
         StorageNode storageNode = new(sm.Faker.Music.Genre(),
@@ -99,15 +98,14 @@ public class Test_DocumentServerEngine
     public async Task ComputeStorageFolder_CorrectPath_Generated(EnumStorageMode storageMode)
     {
         // A. Setup
-        SupportMethods       sm         = new();
-        DocumentServerEngine dse        = sm.DocumentServerEngine;
-        UniqueKeys           uniqueKeys = new("");
-        string               filePart   = uniqueKeys.GetKey("fn");
-        string               nodePath   = @"a\b\c\d";
+        SupportMethods sm         = new();
+        UniqueKeys     uniqueKeys = new("");
+        string         filePart   = uniqueKeys.GetKey("fn");
+        string         nodePath   = @"a\b\c\d";
 
 
         await sm.Initialize;
-
+        DocumentServerEngine dse = sm.DocumentServerEngine;
 
         // Create a random StorageNode
         StorageNode storageNode = new(sm.Faker.Music.Genre(),
@@ -185,16 +183,15 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-        int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string               expectedExtension    = sm.Faker.Random.String2(3);
-        string               expectedDescription  = sm.Faker.Random.String2(32);
-        string               expectedRootObjectId = sm.Faker.Random.String2(10);
-        string?              expectedExternalId   = null;
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = null;
 
         await sm.Initialize;
-
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                                     expectedDescription,
@@ -238,6 +235,81 @@ public class Test_DocumentServerEngine
     }
 
 
+    /// <summary>
+    ///     Confirms we can upload a document to the DocumentServer
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task StoreDocument_BadApplicationToken_Errors()
+    {
+        // A. Setup
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = null;
+        string         badAppToken          = sm.Faker.Random.String2(10);
+
+
+        await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+        // Set bad token
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId,
+                                                                                    1,
+                                                                                    badAppToken);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+
+        // ***  Z. Validate
+        Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
+        Assert.That(result.ToString(), Does.Contain("Invalid Application Token"), "Z20:  Expected Invalid Application Token error message");
+    }
+
+
+
+    /// <summary>
+    ///     Confirms we can upload a document to the DocumentServer
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task StoreDocument_MismatchedDocTypeAndAppToken_Errors()
+    {
+        // A. Setup
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = 2;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = null;
+
+
+        await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+        // Set bad token
+        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                    expectedDescription,
+                                                                                    expectedExtension,
+                                                                                    expectedDocTypeId,
+                                                                                    expectedRootObjectId,
+                                                                                    expectedExternalId,
+                                                                                    1,
+                                                                                    TestConstants.APPB_TOKEN);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+
+        // ***  Z. Validate
+        Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
+        Assert.That(result.ToString(),
+                    Does.Contain("document type requested is not a member of the application you provided a token for"),
+                    "Z20:  Expected mismatched doctype token error message");
+    }
+
 
     /// <summary>
     ///     Validates we can read a document from the library
@@ -247,16 +319,15 @@ public class Test_DocumentServerEngine
     public async Task ReadDocument_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-
-        int    expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string expectedExtension    = sm.Faker.Random.String2(3);
-        string expectedDescription  = sm.Faker.Random.String2(32);
-        string expectedRootObjectId = sm.Faker.Random.String2(10);
-        string expectedExternalId   = sm.Faker.Random.String2(15);
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string         expectedExternalId   = sm.Faker.Random.String2(15);
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // A.  Generate File and store it
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -329,15 +400,14 @@ public class Test_DocumentServerEngine
     public async Task SaveTemporaryDocument(EnumDocumentLifetimes lifeTime)
     {
         //***  A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-
-        string  expectedExtension    = sm.Faker.Random.String2(3);
-        string  expectedDescription  = sm.Faker.Random.String2(32);
-        string  expectedRootObjectId = sm.Faker.Random.String2(10);
-        string? expectedExternalId   = null;
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = null;
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
@@ -568,16 +638,16 @@ public class Test_DocumentServerEngine
     public async Task StoreFileOnStorageMedia_Success()
     {
         //***  A. Setup
-        SupportMethods       sm                    = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine  = sm.DocumentServerEngine;
-        string               expectedExtension     = sm.Faker.Random.String2(3);
-        string               expectedDescription   = sm.Faker.Random.String2(32);
-        string               expectedStorageFolder = sm.Faker.Random.String2(6);
-        string               expectedRootObjectId  = sm.Faker.Random.String2(9);
-        string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
-        byte[]               fileBytes             = sm.Faker.Random.Bytes(20);
+        SupportMethods sm                    = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         expectedExtension     = sm.Faker.Random.String2(3);
+        string         expectedDescription   = sm.Faker.Random.String2(32);
+        string         expectedStorageFolder = sm.Faker.Random.String2(6);
+        string         expectedRootObjectId  = sm.Faker.Random.String2(9);
+        string         exptectedDocTypeExtId = sm.Faker.Random.String2(5);
+        byte[]         fileBytes             = sm.Faker.Random.Bytes(20);
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // Load a Document Type
         DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
@@ -614,16 +684,16 @@ public class Test_DocumentServerEngine
     public async Task StoreFileOnStorageMedia_BadStorageNode_Failure()
     {
         //***  A. Setup
-        SupportMethods       sm                    = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine  = sm.DocumentServerEngine;
-        string               expectedExtension     = sm.Faker.Random.String2(3);
-        string               expectedDescription   = sm.Faker.Random.String2(32);
-        string               expectedStorageFolder = sm.Faker.Random.String2(6);
-        string               expectedRootObjectId  = sm.Faker.Random.String2(9);
-        string               exptectedDocTypeExtId = sm.Faker.Random.String2(5);
-        byte[]               fileBytes             = sm.Faker.Random.Bytes(20);
+        SupportMethods sm                    = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         expectedExtension     = sm.Faker.Random.String2(3);
+        string         expectedDescription   = sm.Faker.Random.String2(32);
+        string         expectedStorageFolder = sm.Faker.Random.String2(6);
+        string         expectedRootObjectId  = sm.Faker.Random.String2(9);
+        string         exptectedDocTypeExtId = sm.Faker.Random.String2(5);
+        byte[]         fileBytes             = sm.Faker.Random.Bytes(20);
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // Load a Document Type
         DocumentType? documentType = await sm.DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == sm.DocumentType_Test_Worm_A);
@@ -657,15 +727,15 @@ public class Test_DocumentServerEngine
     public async Task ReplacementFileStorage_Success()
     {
         //***  A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-        int                  expectedDocTypeId    = sm.DocumentType_Prod_Replaceable_A;
-        string               expectedExtension    = sm.Faker.Random.String2(3);
-        string               expectedDescription  = sm.Faker.Random.String2(32);
-        string               expectedRootObjectId = sm.Faker.Random.String2(10);
-        string?              expectedExternalId   = null;
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = sm.DocumentType_Prod_Replaceable_A;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = null;
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         //***  B. Generate a file and store it
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -673,7 +743,9 @@ public class Test_DocumentServerEngine
                                                                                     expectedExtension,
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
-                                                                                    expectedExternalId);
+                                                                                    expectedExternalId,
+                                                                                    4,
+                                                                                    TestConstants.APPB_TOKEN);
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
         StoredDocument         storedDocument = result.Value;
 
@@ -743,15 +815,15 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_HasExternalDocTypeKey_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-        int                  expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string               expectedExtension    = sm.Faker.Random.String2(3);
-        string               expectedDescription  = sm.Faker.Random.String2(32);
-        string               expectedRootObjectId = sm.Faker.Random.String2(10);
-        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = sm.Faker.Random.String2(8);
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                                     expectedDescription,
@@ -784,14 +856,14 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_HasExternalDocTypeKey_MultipleEntries_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-        string               expectedExtension    = sm.Faker.Random.String2(3);
-        string               expectedDescription  = sm.Faker.Random.String2(32);
-        string               expectedRootObjectId = sm.Faker.Random.String2(10);
-        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = sm.Faker.Random.String2(8);
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         //***  B. Create a random DocumentType.  These document types all will have a custom folder name
         // Need to get RootObject's Application ID.
@@ -855,14 +927,15 @@ public class Test_DocumentServerEngine
     public async Task StoreDocument_HasExternalDocTypeKey_AllowsSingleEntries_Success()
     {
         // A. Setup
-        SupportMethods       sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-        string               expectedExtension    = sm.Faker.Random.String2(3);
-        string               expectedDescription  = sm.Faker.Random.String2(32);
-        string               expectedRootObjectId = sm.Faker.Random.String2(10);
-        string?              expectedExternalId   = sm.Faker.Random.String2(8);
+        SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedDescription  = sm.Faker.Random.String2(32);
+        string         expectedRootObjectId = sm.Faker.Random.String2(10);
+        string?        expectedExternalId   = sm.Faker.Random.String2(8);
+        string         expectedAppToken     = TestConstants.APPA_TOKEN;
 
         await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // Need to get RootObject's Application ID.
         RootObject? rootObject = await sm.DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == 1);
@@ -909,7 +982,7 @@ public class Test_DocumentServerEngine
                 return;
             }
 
-            Assert.That(result.IsSuccess, Is.True, "Y30:");
+            Assert.That(result.IsSuccess, Is.True, "Y30: Result of StoreDocument was not successful: " + result.ToString());
             StoredDocument storedDocument = result.Value;
 
 

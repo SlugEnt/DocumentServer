@@ -15,7 +15,6 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
-using Castle.Core.Configuration;
 using SlugEnt.DocumentServer.ClientLibrary;
 
 namespace Test_DocumentServer.SupportObjects;
@@ -47,36 +46,7 @@ public class SupportMethods
 
         FileSystem = new MockFileSystem();
 
-        // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
-        DB = DatabaseSetup_Test.CreateContext();
-        LoadDatabaseInfo();
-        string tmsg = "";
-
-
-        ConsoleColor color = ConsoleColor.Green;
-        if (useTransactions)
-        {
-            DB.Database.BeginTransaction();
-            tmsg =
-                "This means nothing is committed to the database from this unit test.  In some test scenarios this can cause unexpected results.  It can be turned off in those cases.";
-            color = ConsoleColor.DarkRed;
-        }
-
-        Console.ForegroundColor = color;
-        Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
-        Console.WriteLine(tmsg);
-        Console.ForegroundColor = ConsoleColor.White;
-
-
-        // Setup DocumentServer Engine
-        DocumentServerInformation dsi = new DocumentServerInformation(DB);
-        Initialize = dsi.Initialize;
-
-        //dsi.PostSetup(DB);
-        DocumentServerEngine = new DocumentServerEngine(_logger,
-                                                        DB,
-                                                        dsi,
-                                                        FileSystem);
+        Initialize = SetupAsync(useTransactions, useDatabase);
 
         switch (createFolders)
         {
@@ -94,6 +64,52 @@ public class SupportMethods
     }
 
 
+    /// <summary>
+    /// Performs Constructor level async operations.
+    /// caller must call await Initialize to ensure these operations have completed.
+    /// </summary>
+    /// <returns></returns>
+    private async Task SetupAsync(bool useTransactions,
+                                  bool useDatabase)
+    {
+        // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
+        if (useDatabase)
+        {
+            DB = DatabaseSetup_Test.CreateContext();
+            LoadDatabaseInfo();
+            string tmsg = "";
+
+
+            ConsoleColor color = ConsoleColor.Green;
+            if (useTransactions)
+            {
+                DB.Database.BeginTransaction();
+                tmsg =
+                    "This means nothing is committed to the database from this unit test.  In some test scenarios this can cause unexpected results.  It can be turned off in those cases.";
+                color = ConsoleColor.DarkRed;
+            }
+
+            Console.ForegroundColor = color;
+            Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
+            Console.WriteLine(tmsg);
+            Console.ForegroundColor = ConsoleColor.White;
+
+
+            // Setup DocumentServer Engine
+            DocumentServerInformation dsi = new DocumentServerInformation(DB);
+            await dsi.Initialize;
+
+
+            DocumentServerEngine = new DocumentServerEngine(_logger,
+                                                            DB,
+                                                            dsi,
+                                                            FileSystem);
+        }
+
+        IsInitialized = true;
+    }
+
+
     public Task Initialize { get; }
 
     /// <summary>
@@ -103,9 +119,14 @@ public class SupportMethods
 
 
     /// <summary>
+    /// Returns True if all initialization is completed.
+    /// </summary>
+    public bool IsInitialized { get; private set; }
+
+    /// <summary>
     ///     Return the DocumentServerEngine
     /// </summary>
-    public DocumentServerEngine DocumentServerEngine { get; }
+    public DocumentServerEngine DocumentServerEngine { get; private set; }
 
     /// <summary>
     ///     Returns the Document Type for a Replaceable document
@@ -266,7 +287,8 @@ public class SupportMethods
                                                                     int expectedDocTypeId,
                                                                     string expectedRootObjectId,
                                                                     string? expectedDocExtKey,
-                                                                    int sizeInKB = 3)
+                                                                    int sizeInKB = 3,
+                                                                    string appToken = TestConstants.APPA_TOKEN)
     {
         // A10. Create A Document
 
@@ -288,8 +310,6 @@ public class SupportMethods
         TransferDocumentContainer transferDocumentContainer = new TransferDocumentContainer()
         {
             FileInFormFile = formFile,
-
-//            FileInBase64Format = file,
         };
 
         // B.  Now Store it in the DocumentServer
@@ -299,7 +319,8 @@ public class SupportMethods
             DocumentTypeId    = expectedDocTypeId,
             FileExtension     = expectedExtension,
             RootObjectId      = expectedRootObjectId,
-            DocTypeExternalId = expectedDocExtKey
+            DocTypeExternalId = expectedDocExtKey,
+            ApplicationToken  = appToken,
         };
         transferDocumentContainer.TransferDocument = upload;
 

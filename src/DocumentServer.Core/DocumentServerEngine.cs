@@ -283,6 +283,10 @@ public class DocumentServerEngine
         Result<StoredDocument>  result                  = new();
         try
         {
+            // Verify the Application Token is correct.
+            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(transferDocumentContainer.TransferDocument.ApplicationToken, out Application application))
+                return Result.Fail("Invalid Application Token provided.");
+
             // Load and Validate the DocumentType is ok to use
             Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentContainer.TransferDocument.DocumentTypeId);
             if (docTypeResult.IsFailed)
@@ -291,8 +295,13 @@ public class DocumentServerEngine
             DocumentType docType = docTypeResult.Value;
 
 
+            // Make sure the DocType application matches the application the token was for.
+            if (docType.ApplicationId != application.Id)
+                return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
+
+
             // We always use the primary node for initial storage.
-            // TODO This is going to need to be fixed now that we are not passing file bytes around...
+
             int tmpFileSize = transferDocumentContainer.FileSize;
             int fileSize    = tmpFileSize > 1024 ? tmpFileSize / 1024 : 1;
 
@@ -543,7 +552,7 @@ public class DocumentServerEngine
     /// <returns></returns>
     public async Task<string> ApplicationSave(Application application)
     {
-        string guid = Guid.NewGuid().ToString().Substring(0,16);
+        string guid = Guid.NewGuid().ToString();
         application.Token = guid;
 
         _db.Applications.Add(application);
