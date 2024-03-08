@@ -5,10 +5,13 @@ using System.Drawing;
 using System.Reflection;
 using Azure.Core.Extensions;
 using DocumentServer.Core;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using SlugEnt.APIInfo;
 using SlugEnt.APIInfo.HealthInfo;
+using SlugEnt.DocumentServer.API.Security;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
@@ -84,6 +87,7 @@ public class Program
         builder.Services.AddSingleton<HealthCheckProcessor>();
         builder.Services.AddHostedService<HealthCheckerBackgroundProcessor>();
         builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
+        builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
         builder.Services.AddControllers();
         builder.Services.AddProblemDetails();
 
@@ -107,6 +111,21 @@ public class Program
 
 #endif
         });
+
+        builder.Services.AddAuthentication(options => { options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; }).AddJwtBearer();
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy("ApiKeyPolicy",
+                              policy =>
+                              {
+                                  policy.AddAuthenticationSchemes(new[]
+                                  {
+                                      JwtBearerDefaults.AuthenticationScheme
+                                  });
+                                  policy.Requirements.Add(new ApiKeyRequirement());
+                              });
+        });
+        builder.Services.AddScoped<IAuthorizationHandler, ApiKeyHandler>();
 
 
         builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });

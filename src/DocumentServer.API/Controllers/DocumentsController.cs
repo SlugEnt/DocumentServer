@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Mime;
 using DocumentServer.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
 using Microsoft.Extensions.Options;
@@ -41,6 +42,7 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/stream")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<TransferDocumentDto>> GetStoredDocumentAsStream(long id)
     {
         Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
@@ -65,6 +67,7 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id)
     {
         Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
@@ -101,6 +104,7 @@ public class DocumentsController : ControllerBase
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "PostStoredDocument")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer)
     {
         try

@@ -1,4 +1,5 @@
-﻿using SlugEnt.FluentResults;
+﻿using System.Net.Http.Headers;
+using SlugEnt.FluentResults;
 using System.Text.Json;
 
 
@@ -13,6 +14,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     private readonly HttpClient                              _httpClient;
     private readonly ILogger<AccessDocumentServerHttpClient> _logger;
     private readonly JsonSerializerOptions                   _options;
+    private readonly string                                  _apiKey;
 
 
     /// <summary>
@@ -21,7 +23,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// <param name="httpClient"></param>
     /// <param name="logger"></param>
     public AccessDocumentServerHttpClient(HttpClient httpClient,
-                                          ILogger<AccessDocumentServerHttpClient> logger)
+                                          ILogger<AccessDocumentServerHttpClient> logger,
+                                          IConfiguration configuration)
     {
         _httpClient = httpClient;
         _logger     = logger;
@@ -30,6 +33,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         {
             PropertyNameCaseInsensitive = true,
         };
+
+        _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
 
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
         _httpClient.Timeout = new TimeSpan(0, 0, 10);
@@ -63,6 +68,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         try
         {
             string qry = "documents/" + documentId;
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
             using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
@@ -97,7 +104,10 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     {
         try
         {
-            string             action            = "documents/" + documentId;
+            string action = "documents/" + documentId;
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
+
             DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
             return documentContainer;
         }
@@ -143,6 +153,10 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             // Add File
             await using var stream = System.IO.File.OpenRead(fileName);
             form.Add(new StreamContent(stream), "File", fileName);
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
+
             response = await _httpClient.PostAsync("documents", form);
 
             responseContent = await response.Content.ReadAsStringAsync();
