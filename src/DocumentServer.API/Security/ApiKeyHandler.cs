@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using SlugEnt.DocumentServer.Core;
 
 namespace SlugEnt.DocumentServer.API.Security;
 

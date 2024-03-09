@@ -1,13 +1,7 @@
 ﻿using System.Drawing;
+using SlugEnt.DocumentServer.Core;
 
 namespace SlugEnt.DocumentServer.API.Security;
-
-public static class ApiKeyConstants
-{
-    public const string ApiKeyHeaderName = "X-API-Key";
-    public const string ApiKeyName       = "ApiKey";
-}
-
 
 public class ApiKeyValidation : IApiKeyValidation
 {
@@ -22,7 +16,7 @@ public class ApiKeyValidation : IApiKeyValidation
         if (string.IsNullOrWhiteSpace(userApiKey))
             return false;
 
-        string? apiKey = _configuration.GetValue<string>("DocumentServer:" + ApiKeyConstants.ApiKeyName);
+        string? apiKey = _configuration.GetValue<string>("DocumentServer:ApiKey");
         if (apiKey == null || apiKey != userApiKey)
             return false;
 

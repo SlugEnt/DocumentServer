@@ -211,18 +211,19 @@ public partial class MainMenu
                         long      totalSize = 0;
                         int       i         = 0;
 
-                        lastDocSaved = 108;
+                        //lastDocSaved = 108;
+                        string fileNameG = "";
                         for (i = 0; i < 1; i++)
                         {
                             DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
                             string            extension = documentContainer.DocumentInfo.Extension != string.Empty ? "." + documentContainer.DocumentInfo.Extension : string.Empty;
-                            string            fileName = Guid.NewGuid().ToString() + extension;
+                            fileNameG = Guid.NewGuid().ToString() + extension;
 
                             totalSize += (long)documentContainer.DocumentInfo.Size;
 
-                            fileName = Path.Join($"T:\\temp", fileName);
-                            await File.WriteAllBytesAsync(fileName, documentContainer.DocumentInfo.FileInBytes);
-                            File.Delete(fileName);
+                            fileNameG = Path.Join($"T:\\temp", fileNameG);
+                            await File.WriteAllBytesAsync(fileNameG, documentContainer.DocumentInfo.FileInBytes);
+                            File.Delete(fileNameG);
                         }
 
                         sw.Stop();
@@ -232,7 +233,7 @@ public partial class MainMenu
                                           sw.ElapsedMilliseconds / 1000,
                                           totalMB);
 
-                        Console.WriteLine("SUCCESS:  File Saved as :");
+                        Console.WriteLine("SUCCESS:  File Saved as : {0}", fileNameG);
                         break;
 
                     case ConsoleKey.X: return false;

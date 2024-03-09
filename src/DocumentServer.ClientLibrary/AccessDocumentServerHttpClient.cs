@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using SlugEnt.FluentResults;
 using System.Text.Json;
+using SlugEnt.DocumentServer.Core;
 
 
 namespace SlugEnt.DocumentServer.ClientLibrary;
@@ -71,7 +72,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             string qry = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
-            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
             using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
@@ -109,8 +110,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         {
             string action = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
-            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
 
             DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
             return documentContainer;
@@ -160,8 +161,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             form.Add(new StreamContent(stream), "File", fileName);
 
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
-            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
             response = await _httpClient.PostAsync("documents", form);
 
             responseContent = await response.Content.ReadAsStringAsync();

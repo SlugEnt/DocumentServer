@@ -42,8 +42,7 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/stream")]
-
-    //[Authorize(Policy = "ApiKeyPolicy")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<TransferDocumentDto>> GetStoredDocumentAsStream(long id,
                                                                                    [FromHeader] string appToken)
 
@@ -74,8 +73,7 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}")]
-
-    //  [Authorize(Policy = "ApiKeyPolicy")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id,
                                                                                 [FromHeader] string appToken)
     {
@@ -114,8 +112,7 @@ public class DocumentsController : ControllerBase
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "PostStoredDocument")]
-
-    //[Authorize(Policy = "ApiKeyPolicy")]
+    [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
                                                                [FromHeader] string appToken)
     {
