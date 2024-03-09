@@ -17,7 +17,21 @@ namespace SlugEnt.DocumentServer.Core
     /// </summary>
     public class DocumentServerInformation
     {
-        public DocumentServerInformation() { }
+        public static DocumentServerInformation Create(IConfiguration configuration,
+
+                                                       //IOptions<DocumentServerFromAppSettings> docOptions,
+                                                       DocServerDbContext docServerDbContext = null)
+        {
+            if (docServerDbContext == null)
+            {
+                string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+                DbContextOptionsBuilder<DocServerDbContext> options = new();
+                options.UseSqlServer(sqlConn);
+                docServerDbContext = new(options.Options);
+            }
+
+            return new DocumentServerInformation(docServerDbContext);
+        }
 
 
         public DocumentServerInformation(DocServerDbContext docServerDbContext)
@@ -26,6 +40,8 @@ namespace SlugEnt.DocumentServer.Core
             Initialize     = SetupAsync(docServerDbContext);
         }
 
+
+        /*
 
         public DocumentServerInformation(IConfiguration configuration,
                                          IOptions<DocumentServerFromAppSettings> docOptions)
@@ -38,7 +54,7 @@ namespace SlugEnt.DocumentServer.Core
             Initialize     = SetupAsync(db);
         }
 
-
+        */
         /// <summary>
         /// Task used to perform setup during object creation.
         /// </summary>
@@ -50,9 +66,6 @@ namespace SlugEnt.DocumentServer.Core
         /// </summary>
         public bool IsInitialized { get; private set; } = false;
 
-
-        //[Obsolete]
-        //public void PostSetup(DocServerDbContext docServerDbContext) { SetupAsync(docServerDbContext); }
 
 
         /// <summary>
@@ -76,12 +89,18 @@ namespace SlugEnt.DocumentServer.Core
             ServerHostInfo.ServerHostName = host.NameDNS;
             ServerHostInfo.ServerFQDN     = host.FQDN;
 
-
-            // Load applications from DB into an internal Dictionary so we can speed up Application token authentication
-            List<Application> apps = await db.Applications.Where(a => a.IsActive == true).ToListAsync();
-            foreach (Application app in apps)
+            try
             {
-                ApplicationTokenLookup.Add(app.Token, app);
+                // Load applications from DB into an internal Dictionary so we can speed up Application token authentication
+                List<Application> apps = await db.Applications.Where(a => a.IsActive == true).ToListAsync();
+                foreach (Application app in apps)
+                {
+                    ApplicationTokenLookup.Add(app.Token, app);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loding initial Application List |  " + ex.Message);
             }
 
             IsInitialized = true;

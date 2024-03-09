@@ -10,7 +10,7 @@ public abstract class AbstractBaseFileTransfer
     /// <summary>
     /// The token that corresponds to the application this document is a member of.
     /// </summary>
-    public string ApplicationToken { get; set; } = "";
+    // public string ApplicationToken { get; set; } = "";
 
 
     /// <summary>

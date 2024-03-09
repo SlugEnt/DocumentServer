@@ -42,10 +42,17 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/stream")]
-    [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<TransferDocumentDto>> GetStoredDocumentAsStream(long id)
+
+    //[Authorize(Policy = "ApiKeyPolicy")]
+    public async Task<ActionResult<TransferDocumentDto>> GetStoredDocumentAsStream(long id,
+                                                                                   [FromHeader] string appToken)
+
+        //public async Task<ActionResult<TransferDocumentDto>> GetStoredDocumentAsStream(long id)
     {
-        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
+        // Get the App Token from the header
+
+        Result<TransferDocumentContainer> result =
+            await _docEngine.GetStoredDocumentAsync(id, appToken);
         if (result.IsFailed)
             return BadRequest(result.ToString());
 
@@ -67,10 +74,13 @@ public class DocumentsController : ControllerBase
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}")]
-    [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id)
+
+    //  [Authorize(Policy = "ApiKeyPolicy")]
+    public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id,
+                                                                                [FromHeader] string appToken)
     {
-        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id);
+        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id,
+                                                                                           appToken);
         if (result.IsFailed)
             return BadRequest(result.ToString());
 
@@ -104,8 +114,10 @@ public class DocumentsController : ControllerBase
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "PostStoredDocument")]
-    [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer)
+
+    //[Authorize(Policy = "ApiKeyPolicy")]
+    public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
+                                                               [FromHeader] string appToken)
     {
         try
         {
@@ -115,7 +127,7 @@ public class DocumentsController : ControllerBase
                 FileInFormFile   = documentContainer.File,
             };
 
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer);
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer, appToken);
             if (result.IsSuccess)
                 return Ok(result.Value.Id);
 

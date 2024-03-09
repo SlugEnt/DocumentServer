@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.ClientLibrary;
@@ -47,16 +48,6 @@ public class DocumentServerEngine
         // Use the real file system
         else
             _fileSystem = new FileSystem();
-    }
-
-
-
-    /// <summary>
-    ///     Sets the Database to use
-    /// </summary>
-    public DocServerDbContext DocumentServerDatabase
-    {
-        set => _db = value;
     }
 
 
@@ -149,25 +140,40 @@ public class DocumentServerEngine
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public async Task<Result<TransferDocumentContainer>> GetStoredDocumentAsync(long id)
+    public async Task<Result<TransferDocumentContainer>> GetStoredDocumentAsync(long id,
+                                                                                string appToken)
     {
-        TransferDocumentContainer transferDocument = new();
+        TransferDocumentContainer transferDocumentContainer = new();
         try
         {
-            StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
+            // Verify the Application Token is correct.
+            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(appToken, out Application application))
+                return Result.Fail("Invalid Application Token provided.");
+
+
+            //StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
+            var storedDocument = await _db.StoredDocuments.Where(sd => sd.Id == id).Select(s => new
+            {
+                StoredDocument = s,
+                ApplicationId  = s.DocumentType.ApplicationId
+            }).FirstOrDefaultAsync();
+
             if (storedDocument == null)
                 return Result.Fail("Unable to find a Stored Document with that Id");
 
+            if (storedDocument.ApplicationId != application.Id)
+                return Result.Fail("Application Token provided does not match the application Id of the Stored Document requested.  Access Denied");
+
 
             // Now Load the Stored Document.
-            string fileName     = storedDocument.FileName;
-            string fullFileName = Path.Join(storedDocument.StorageFolder, fileName);
+            string fileName     = storedDocument.StoredDocument.FileName;
+            string fullFileName = Path.Join(storedDocument.StoredDocument.StorageFolder, fileName);
 
 
-            transferDocument.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
+            transferDocumentContainer.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
             string extension = Path.GetExtension(fileName);
             if (extension == string.Empty)
-                extension = MediaTypes.GetExtension(storedDocument.MediaType);
+                extension = MediaTypes.GetExtension(storedDocument.StoredDocument.MediaType);
             else
 
                 // Strip the returned period.
@@ -175,21 +181,21 @@ public class DocumentServerEngine
 
 
             // Load the TransferDocument info
-            transferDocument.TransferDocument = new TransferDocumentDto()
+            transferDocumentContainer.TransferDocument = new TransferDocumentDto()
             {
-                Description             = storedDocument.Description,
-                CurrentStoredDocumentId = storedDocument.Id,
-                DocumentTypeId          = storedDocument.DocumentTypeId,
-                DocTypeExternalId       = storedDocument.DocTypeExternalKey,
-                RootObjectId            = storedDocument.RootObjectExternalKey,
-                MediaType               = storedDocument.MediaType,
+                Description             = storedDocument.StoredDocument.Description,
+                CurrentStoredDocumentId = storedDocument.StoredDocument.Id,
+                DocumentTypeId          = storedDocument.StoredDocument.DocumentTypeId,
+                DocTypeExternalId       = storedDocument.StoredDocument.DocTypeExternalKey,
+                RootObjectId            = storedDocument.StoredDocument.RootObjectExternalKey,
+                MediaType               = storedDocument.StoredDocument.MediaType,
                 FileExtension           = extension,
             };
 
 
             // TODO update the number of times accessed
 
-            return Result.Ok(transferDocument);
+            return Result.Ok(transferDocumentContainer);
         }
         catch (Exception ex)
         {
@@ -274,7 +280,8 @@ public class DocumentServerEngine
     /// <param name="transferDocumentDto">The file info to be stored</param>
     /// <param name="storageDirectory">Where to save it to.</param>
     /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentContainer transferDocumentContainer)
+    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentContainer transferDocumentContainer,
+                                                                          string applicationToken)
     {
         IDbContextTransaction?  transaction             = null;
         bool                    fileSavedToStorage      = false;
@@ -284,7 +291,7 @@ public class DocumentServerEngine
         try
         {
             // Verify the Application Token is correct.
-            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(transferDocumentContainer.TransferDocument.ApplicationToken, out Application application))
+            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(applicationToken, out Application application))
                 return Result.Fail("Invalid Application Token provided.");
 
             // Load and Validate the DocumentType is ok to use

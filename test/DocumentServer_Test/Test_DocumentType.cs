@@ -116,7 +116,7 @@ public class Test_DocumentType
                                                                                     documentType.Id,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId);
-        Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
 
 
         //***  Z. Validate

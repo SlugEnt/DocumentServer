@@ -86,7 +86,14 @@ public class Program
         builder.Services.AddSingleton<IAPIInfoBase>(apiInfoBase);
         builder.Services.AddSingleton<HealthCheckProcessor>();
         builder.Services.AddHostedService<HealthCheckerBackgroundProcessor>();
-        builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
+
+        //builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
+        builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
+        {
+            IConfiguration x = dsi.GetService<IConfiguration>();
+            return DocumentServerInformation.Create(x);
+        });
+
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
         builder.Services.AddControllers();
         builder.Services.AddProblemDetails();
@@ -112,7 +119,7 @@ public class Program
 #endif
         });
 
-        builder.Services.AddAuthentication(options => { options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; }).AddJwtBearer();
+        /*builder.Services.AddAuthentication(options => { options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; }).AddJwtBearer();
         builder.Services.AddAuthorization(options =>
         {
             options.AddPolicy("ApiKeyPolicy",
@@ -126,7 +133,7 @@ public class Program
                               });
         });
         builder.Services.AddScoped<IAuthorizationHandler, ApiKeyHandler>();
-
+        */
 
         builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
 

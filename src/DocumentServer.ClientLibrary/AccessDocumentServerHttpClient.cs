@@ -37,7 +37,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
 
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
-        _httpClient.Timeout = new TimeSpan(0, 0, 10);
+        _httpClient.Timeout = new TimeSpan(0, 0, 1000);
         _httpClient.DefaultRequestHeaders.Clear();
     }
 
@@ -63,13 +63,15 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// <param name="saveFileName"></param>
     /// <returns></returns>
     public async Task GetDocumentAndSaveToFileSystem(long documentId,
-                                                     string saveFileName)
+                                                     string saveFileName,
+                                                     string appToken)
     {
         try
         {
             string qry = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
+            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
             using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
@@ -100,13 +102,15 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="documentId">Id of document to retreive</param>
     /// <returns></returns>
-    public async Task<DocumentContainer?> GetDocumentAsync(long documentId)
+    public async Task<DocumentContainer?> GetDocumentAsync(long documentId,
+                                                           string appToken)
     {
         try
         {
             string action = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
+            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
 
             DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
             return documentContainer;
@@ -127,7 +131,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// <param name="fileName">The full path and file name of file/document to save</param>
     /// <returns></returns>
     public async Task<Result<long>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto,
-                                                      string fileName)
+                                                      string fileName,
+                                                      string appToken)
     {
         HttpResponseMessage response;
         string              responseContent = string.Empty;
@@ -156,7 +161,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
 
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
-
+            _httpClient.DefaultRequestHeaders.Add("AppToken", appToken);
             response = await _httpClient.PostAsync("documents", form);
 
             responseContent = await response.Content.ReadAsStringAsync();

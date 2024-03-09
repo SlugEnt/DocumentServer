@@ -17,6 +17,7 @@ public partial class MainMenu
     private readonly JsonSerializerOptions          _options;
     private          long                           lastDocSaved = 0;
     private          IConfiguration                 _configuration;
+    private readonly string                         _appToken = "abc";
 
 
     public MainMenu(ILogger<MainMenu> logger,
@@ -70,7 +71,7 @@ public partial class MainMenu
                             string tmpFileName = Guid.NewGuid().ToString();
                             string path        = Path.Join($"T:\\temp", tmpFileName);
 
-                            await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, path);
+                            await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, path, _appToken);
                         }
 
                         break;
@@ -88,7 +89,7 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result2 = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto2, fileToSave2.FullName);
+                        Result<long> result2 = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto2, fileToSave2.FullName, _appToken);
 
                         if (result2.IsSuccess)
                         {
@@ -113,7 +114,7 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto, fileToSave.FullName);
+                        Result<long> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto, fileToSave.FullName, _appToken);
 
                         if (result.IsSuccess)
                         {
@@ -146,7 +147,7 @@ public partial class MainMenu
                                 FileExtension  = xyz.Extension,
                                 RootObjectId   = "1",
                             };
-                            Result<long> resultUp = await _documentServerHttpClient.SaveDocumentAsync(tdo, xyz.FullName);
+                            Result<long> resultUp = await _documentServerHttpClient.SaveDocumentAsync(tdo, xyz.FullName, _appToken);
                             swUp.Stop();
 
                             if (resultUp.IsSuccess)
@@ -174,7 +175,7 @@ public partial class MainMenu
                         Stopwatch swDown = Stopwatch.StartNew();
                         foreach (long docId in uploadedDocIds)
                         {
-                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAsync(docId);
+                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAsync(docId, _appToken);
                             string            fileName              = documentContainerDown.DocumentInfo.Description;
                             fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
                             await File.WriteAllBytesAsync(fileName, documentContainerDown.DocumentInfo.FileInBytes);
@@ -203,17 +204,17 @@ public partial class MainMenu
                         string tmpFileNameR = Guid.NewGuid().ToString();
                         string pathR        = Path.Join($"T:\\temp", tmpFileNameR);
 
-                        await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, pathR);
+                        await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(1, pathR, _appToken);
                         break;
                     case ConsoleKey.G:
                         Stopwatch sw        = Stopwatch.StartNew();
                         long      totalSize = 0;
                         int       i         = 0;
 
-                        lastDocSaved = 3;
+                        lastDocSaved = 108;
                         for (i = 0; i < 1; i++)
                         {
-                            DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved);
+                            DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
                             string            extension = documentContainer.DocumentInfo.Extension != string.Empty ? "." + documentContainer.DocumentInfo.Extension : string.Empty;
                             string            fileName = Guid.NewGuid().ToString() + extension;
 

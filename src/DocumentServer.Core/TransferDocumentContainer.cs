@@ -8,7 +8,6 @@ namespace SlugEnt.DocumentServer.Core;
 /// </summary>
 public class TransferDocumentContainer
 {
-    private string    _fileInBase64Format;
     private IFormFile _fileInFormFile = null;
     private byte[]    _fileInBytes;
     private int       _fileSize;

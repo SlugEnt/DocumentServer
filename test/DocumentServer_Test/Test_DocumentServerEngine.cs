@@ -199,7 +199,7 @@ public class Test_DocumentServerEngine
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -262,9 +262,8 @@ public class Test_DocumentServerEngine
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId,
-                                                                                    1,
-                                                                                    badAppToken);
-        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+                                                                                    1);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, badAppToken);
 
         // ***  Z. Validate
         Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
@@ -299,9 +298,8 @@ public class Test_DocumentServerEngine
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId,
-                                                                                    1,
-                                                                                    TestConstants.APPB_TOKEN);
-        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+                                                                                    1);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPB_TOKEN);
 
         // ***  Z. Validate
         Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
@@ -326,6 +324,7 @@ public class Test_DocumentServerEngine
         string         expectedRootObjectId = sm.Faker.Random.String2(10);
         string         expectedExternalId   = sm.Faker.Random.String2(15);
 
+
         await sm.Initialize;
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
@@ -335,13 +334,14 @@ public class Test_DocumentServerEngine
                                                                                     expectedExtension,
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
-                                                                                    expectedExternalId);
+                                                                                    expectedExternalId,
+                                                                                    1);
 
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
-        Result<TransferDocumentContainer> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id);
+        Result<TransferDocumentContainer> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id, TestConstants.APPA_TOKEN);
         TransferDocumentContainer         tdc        = readResult.Value;
         TransferDocumentDto               tdd        = readResult.Value.TransferDocument;
         if (!tdc.IsInFormFileMode)
@@ -442,7 +442,7 @@ public class Test_DocumentServerEngine
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId);
 
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -744,9 +744,8 @@ public class Test_DocumentServerEngine
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId,
-                                                                                    4,
-                                                                                    TestConstants.APPB_TOKEN);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+                                                                                    4);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPB_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
         string originalStoredFileName = storedDocument.FileNameAndPath;
@@ -831,7 +830,7 @@ public class Test_DocumentServerEngine
                                                                                     expectedDocTypeId,
                                                                                     expectedRootObjectId,
                                                                                     expectedExternalId);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -898,7 +897,7 @@ public class Test_DocumentServerEngine
                                                                                         randomDocType.Id,
                                                                                         expectedRootObjectId,
                                                                                         expectedExternalId);
-            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
             Assert.That(result.IsSuccess, Is.True, "Z05:");
             StoredDocument storedDocument = result.Value;
 
@@ -971,7 +970,7 @@ public class Test_DocumentServerEngine
                                                                                         randomDocType.Id,
                                                                                         expectedRootObjectId,
                                                                                         expectedExternalId);
-            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
 
             // First pass we let go thru, 2nd we should get a failure.
             if (i > 0)

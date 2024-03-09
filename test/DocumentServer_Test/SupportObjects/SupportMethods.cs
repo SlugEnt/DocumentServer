@@ -287,8 +287,7 @@ public class SupportMethods
                                                                     int expectedDocTypeId,
                                                                     string expectedRootObjectId,
                                                                     string? expectedDocExtKey,
-                                                                    int sizeInKB = 3,
-                                                                    string appToken = TestConstants.APPA_TOKEN)
+                                                                    int sizeInKB = 3)
     {
         // A10. Create A Document
 
@@ -319,8 +318,7 @@ public class SupportMethods
             DocumentTypeId    = expectedDocTypeId,
             FileExtension     = expectedExtension,
             RootObjectId      = expectedRootObjectId,
-            DocTypeExternalId = expectedDocExtKey,
-            ApplicationToken  = appToken,
+            DocTypeExternalId = expectedDocExtKey
         };
         transferDocumentContainer.TransferDocument = upload;
 

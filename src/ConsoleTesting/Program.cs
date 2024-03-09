@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 using SlugEnt.DocumentServer.ClientLibrary;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
 
@@ -89,6 +90,11 @@ public class Program
                                                           })
                                                           .AddTransient<MainMenu>()
                                                           .AddTransient<DocumentServerEngine>()
+                                                          .AddSingleton<DocumentServerInformation>(dsi =>
+                                                          {
+                                                              IConfiguration x = dsi.GetService<IConfiguration>();
+                                                              return DocumentServerInformation.Create(x);
+                                                          })
                                                           .AddHttpClient<AccessDocumentServerHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
                                                           {
                                                               return new SocketsHttpHandler
