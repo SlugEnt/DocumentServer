@@ -1,7 +1,9 @@
-﻿namespace SlugEnt.DocumentServer.ClientLibrary
+﻿using SlugEnt.DocumentServer.Models.Enums;
+
+namespace SlugEnt.DocumentServer.ClientLibrary
 {
     /// <summary>
-    /// Used by DocumentServer  when returning a document to the caller.  Provides some needed information.
+    /// This object contains information returned to the caller of a Document Retrieval operation (GetStoredDocument, etc)
     /// </summary>
     public class ReturnedDocumentInfo
     {
@@ -24,5 +26,9 @@
         /// The description stored on the Document.
         /// </summary>
         public string? Description { get; set; }
+
+        public EnumMediaTypes MediaType { get; set; }
+
+        public string ContentType { get; set; }
     }
 }

@@ -175,11 +175,11 @@ public partial class MainMenu
                         Stopwatch swDown = Stopwatch.StartNew();
                         foreach (long docId in uploadedDocIds)
                         {
-                            DocumentContainer documentContainerDown = await _documentServerHttpClient.GetDocumentAsync(docId, _appToken);
-                            string            fileName              = documentContainerDown.DocumentInfo.Description;
+                            ReturnedDocumentInfo returnedDocumentInfo = await _documentServerHttpClient.GetDocumentAsync(docId, _appToken);
+                            string               fileName             = returnedDocumentInfo.Description;
                             fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
-                            await File.WriteAllBytesAsync(fileName, documentContainerDown.DocumentInfo.FileInBytes);
-                            Console.WriteLine("Downloaded File: {0} [ {1} ]", documentContainerDown.DocumentInfo.Description, docId);
+                            await File.WriteAllBytesAsync(fileName, returnedDocumentInfo.FileInBytes);
+                            Console.WriteLine("Downloaded File: {0} [ {1} ]", returnedDocumentInfo.Description, docId);
                         }
 
                         swDown.Stop();
@@ -200,7 +200,6 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.R:
-
                         string tmpFileNameR = Guid.NewGuid().ToString();
                         string pathR        = Path.Join($"T:\\temp", tmpFileNameR);
 
@@ -215,14 +214,14 @@ public partial class MainMenu
                         string fileNameG = "";
                         for (i = 0; i < 1; i++)
                         {
-                            DocumentContainer documentContainer = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
-                            string            extension = documentContainer.DocumentInfo.Extension != string.Empty ? "." + documentContainer.DocumentInfo.Extension : string.Empty;
+                            ReturnedDocumentInfo returnedDocumentInfo = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
+                            string               extension            = returnedDocumentInfo.Extension != string.Empty ? "." + returnedDocumentInfo.Extension : string.Empty;
                             fileNameG = Guid.NewGuid().ToString() + extension;
 
-                            totalSize += (long)documentContainer.DocumentInfo.Size;
+                            totalSize += (long)returnedDocumentInfo.Size;
 
                             fileNameG = Path.Join($"T:\\temp", fileNameG);
-                            await File.WriteAllBytesAsync(fileNameG, documentContainer.DocumentInfo.FileInBytes);
+                            await File.WriteAllBytesAsync(fileNameG, returnedDocumentInfo.FileInBytes);
                             File.Delete(fileNameG);
                         }
 

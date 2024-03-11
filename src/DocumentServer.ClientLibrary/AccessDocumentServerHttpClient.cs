@@ -103,8 +103,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="documentId">Id of document to retreive</param>
     /// <returns></returns>
-    public async Task<DocumentContainer?> GetDocumentAsync(long documentId,
-                                                           string appToken)
+    public async Task<ReturnedDocumentInfo?> GetDocumentAsync(long documentId,
+                                                              string appToken)
     {
         try
         {
@@ -113,8 +113,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
             _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
 
-            DocumentContainer? documentContainer = await _httpClient.GetFromJsonAsync<DocumentContainer>(action);
-            return documentContainer;
+            ReturnedDocumentInfo? returnedDocumentInfo = await _httpClient.GetFromJsonAsync<ReturnedDocumentInfo>(action);
+            return returnedDocumentInfo;
         }
         catch (Exception exception)
         {

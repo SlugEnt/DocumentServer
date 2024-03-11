@@ -50,15 +50,15 @@ public class DocumentsController : ControllerBase
     {
         // Get the App Token from the header
 
-        Result<TransferDocumentContainer> result =
-            await _docEngine.GetStoredDocumentAsync(id, appToken);
+        Result<ReturnedDocumentInfo> result = await _docEngine.GetStoredDocumentAsync(id, appToken);
         if (result.IsFailed)
             return BadRequest(result.ToString());
 
 
         // Send the file.
-        string contentType = MediaTypes.GetContentType(result.Value.TransferDocument.MediaType);
-        return new FileContentResult(result.Value.FileInBytes, contentType);
+        //string contentType = MediaTypes.GetContentType(result.Value.TransferDocument.MediaType);
+        ReturnedDocumentInfo returnedDocumentInfo = result.Value;
+        return new FileContentResult(returnedDocumentInfo.FileInBytes, returnedDocumentInfo.ContentType);
 
         // Another way to return a file do it via stream???
         //return File(result.Result, "image/png", "test.jpg");
@@ -74,16 +74,17 @@ public class DocumentsController : ControllerBase
     // GET api/<DocumentsController>/5
     [HttpGet("{id}")]
     [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<DocumentContainer>> GetStoredDocumentAndInfo(long id,
-                                                                                [FromHeader] string appToken)
+    public async Task<ActionResult<ReturnedDocumentInfo>> GetStoredDocumentAndInfo(long id,
+                                                                                   [FromHeader] string appToken)
     {
-        Result<TransferDocumentContainer> result = await _docEngine.GetStoredDocumentAsync(id,
-                                                                                           appToken);
+        Result<ReturnedDocumentInfo> result = await _docEngine.GetStoredDocumentAsync(id,
+                                                                                      appToken);
         if (result.IsFailed)
             return BadRequest(result.ToString());
 
 
         // Build Return Object
+        /*
         TransferDocumentContainer tdc = result.Value;
         DocumentContainer documentContainer = new()
         {
@@ -95,9 +96,9 @@ public class DocumentsController : ControllerBase
                 Description = tdc.TransferDocument.Description,
             },
         };
-
+        */
         // Send the file.
-        return Ok(documentContainer);
+        return Ok(result.Value);
     }
 
 

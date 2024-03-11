@@ -140,10 +140,10 @@ public class DocumentServerEngine
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
-    public async Task<Result<TransferDocumentContainer>> GetStoredDocumentAsync(long id,
-                                                                                string appToken)
+    public async Task<Result<ReturnedDocumentInfo>> GetStoredDocumentAsync(long id,
+                                                                           string appToken)
     {
-        TransferDocumentContainer transferDocumentContainer = new();
+        //TransferDocumentContainer transferDocumentContainer = new();
         try
         {
             // Verify the Application Token is correct.
@@ -169,8 +169,7 @@ public class DocumentServerEngine
             string fileName     = storedDocument.StoredDocument.FileName;
             string fullFileName = Path.Join(storedDocument.StoredDocument.StorageFolder, fileName);
 
-
-            transferDocumentContainer.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
+            //transferDocumentContainer.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
             string extension = Path.GetExtension(fileName);
             if (extension == string.Empty)
                 extension = MediaTypes.GetExtension(storedDocument.StoredDocument.MediaType);
@@ -181,6 +180,16 @@ public class DocumentServerEngine
 
 
             // Load the TransferDocument info
+            ReturnedDocumentInfo returnedDocumentInfo = new()
+            {
+                FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName),
+                Description = storedDocument.StoredDocument.Description,
+                Extension   = extension,
+                MediaType   = storedDocument.StoredDocument.MediaType,
+                ContentType = MediaTypes.GetContentType(storedDocument.StoredDocument.MediaType),
+            };
+            returnedDocumentInfo.Size = returnedDocumentInfo.FileInBytes.Length;
+            /*
             transferDocumentContainer.TransferDocument = new TransferDocumentDto()
             {
                 Description             = storedDocument.StoredDocument.Description,
@@ -191,11 +200,11 @@ public class DocumentServerEngine
                 MediaType               = storedDocument.StoredDocument.MediaType,
                 FileExtension           = extension,
             };
-
+            */
 
             // TODO update the number of times accessed
 
-            return Result.Ok(transferDocumentContainer);
+            return Result.Ok(returnedDocumentInfo);
         }
         catch (Exception ex)
         {

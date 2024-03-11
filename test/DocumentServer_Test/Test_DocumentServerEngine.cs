@@ -341,35 +341,39 @@ public class Test_DocumentServerEngine
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
-        Result<TransferDocumentContainer> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id, TestConstants.APPA_TOKEN);
-        TransferDocumentContainer         tdc        = readResult.Value;
-        TransferDocumentDto               tdd        = readResult.Value.TransferDocument;
-        if (!tdc.IsInFormFileMode)
-        {
-            Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
-            byte[] buffer2 = new byte[stream2.Length];
-            stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
+        Result<ReturnedDocumentInfo> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id, TestConstants.APPA_TOKEN);
 
-            Assert.That(tdc.FileInBytes, Is.EqualTo(buffer2), "Z10A:");
-        }
-        else
-        {
-            Stream stream = tdc.FileInFormFile.OpenReadStream();
-            Byte[] buffer = new Byte[stream.Length];
-            stream.ReadExactly(buffer, 0, (int)stream.Length);
+        ReturnedDocumentInfo rdi = readResult.Value;
 
-            Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
-            byte[] buffer2 = new byte[stream2.Length];
-            stream.ReadExactly(buffer2, 0, (int)stream2.Length);
-            Assert.That(buffer, Is.EqualTo(buffer2), "Z10B:");
-        }
+//        if (!rdi.IsInFormFileMode)
+//        {
+        Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
+        byte[] buffer2 = new byte[stream2.Length];
+        stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
 
+        Assert.That(rdi.FileInBytes, Is.EqualTo(buffer2), "Z10A:");
+        /*      }
+              else
+              {
+                  Stream stream = tdc.FileInFormFile.OpenReadStream();
+                  Byte[] buffer = new Byte[stream.Length];
+                  stream.ReadExactly(buffer, 0, (int)stream.Length);
+
+                  Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
+                  byte[] buffer2 = new byte[stream2.Length];
+                  stream.ReadExactly(buffer2, 0, (int)stream2.Length);
+                  Assert.That(buffer, Is.EqualTo(buffer2), "Z10B:");
+              }
+        */
         // Validate other TransferDocument Info
-        Assert.That(tdd.CurrentStoredDocumentId, Is.Not.EqualTo(0), "Z20:");
-        Assert.That(tdd.Description, Is.EqualTo(expectedDescription), "Z30:");
-        Assert.That(tdd.DocTypeExternalId, Is.EqualTo(expectedExternalId), "Z40:");
-        Assert.That(tdd.DocumentTypeId, Is.EqualTo(expectedDocTypeId), "Z50:");
-        Assert.That(tdd.RootObjectId, Is.EqualTo(expectedRootObjectId), "Z60:");
+        //Assert.That(tdd.CurrentStoredDocumentId, Is.Not.EqualTo(0), "Z20:");
+        Assert.That(rdi.Description, Is.EqualTo(expectedDescription), "Z30:");
+        Assert.That(rdi.Size == buffer2.Length, "Z40:");
+        Assert.That(rdi.Extension, Is.EqualTo(expectedExtension), "Z50:");
+
+        //Assert.That(tdd.DocTypeExternalId, Is.EqualTo(expectedExternalId), "Z40:");
+        //Assert.That(tdd.DocumentTypeId, Is.EqualTo(expectedDocTypeId), "Z50:");
+        //Assert.That(tdd.RootObjectId, Is.EqualTo(expectedRootObjectId), "Z60:");
     }
 
 
