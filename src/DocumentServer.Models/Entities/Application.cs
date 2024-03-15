@@ -42,8 +42,23 @@ public class Application : AbstractBaseEntity
     ///     The name of the Application.  This can be full English Description
     /// </summary>
     [MaxLength(75)]
-    public string Name { get; set; }
+    public string Name
+    {
+        get { return _name; }
+        set
+        {
+            if (value == null)
+                _name = string.Empty;
+            else
+            {
+                _name = value.Trim();
+                if (_name.Length > 75)
+                    _name = _name.Substring(0, 75);
+            }
+        }
+    }
 
+    private string _name;
 
     /// <summary>
     /// The token required to read / update any documents in the App library

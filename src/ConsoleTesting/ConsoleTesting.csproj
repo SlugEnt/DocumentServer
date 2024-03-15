@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>SlugEnt.DocumentServer.$(MSBuildProjectName)</AssemblyName>
+    <Version>0.0.6.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

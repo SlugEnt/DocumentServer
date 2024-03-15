@@ -7,7 +7,7 @@
 		<AssemblyName>SlugEnt.$(MSBuildProjectName)</AssemblyName>
 		<RootNamespace>SlugEnt.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
 		<Title>Library Interface for accessing the SlugEnt Document Server</Title>
-		<Version>0.1.0</Version>
+		<Version>0.0.7.0</Version>
 		<Authors>Scott Herrmann</Authors>
 		<Company>SlugEnt</Company>
 		<Description>Library to make accessing and using the DocumentServer API a little easier.  Contains DTO objects used to communicate back and forth</Description>
@@ -44,7 +44,31 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DocumentServer.Models\DocumentServer.Models.csproj" />
+		<ProjectReference Include="..\DocumentServer.Models\DocumentServer.Models.csproj" PrivateAssets="All" />
 	</ItemGroup>
+
+
+	<!-- This whole section is needed in order to include project references that are not Nuget builds into the nuget package.  Such as Models.-->
+	<PropertyGroup>
+		<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+	</PropertyGroup>
+	<Target Name="CopyProjectReferencesToPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
+		<ItemGroup>
+			<!-- Filter out unnecessary files -->
+			<_ReferenceCopyLocalPaths
+				Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference')->WithMetadataValue('PrivateAssets', 'All'))" />
+		</ItemGroup>
+
+		<!-- Print batches for debug purposes -->
+		<Message
+			Text="Batch for .nupkg: ReferenceCopyLocalPaths = @(_ReferenceCopyLocalPaths), ReferenceCopyLocalPaths.DestinationSubDirectory = %(_ReferenceCopyLocalPaths.DestinationSubDirectory) Filename = %(_ReferenceCopyLocalPaths.Filename) Extension = %(_ReferenceCopyLocalPaths.Extension)"
+			Importance="High" Condition="'@(_ReferenceCopyLocalPaths)' != ''" />
+
+		<ItemGroup>
+			<!-- Add file to package with consideration of sub folder. If empty, the root folder is chosen. -->
+			<BuildOutputInPackage Include="@(_ReferenceCopyLocalPaths)"
+			                      TargetPath="%(_ReferenceCopyLocalPaths.DestinationSubDirectory)" />
+		</ItemGroup>
+	</Target>
 
 </Project>

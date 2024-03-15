@@ -16,8 +16,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution ITems", "Solution ITems", "{BDE19127-A55A-4EE1-B6D8-86C44B3ECC8F}"
 	ProjectSection(SolutionItems) = preProject
 		GlobalUsings.cs = GlobalUsings.cs
-		..\README.md = ..\README.md
 		..\Scripts\PushToNuget_Local.cmd = ..\Scripts\PushToNuget_Local.cmd
+		..\README.md = ..\README.md
 		..\Scripts\ReleaseToPublicNuget.cmd = ..\Scripts\ReleaseToPublicNuget.cmd
 	EndProjectSection
 EndProject

@@ -15,7 +15,7 @@
 @inject NavigationManager NavigationManager
 
 <PageTitle>Storage Nodes</PageTitle>
-
+<h1>Storage Nodes</h1>
 <RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
 
 <div>
@@ -24,29 +24,30 @@
 </div>
 
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="25" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@_storageNodes" TItem="StorageNode" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedNodes">
     <Columns>
-        <RadzenDataGridColumn TItem="StorageNode" Property="Name" Title="Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left" />
-        <RadzenDataGridColumn TItem="StorageNode" Property="Description" Title="Description" Frozen="true" Sortable="false" Filterable="false" Width="100px" TextAlign="TextAlign.Left"/>
-        <RadzenDataGridColumn TItem="StorageNode" Property="NodePath" Title="Node Path" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left" />
-        <RadzenDataGridColumn TItem="StorageNode" Property="StorageNodeLocation" Title="Node Location" Frozen="true" Width="50px" Filterable="false" />
-        <RadzenDataGridColumn TItem="StorageNode" Property="IsActive" Title="Active" Frozen="true" Width="18px">
+        <RadzenDataGridColumn TItem="StorageNode" Property="Name" Title="Name" Filterable="false" Frozen="true" Width="30px" TextAlign="TextAlign.Left" />
+        <RadzenDataGridColumn TItem="StorageNode" Property="Description" Title="Description" Frozen="true" Sortable="false" Filterable="false" Width="65px" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn TItem="StorageNode" Property="ServerHost.NameDNS" Title="Hosted On Server" Frozen="true" Sortable="false" Filterable="false" Width="20px" TextAlign="TextAlign.Left" />
+        <RadzenDataGridColumn TItem="StorageNode" Property="NodePath" Title="Node Path" Frozen="true" Sortable="false" Filterable="false" Width="30px" TextAlign="TextAlign.Left" />
+        <RadzenDataGridColumn TItem="StorageNode" Property="StorageNodeLocation" Title="Node Location" Frozen="true" Width="25px" Filterable="false" />
+        <RadzenDataGridColumn TItem="StorageNode" Property="IsActive" Title="Active" Frozen="true" Width="14px">
             <Template>
                 <RadzenCheckBox @bind-Value=@context.IsActive ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="18px">
+        <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="14px">
             <Template>
                 <RadzenCheckBox @bind-Value=@context.IsTestNode ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>         
-        <RadzenDataGridColumn TItem="StorageNode" Property="StorageSpeed" Title="Speed" Frozen="true" Width="18px" />
+        <RadzenDataGridColumn TItem="StorageNode" Property="StorageSpeed" Title="Speed" Frozen="true" Width="14px" />
 
         <RadzenDataGridColumn Width="100px" TItem="DocumentType" Property="ID" Title="Document Actions">
             <Template Context="data">
                 <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => OnDetails(data.Id)) Text="Details" />
-                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => OnEdit(data.Id)) Text="Details" />
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => OnEdit(data.Id)) Text="Edit" />
             </Template>
         </RadzenDataGridColumn>
 
@@ -98,7 +99,7 @@
     public async Task LoadStorageNodes(bool showInActive = false)
     {
         if (!showInActive)
-            _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == true);
+            _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == true).Include(StorageNode => StorageNode.ServerHost);
         else
             _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == false);
     }

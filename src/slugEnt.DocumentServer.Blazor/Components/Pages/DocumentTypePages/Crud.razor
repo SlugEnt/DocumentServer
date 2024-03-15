@@ -64,6 +64,11 @@
                                 AllowClear="false" AllowFiltering="false" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Style="" Name="DropDownDocLifetime"/>
             </RadzenFormField>
 
+            <RadzenFormField Text="Primary Storage Node" Variant="@radDisplay" Style="max-width: 260px">
+                <RadzenDropDown Data="@_storageNodes" @bind-Value="@_documentType.ActiveStorageNode1Id" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+            </RadzenFormField>
+
+
         </RadzenStack>
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
             @if (_isCreateMode)
@@ -98,7 +103,9 @@
 
     private DocumentType             _documentType = new();
     private IEnumerable<Application> _applications;
-    private IEnumerable<RootObject>  _rootObjects = Enumerable.Empty<RootObject>();
+    private IEnumerable<RootObject>  _rootObjects  = Enumerable.Empty<RootObject>();
+    private IEnumerable<StorageNode> _storageNodes = Enumerable.Empty<StorageNode>();
+
 
 
     // Constructor
@@ -132,8 +139,8 @@
         if (_isCreateMode)
         {
             _applications = DB.Applications;
-
-            //_rootObjects  = DB.RootObjects;
+            _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == true);
+            _rootObjects  = DB.RootObjects.Where(ro => ro.IsActive == true);
         }
         else
         {
@@ -141,8 +148,9 @@
 
             if (retrieveRecord)
             {
-                _documentType = await DB.DocumentTypes.SingleOrDefaultAsync(dt => dt.Id == recordId);
+                _documentType = DB.DocumentTypes.SingleOrDefault(dt => dt.Id == recordId);
                 DB.RootObjects.Where(ro => ro.Id == _documentType.RootObjectId);
+                DB.StorageNodes.Where(sn => sn.Id == _documentType.ActiveStorageNode1Id);
                 DB.Applications.Where(ap => ap.Id == _documentType.ApplicationId);
             }
         }
@@ -158,7 +166,7 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        DB.DocumentTypes.Add(_documentType);
+        await DB.DocumentTypes.AddAsync(_documentType);
         await DB.SaveChangesAsync();
         ReturnToList();
     }

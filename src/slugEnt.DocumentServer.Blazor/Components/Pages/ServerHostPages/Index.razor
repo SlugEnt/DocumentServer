@@ -6,9 +6,9 @@
 @inject DocServerDbContext DB
 @inject NavigationManager NavigationManager
 
-<PageTitle>Index Title</PageTitle>
+<PageTitle>Server Hosts</PageTitle>
 
-<h1>Index</h1>
+<h1>Server Hosts</h1>
 
 <RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Icon="label" Text="Add New" Click="@AddNew"/>
 
@@ -18,7 +18,7 @@
 </div>
 
 
-<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+<RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
                 Data="@_serverHosts"  TItem="ServerHost" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedHosts">
     <Columns>
         <RadzenDataGridColumn TItem="ServerHost" Property="NameDNS" Title="DNS Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left" />

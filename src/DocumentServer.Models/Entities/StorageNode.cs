@@ -79,7 +79,7 @@ public class StorageNode : AbstractBaseEntity
     /// <summary>
     ///     The fully qualified path this node stores its files at.
     /// </summary>
-    [MaxLength(500)]
+    [MaxLength(100)]
     public string NodePath { get; set; }
 
 

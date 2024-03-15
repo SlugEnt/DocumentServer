@@ -1,0 +1,164 @@
+﻿@page "/applications/crud/{mode}"
+@page "/applications/crud/{mode}/{recordId:int}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using SlugEnt.DocumentServer.Models.DTOS
+@using SlugEnt.DocumentServer.Models.Entities
+@using SlugEnt.DocumentServer.Db
+@using global::DocumentServer.Core
+@using SlugEnt.FluentResults
+@inherits AbstractCRUDComponent
+
+
+@inject DocServerDbContext DB
+@inject DocumentServerEngine docEngine
+
+
+<h1>@_pageTitle</h1>
+<hr />
+<RadzenRow Gap="1rem">
+    <RadzenColumn Size="12" SizeSM="6">
+        @if (_errMsg != string.Empty)
+        {
+            <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+        }
+        @if (_successMsg != string.Empty)
+        {
+            <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
+        }
+
+
+
+        <RadzenStack>
+            <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
+                <RadzenTextBox @bind-Value="@_application.Name" ReadOnly="@_canEdit" />
+            </RadzenFormField>
+
+            <RadzenFormField Text="Token" Variant="@radDisplay" Style="width: 100%" Visible="_isCreateMode">
+                <RadzenTextBox @bind-Value="@_application.Token" ReadOnly="@_canEdit"/>
+            </RadzenFormField>
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
+            @if (_isCreateMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Create" Click="@AddEntity" />
+            }
+            else if (_isEditMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="save" Text="Save Changes" Click="@UpdateEntity" />
+            }
+            else if (_isDeleteMode)
+            {
+                <RadzenButton ButtonType="ButtonType.Submit" Size="ButtonSize.Large" Icon="delete" Text="Confirm Deletion" Click="@DeleteEntity" />
+            }
+            else if (_wasDeleted)
+            {
+                <RadzenButton ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Large" Icon="check_circle" Text="Return To List" Click="@ReturnToList" />
+            }
+            @if (_isCreateMode || _isEditMode || _isDeleteMode)
+            {
+                <RadzenButton ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Large" Icon="cancel" Text="Cancel" Click="@Cancel" />
+            }
+
+        </RadzenStack>
+
+    </RadzenColumn>
+</RadzenRow>
+
+
+
+@code {
+    private readonly Application _application = new();
+
+
+
+    // Constructor
+    public Crud() : base("Application", "applications") { }
+
+    /// <summary>
+    ///     Method invoked when the component is ready to start, having received its
+    ///     initial parameters from its parent in the render tree.
+    ///     Override this method if you will perform an asynchronous operation and
+    ///     want the component to refresh when that operation is completed.
+    /// </summary>
+    /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isInitializeed)
+            return;
+
+        _isInitializeed = true;
+
+        await base.OnInitializedAsync();
+    }
+
+
+    /// <summary>
+    ///     Do after parameter set stuff, such as load the entity record, etc
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task PostSetParametersAsync()
+    {
+        bool retrieveRecord = _application == null || _application.Id != recordId ? true : false;
+
+        if (!retrieveRecord)
+            return;
+
+        Application? ro = await DB.Applications.SingleOrDefaultAsync(ro => ro.Id == recordId);
+        if (ro == null)
+            _errMsg = "Unable to locate the Application with Id of [ " + recordId + " ].  Unable to continue";
+    }
+
+
+
+    /// <summary>
+    ///     Creates a new RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task AddEntity()
+    {
+        Result<string> appSaveResult = await docEngine.ApplicationSaveAsync(_application);
+        if (appSaveResult.IsSuccess)
+        {
+            ReturnToList();
+        }
+        else
+            _errMsg = appSaveResult.ToString();
+
+    }
+
+
+    /// <summary>
+    ///     Updates the RootObject
+    /// </summary>
+    /// <returns></returns>
+    public async Task UpdateEntity()
+    {
+        DB.Applications.Update(_application);
+        await DB.SaveChangesAsync();
+        _successMsg = string.Format("Application {0} [ {1} ] was successfully updated.", _application.Name, _application.Id);
+    }
+
+
+    /// <summary>
+    ///     Deletes the RootOBject
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteEntity()
+    {
+        /*
+        bool result = await docEngine.RootObjectDeleteAsync(_rootObject.Id);
+        if (result)
+        {
+            _successMsg = string.Format("RootObject {0} [ {1} ] was successfully inactivated.", _rootObject.Name, _rootObject.Id);
+            _wasDeleted = true;
+            _isDeleteMode = false;
+        }
+        else
+            _errMsg = "RootObject was not inactivated.  Unknown reason.";
+        */
+    }
+
+
+}

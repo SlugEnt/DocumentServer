@@ -86,7 +86,11 @@ public class Program
         builder.Services.AddScoped<DialogService>();
         builder.Services.AddScoped<TooltipService>();
         builder.Services.AddScoped<DocumentServerEngine>();
-        builder.Services.AddSingleton<DocumentServerInformation>(); // Must be just one version throughout program lifetime
+        builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
+        {
+            IConfiguration x = dsi.GetService<IConfiguration>();
+            return DocumentServerInformation.Create(x);
+        });
 
 
         // WSH End 

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using System.Xml.Linq;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
@@ -73,7 +74,23 @@ public class DocumentType : AbstractBaseEntity
     ///     Name of this Document Type
     /// </summary>
     [MaxLength(75)]
-    public string Name { get; set; }
+    public string Name
+    {
+        get { return _name; }
+        set
+        {
+            if (value == null)
+                _name = string.Empty;
+            else
+            {
+                _name = value.Trim();
+                if (_name.Length > 75)
+                    _name = _name.Substring(0, 75);
+            }
+        }
+    }
+
+    private string _name;
 
 
     public RootObject RootObject { get; set; }
@@ -85,7 +102,24 @@ public class DocumentType : AbstractBaseEntity
     ///     With value set: /storage/parent/xyz/yyyy/mm/dd/file/pdf
     /// </summary>
     [MaxLength(10)]
-    public string StorageFolderName { get; set; } = "";
+    public string StorageFolderName
+    {
+        get { return _storageFolderName; }
+        set
+        {
+            int maxLength = 10;
+            if (value == null)
+                _storageFolderName = string.Empty;
+            else
+            {
+                _storageFolderName = value.Trim();
+                if (_storageFolderName.Length > maxLength)
+                    _storageFolderName = _storageFolderName.Substring(0, maxLength);
+            }
+        }
+    }
+
+    private string _storageFolderName = "";
 
 
     public static Result<DocumentType> CreateDocumentType(string name,

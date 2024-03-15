@@ -8,16 +8,16 @@
 @inject DialogService DialogService
 @inject TooltipService TooltipService
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Document Types</PageTitle>
 <RadzenDialog/>
 
-<h1>Index</h1>
+<h1>Document Types</h1>
 
 <RadzenButton ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium" Icon="label" Text="Add New" Click="@AddNew"/>
 
 <!--<RadzenButton Text="Hello" Click="@(() => OpenDetails(2))" MouseEnter="@(args => ShowTooltipLifetime(args))"/>-->
 
-<RadzenDataGrid Data="@_documentTypes" TItem="DocumentType" AllowSorting="true" AllowPaging="true" PageSize="5">
+<RadzenDataGrid Data="@_documentTypes" TItem="DocumentType" AllowSorting="true" AllowPaging="true" PageSize="35">
     <Columns>
         <RadzenDataGridColumn TItem="DocumentType" Property="Name" Title="Name"/>
         <RadzenDataGridColumn TItem="DocumentType" Property="StorageMode" Title="Storage Mode"/>

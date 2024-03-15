@@ -39,7 +39,12 @@
             <RadzenFormField Text="Desccription" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_storageNode.Description" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-        
+
+
+            <RadzenFormField Text="Hosted on Server" Variant="@radDisplay" Style="max-width: 350px">
+                <RadzenDropDown Data="@_serverHosts"@bind-Value="@_storageNode.ServerHostId" TextProperty="NameDNS" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+            </RadzenFormField>
+
             
             <RadzenFormField Text="Node Path" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_storageNode.NodePath" ReadOnly="@_canEdit"/>
@@ -100,8 +105,8 @@
 
 
 @code {
-    private readonly StorageNode _storageNode  = new();
-    
+    private readonly StorageNode             _storageNode = new();
+    private          IEnumerable<ServerHost> _serverHosts = new List<ServerHost>();
 
 
     // Constructor
@@ -119,6 +124,12 @@
     {
         if (_isInitializeed)
             return;
+
+        // Load list of Applications only once.
+        _serverHosts = await DB.ServerHosts.Where(sh=>sh.IsActive == true)  
+                                          .ToListAsync();
+
+
 
         _isInitializeed = true;
 
