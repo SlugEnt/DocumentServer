@@ -15,7 +15,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     private readonly HttpClient                              _httpClient;
     private readonly ILogger<AccessDocumentServerHttpClient> _logger;
     private readonly JsonSerializerOptions                   _options;
-    private readonly string                                  _apiKey;
+    private          string                                  _apiKey;
 
 
     /// <summary>
@@ -24,8 +24,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// <param name="httpClient"></param>
     /// <param name="logger"></param>
     public AccessDocumentServerHttpClient(HttpClient httpClient,
-                                          ILogger<AccessDocumentServerHttpClient> logger,
-                                          IConfiguration configuration)
+                                          ILogger<AccessDocumentServerHttpClient> logger)
     {
         _httpClient = httpClient;
         _logger     = logger;
@@ -35,13 +34,20 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             PropertyNameCaseInsensitive = true,
         };
 
-        _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
+//        _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
 
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
         _httpClient.Timeout = new TimeSpan(0, 0, 1000);
         _httpClient.DefaultRequestHeaders.Clear();
     }
 
+
+    // The API Key to access the API with
+    public string ApiKey
+    {
+        get { return _apiKey; }
+        set { _apiKey = value; }
+    }
 
 
     public void Dispose() => _httpClient?.Dispose();
@@ -62,16 +68,16 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="documentId"></param>
     /// <param name="saveFileName"></param>
-    /// <returns></returns>
-    public async Task GetDocumentAndSaveToFileSystem(long documentId,
-                                                     string saveFileName,
-                                                     string appToken)
+    /// <returns>Result object with Success or Failure return code.</returns>
+    public async Task<Result> GetDocumentAndSaveToFileSystem(long documentId,
+                                                             string saveFileName,
+                                                             string appToken)
     {
         try
         {
             string qry = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("ApiKey", _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
             _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
             using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
@@ -84,7 +90,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
                 }
 
                 Console.WriteLine("SUCCESS:  Saved File: {0}", saveFileName);
-                return;
+                return Result.Ok();
 
                 //StoredDocument storedDocument = await JsonSerializer.DeserializeAsync<StoredDocument>(stream, _options);
             }
@@ -92,6 +98,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         catch (Exception exception)
         {
             _logger.LogError("Something wong:  {Error}", exception);
+            return Result.Fail(new ExceptionalError(exception));
         }
     }
 
@@ -99,12 +106,12 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
 
     /// <summary>
     /// Retrieves the document AND additional metadata about the document from the Document Server.  Use this if you want to
-    /// figure out what to do with the file bytes (save them, send them somewhere else etc...
+    /// figure out what to do with the file bytes (save them, send them somewhere else etc...)
     /// </summary>
     /// <param name="documentId">Id of document to retreive</param>
-    /// <returns></returns>
-    public async Task<ReturnedDocumentInfo?> GetDocumentAsync(long documentId,
-                                                              string appToken)
+    /// <returns>Rresult with success or failure.  If Success the Value of the Result object is the ReturnedDocumentInfo class</returns>
+    public async Task<Result<ReturnedDocumentInfo?>> GetDocumentAsync(long documentId,
+                                                                      string appToken)
     {
         try
         {
@@ -114,12 +121,12 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
 
             ReturnedDocumentInfo? returnedDocumentInfo = await _httpClient.GetFromJsonAsync<ReturnedDocumentInfo>(action);
-            return returnedDocumentInfo;
+            return Result.Ok(returnedDocumentInfo);
         }
         catch (Exception exception)
         {
             _logger.LogError("Error during GetDocumentAsync:  {Error}", exception);
-            return null;
+            return Result.Fail(new ExceptionalError(exception));
         }
     }
 
@@ -130,7 +137,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     /// </summary>
     /// <param name="transferDocumentDto">Information required to save the document to the Document Server</param>
     /// <param name="fileName">The full path and file name of file/document to save</param>
-    /// <returns></returns>
+    /// <returns>A Result with a value of the Long Id of the Document as stored in the Document Server</returns>
     public async Task<Result<long>> SaveDocumentAsync(TransferDocumentDto transferDocumentDto,
                                                       string fileName,
                                                       string appToken)

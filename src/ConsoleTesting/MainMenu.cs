@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Protocols;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -31,9 +32,7 @@ public partial class MainMenu
 
         // Testing only
         _documentServerHttpClient.BaseAddress = new Uri(_configuration["DocumentServer:Host"]);
-
-        //_documentServerHttpClient.BaseAddress = new Uri(@"http://testdummy3.slug.local:35676/api"]);
-
+        _documentServerHttpClient.ApiKey      = _configuration["DocumentServer:ApiKey"];
 
         _options = new JsonSerializerOptions
         {
@@ -175,11 +174,20 @@ public partial class MainMenu
                         Stopwatch swDown = Stopwatch.StartNew();
                         foreach (long docId in uploadedDocIds)
                         {
-                            ReturnedDocumentInfo returnedDocumentInfo = await _documentServerHttpClient.GetDocumentAsync(docId, _appToken);
-                            string               fileName             = returnedDocumentInfo.Description;
-                            fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
-                            await File.WriteAllBytesAsync(fileName, returnedDocumentInfo.FileInBytes);
-                            Console.WriteLine("Downloaded File: {0} [ {1} ]", returnedDocumentInfo.Description, docId);
+                            Result<ReturnedDocumentInfo> getDocResult = await _documentServerHttpClient.GetDocumentAsync(docId, _appToken);
+                            if (getDocResult.IsSuccess)
+                            {
+                                ReturnedDocumentInfo returnedDocumentInfo = getDocResult.Value;
+                                string               fileName             = returnedDocumentInfo.Description;
+                                fileName = Path.Join(@"T:\ProgrammingTesting\Downloaded", fileName);
+                                await File.WriteAllBytesAsync(fileName, returnedDocumentInfo.FileInBytes);
+                                Console.WriteLine("Downloaded File: {0} [ {1} ]", returnedDocumentInfo.Description, docId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Failed to retrieve the document from the Document Server.  DocumentServer returned the following message: {0}",
+                                                  getDocResult.ToString());
+                            }
                         }
 
                         swDown.Stop();
@@ -214,15 +222,23 @@ public partial class MainMenu
                         string fileNameG = "";
                         for (i = 0; i < 1; i++)
                         {
-                            ReturnedDocumentInfo returnedDocumentInfo = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
-                            string               extension            = returnedDocumentInfo.Extension != string.Empty ? "." + returnedDocumentInfo.Extension : string.Empty;
-                            fileNameG = Guid.NewGuid().ToString() + extension;
+                            Result<ReturnedDocumentInfo> getResult = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
+                            if (getResult.IsSuccess)
+                            {
+                                ReturnedDocumentInfo returnedDocumentInfo = getResult.Value;
+                                string               extension            = returnedDocumentInfo.Extension != string.Empty ? "." + returnedDocumentInfo.Extension : string.Empty;
+                                fileNameG = Guid.NewGuid().ToString() + extension;
 
-                            totalSize += (long)returnedDocumentInfo.Size;
+                                totalSize += (long)returnedDocumentInfo.Size;
 
-                            fileNameG = Path.Join($"T:\\temp", fileNameG);
-                            await File.WriteAllBytesAsync(fileNameG, returnedDocumentInfo.FileInBytes);
-                            File.Delete(fileNameG);
+                                fileNameG = Path.Join($"T:\\temp", fileNameG);
+                                await File.WriteAllBytesAsync(fileNameG, returnedDocumentInfo.FileInBytes);
+                                File.Delete(fileNameG);
+                            }
+                            else
+                            {
+                                Console.WriteLine("GetDocument failed to retrieve the document:  Error: {0}", getResult.ToString());
+                            }
                         }
 
                         sw.Stop();

@@ -34,7 +34,7 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is returned when retrieving a document.
     ///   - Should be sent when saving a document.
     /// </summary>
-    public string Description { get; set; } = "";
+    public string? Description { get; set; } = "";
 
     /// <summary>
     ///     This is the external (calling) systems key or Id for this document.  Like an Invoice # or Bill #
@@ -48,7 +48,7 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is NOT returned when retrieving a document.
     ///   - Should be sent when saving a document.  It is informational only
     /// </summary>
-    public string FileExtension { get; set; } = "";
+    public string? FileExtension { get; set; } = "";
 
     /// <summary>
     ///     This is the external (Calling) systems primary relation ID, Ie, the primary thing this is related to, for instance a Claim
@@ -56,7 +56,7 @@ public abstract class AbstractBaseFileTransfer
     ///   - Is returned when retrieving a document.
     ///   - Must be sent when saving a document.
     /// </summary>
-    public string RootObjectId { get; set; }
+    public string RootObjectId { get; set; } = "";
 
 
     /// <summary>
