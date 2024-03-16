@@ -30,6 +30,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\DocumentServer.API\DocumentServer.API.csproj" />
 		<ProjectReference Include="..\..\src\DocumentServer.Core\DocumentServer.Core.csproj" />
 	</ItemGroup>
 

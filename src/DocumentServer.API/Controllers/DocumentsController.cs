@@ -114,8 +114,8 @@ public class DocumentsController : ControllerBase
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "PostStoredDocument")]
     [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<string>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
-                                                               [FromHeader] string appToken)
+    public async Task<ActionResult<long>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
+                                                             [FromHeader] string appToken)
     {
         try
         {

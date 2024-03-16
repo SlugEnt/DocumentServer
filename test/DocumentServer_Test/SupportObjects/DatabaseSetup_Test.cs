@@ -65,6 +65,12 @@ public static class DatabaseSetup_Test
     public static DocServerDbContext DocServerDbContext { get; private set; }
 
 
+    /// <summary>
+    /// Used to stored Id's for objects used during testing.
+    /// </summary>
+    public static Dictionary<string, int> IdLookupDictionary { get; private set; } = new Dictionary<string, int>();
+
+
     private static void SeedData(DocServerDbContext db)
     {
         // Add Applications
@@ -83,6 +89,8 @@ public static class DatabaseSetup_Test
         db.Add(appA);
         db.Add(appB);
         db.SaveChanges();
+        IdLookupDictionary.Add(appA.Name, appA.Id);
+        IdLookupDictionary.Add(appB.Name, appB.Id);
 
 
         // Add a Root Object For each Application
@@ -111,6 +119,10 @@ public static class DatabaseSetup_Test
         db.Add(rootB);
         db.Add(rootC);
         db.SaveChanges();
+        IdLookupDictionary.Add("Root_A_App_A", rootA.Id);
+        IdLookupDictionary.Add("Root_B_App_B", rootB.Id);
+        IdLookupDictionary.Add("Root_C_App_B", rootC.Id);
+
 
         //  Add ServerHost
         string localHost = Dns.GetHostName();
@@ -123,6 +135,7 @@ public static class DatabaseSetup_Test
         };
         db.Add(hostA);
         db.SaveChanges();
+        IdLookupDictionary.Add("ServerHost_A", hostA.Id);
 
 
         // Add Storage Nodes
@@ -239,5 +252,11 @@ public static class DatabaseSetup_Test
                     docY,
                     docRA);
         db.SaveChanges();
+        IdLookupDictionary.Add("DocType_A", docA.Id);
+        IdLookupDictionary.Add("DocType_B", docB.Id);
+        IdLookupDictionary.Add("DocType_C", docC.Id);
+        IdLookupDictionary.Add("DocType_X", docX.Id);
+        IdLookupDictionary.Add("DocType_Y", docY.Id);
+        IdLookupDictionary.Add("DocType_RA", docRA.Id);
     }
 }
