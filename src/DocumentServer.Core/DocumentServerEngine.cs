@@ -276,13 +276,142 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError("FAiled to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
+            _logger.LogError("Failed to change DocumentType [ {DocumentType} Active Status.  Error: {Error}", documentTypeId, ex);
             return Result.Fail(new Error("Failed to change DocumentType IsAlive Status due to error.").CausedBy(ex));
         }
     }
 
 
+    public async Task<Result<StoredDocument>> StoreDocumentNew(TransferDocumentDto transferDocumentDto,
+                                                               string applicationToken)
+    {
+        IDbContextTransaction?  transaction             = null;
+        bool                    fileSavedToStorage      = false;
+        string                  fullFileName            = "";
+        DocumentOperationStatus documentOperationStatus = new();
+        Result<StoredDocument>  result                  = new();
+        try
+        {
+            // File Extension as null causes issues.
+            if (transferDocumentDto.FileExtension == null)
+                transferDocumentDto.FileExtension = string.Empty;
 
+            // Verify the Application Token is correct.
+            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(applicationToken, out Application application))
+                return Result.Fail("Invalid Application Token provided.");
+
+            // Load and Validate the DocumentType is ok to use
+            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentDto.DocumentTypeId);
+            if (docTypeResult.IsFailed)
+                return Result.Merge(result, docTypeResult);
+
+            DocumentType docType = docTypeResult.Value;
+
+
+            // Make sure the DocType application matches the application the token was for.
+            if (docType.ApplicationId != application.Id)
+                return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
+
+
+            // We always use the primary node for initial storage.
+
+            int tmpFileSize = (int)transferDocumentDto.File.Length;
+            int fileSize    = tmpFileSize > 1024 ? tmpFileSize / 1024 : 1;
+
+            if (string.IsNullOrWhiteSpace(transferDocumentDto.RootObjectId))
+                return Result.Fail(new Error("No RootObjectId was specified on the transferDocumentContainer.  It is required."));
+
+            if (string.IsNullOrWhiteSpace(transferDocumentDto.DocTypeExternalId))
+            {
+                // Ensure it is null.
+                transferDocumentDto.DocTypeExternalId = null;
+            }
+            else
+            {
+                // Make sure we are following the rule for not allowing duplicates if it is set.
+                if (!docType.AllowSameDTEKeys)
+                {
+                    // Make sure the external key does not already exist.
+                    bool exists = _db.StoredDocuments.Any(sd => sd.RootObjectExternalKey == transferDocumentDto.RootObjectId &&
+                                                                sd.DocTypeExternalKey == transferDocumentDto.DocTypeExternalId);
+                    if (exists)
+                    {
+                        string msg =
+                            string.Format("Duplicate Key not allowed.  RootObject Id [ {0} ] already has a DocumentType [ {1} ]  with an External Id of [ {2} ].  This DocumentType does not allow duplicate entries.",
+                                          transferDocumentDto.RootObjectId,
+                                          transferDocumentDto.DocumentTypeId,
+                                          transferDocumentDto.DocTypeExternalId);
+                        return Result.Fail(new Error(msg));
+                    }
+                }
+            }
+
+            StoredDocument storedDocument = new(transferDocumentDto.FileExtension,
+                                                transferDocumentDto.Description,
+                                                transferDocumentDto.RootObjectId,
+                                                transferDocumentDto.DocTypeExternalId,
+                                                "",
+                                                fileSize,
+                                                transferDocumentDto.DocumentTypeId,
+                                                (int)docType.ActiveStorageNode1Id);
+            SetMediaType(transferDocumentDto.MediaType, transferDocumentDto.FileExtension, storedDocument);
+
+
+            // Store the document on the storage media
+            Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
+                                                                            docType,
+                                                                            (int)docType.ActiveStorageNode1Id,
+                                                                            transferDocumentDto.File);
+            if (storeResult.IsFailed)
+                return Result.Merge(result, storeResult);
+
+            fullFileName       = storeResult.Value;
+            fileSavedToStorage = true;
+
+
+            // Save StoredDocument
+            transaction = _db.Database.BeginTransaction();
+            _db.StoredDocuments.Add(storedDocument);
+
+            // TODO PreSaveEdits should return a Result
+            Result preSaveResult = await PreSaveEdits(docType, storedDocument);
+            if (preSaveResult.IsFailed)
+                return preSaveResult;
+
+            _db.Database.CommitTransaction();
+
+            Result<StoredDocument> finalResult = Result.Ok(storedDocument);
+            return finalResult;
+        }
+        catch (Exception ex)
+        {
+            await _db.Database.RollbackTransactionAsync();
+
+
+            // Delete the file from storage if we successfully saved it, but failed afterward.
+            if (fileSavedToStorage)
+                _fileSystem.File.Delete(fullFileName);
+
+            string msg =
+                string.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentDto.Description}, Extension: {transferDocumentDto.FileExtension}.  Error Was: {ex.Message}.  ");
+
+            StringBuilder sb = new();
+            sb.Append(msg);
+            if (ex.InnerException != null)
+                sb.Append(ex.InnerException.Message);
+            msg = sb.ToString();
+
+            _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.",
+                             transferDocumentDto.Description,
+                             transferDocumentDto.FileExtension,
+                             msg);
+            Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
+            return errorResult;
+        }
+    }
+
+
+    /*
     /// <summary>
     ///     Stores a document to the Storage Engine and database, if it is a new document
     /// </summary>
@@ -299,6 +428,10 @@ public class DocumentServerEngine
         Result<StoredDocument>  result                  = new();
         try
         {
+            // File Extension as null causes issues.
+            if (transferDocumentContainer.TransferDocument.FileExtension == null)
+                transferDocumentContainer.TransferDocument.FileExtension = string.Empty;
+
             // Verify the Application Token is correct.
             if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(applicationToken, out Application application))
                 return Result.Fail("Invalid Application Token provided.");
@@ -412,6 +545,7 @@ public class DocumentServerEngine
             return errorResult;
         }
     }
+    */
 
 
     /// <summary>
@@ -483,7 +617,7 @@ public class DocumentServerEngine
     ///     Stores a new document that is a replacement for an existing document.
     /// </summary>
     /// <returns></returns>
-    public async Task<Result<StoredDocument>> StoreReplacementDocumentAsync(TransferDocumentContainer replacementDto)
+    public async Task<Result<StoredDocument>> StoreReplacementDocumentAsync(TransferDocumentDto replacementDto)
     {
         // The replacement process is:
         // - Store new file
@@ -498,10 +632,10 @@ public class DocumentServerEngine
         try
         {
             // We need to load the existing StoredDocument to retrieve some info.
-            StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.TransferDocument.CurrentStoredDocumentId);
+            StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(sd => sd.Id == replacementDto.CurrentStoredDocumentId);
             if (storedDocument == null)
             {
-                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.TransferDocument.CurrentStoredDocumentId);
+                string msg = string.Format("Unable to find existing StoredDocument with Id [ {0} ]", replacementDto.CurrentStoredDocumentId);
                 return Result.Fail(new Error(msg));
             }
 
@@ -517,11 +651,11 @@ public class DocumentServerEngine
             oldFileName = storedDocument.FileNameAndPath;
 
             // Store the new document on the storage media
-            storedDocument.ReplaceFileName(replacementDto.TransferDocument.FileExtension);
+            storedDocument.ReplaceFileName(replacementDto.FileExtension);
             Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
                                                                             docType,
                                                                             (int)docType.ActiveStorageNode1Id,
-                                                                            replacementDto.FileInFormFile);
+                                                                            replacementDto.File);
             if (storeResult.IsFailed)
                 return Result.Merge(result, storeResult);
 
@@ -529,8 +663,8 @@ public class DocumentServerEngine
 
             // Save StoredDocument
             //  - Update description
-            if (!string.IsNullOrEmpty(replacementDto.TransferDocument.Description))
-                storedDocument.Description = replacementDto.TransferDocument.Description;
+            if (!string.IsNullOrEmpty(replacementDto.Description))
+                storedDocument.Description = replacementDto.Description;
 
             transaction = _db.Database.BeginTransaction();
             _db.StoredDocuments.Update(storedDocument);

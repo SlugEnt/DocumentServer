@@ -36,22 +36,17 @@ public class Test_DocumentsController
 
         DocumentsController controller = new DocumentsController(dse);
 
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    "ab",
-                                                                                    "pdf",
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    "extab");
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              "ab",
+                                                                              "pdf",
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              "extab");
         Assert.That(genFileResult.IsSuccess, Is.EqualTo(true), "A10:");
 
 
-        DocumentContainer documentContainer = new DocumentContainer();
-        documentContainer.Info = genFileResult.Value.TransferDocument;
-        documentContainer.File = genFileResult.Value.FileInFormFile;
-
-
         //***  Z - Call the controller method.
-        var actionResult = await controller.PostStoredDocument(documentContainer, TestConstants.APPA_TOKEN);
+        var actionResult = await controller.PostStoredDocument2(genFileResult.Value, TestConstants.APPA_TOKEN);
         Assert.That(actionResult.Result, Is.InstanceOf<OkObjectResult>(), "Z200: Expected to receive an Ok response with the stored document Id.");
         OkObjectResult ok = actionResult.Result as OkObjectResult;
 

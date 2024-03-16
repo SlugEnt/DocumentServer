@@ -193,13 +193,13 @@ public class Test_DocumentServerEngine
         await sm.Initialize;
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -256,14 +256,14 @@ public class Test_DocumentServerEngine
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // Set bad token
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId,
-                                                                                    1);
-        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, badAppToken);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId,
+                                                                              1);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentNew(genFileResult.Value, badAppToken);
 
         // ***  Z. Validate
         Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
@@ -292,14 +292,14 @@ public class Test_DocumentServerEngine
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // Set bad token
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId,
-                                                                                    1);
-        Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPB_TOKEN);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId,
+                                                                              1);
+        Result<StoredDocument> result = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPB_TOKEN);
 
         // ***  Z. Validate
         Assert.That(result.IsFailed, Is.True, "Z10:  Document should have failed due to invalid app token value");
@@ -329,15 +329,15 @@ public class Test_DocumentServerEngine
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         // A.  Generate File and store it
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId,
-                                                                                    1);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId,
+                                                                              1);
 
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
         // B. Now lets read it.
@@ -347,7 +347,7 @@ public class Test_DocumentServerEngine
 
 //        if (!rdi.IsInFormFileMode)
 //        {
-        Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
+        Stream stream2 = genFileResult.Value.File.OpenReadStream();
         byte[] buffer2 = new byte[stream2.Length];
         stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
 
@@ -439,14 +439,14 @@ public class Test_DocumentServerEngine
 
 
         //***  C.  Generate File and store it
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    randomDocType.Id,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              randomDocType.Id,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
 
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -742,14 +742,14 @@ public class Test_DocumentServerEngine
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
         //***  B. Generate a file and store it
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId,
-                                                                                    4);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPB_TOKEN);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId,
+                                                                              4);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPB_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
         string originalStoredFileName = storedDocument.FileNameAndPath;
@@ -764,21 +764,16 @@ public class Test_DocumentServerEngine
 
         //***  D.  Generate and store a replacement file
         string replaceDescription = "Replaced Description";
-        Result<TransferDocumentContainer> replacementDtoResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                           replaceDescription,
-                                                                                           expectedExtension,
-                                                                                           expectedDocTypeId,
-                                                                                           expectedRootObjectId,
-                                                                                           expectedExternalId);
-        TransferDocumentContainer replacement = replacementDtoResult.Value;
-        replacement.TransferDocument = new()
-        {
-            Description             = replaceDescription,
-            FileExtension           = expectedExtension,
-            CurrentStoredDocumentId = storedDocument.Id,
-        };
+        Result<TransferDocumentDto> replacementDtoResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                     replaceDescription,
+                                                                                     expectedExtension,
+                                                                                     expectedDocTypeId,
+                                                                                     expectedRootObjectId,
+                                                                                     expectedExternalId);
+        TransferDocumentDto transferDocumentDto = replacementDtoResult.Value;
+        transferDocumentDto.CurrentStoredDocumentId = storedDocument.Id;
 
-        Result<StoredDocument> replaceResult       = await documentServerEngine.StoreReplacementDocumentAsync(replacement);
+        Result<StoredDocument> replaceResult       = await documentServerEngine.StoreReplacementDocumentAsync(transferDocumentDto);
         StoredDocument         replacementDocument = replaceResult.Value;
 
         // Z. Validate
@@ -828,13 +823,13 @@ public class Test_DocumentServerEngine
         await sm.Initialize;
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    expectedDocTypeId,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId);
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              expectedDocTypeId,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
 
@@ -895,13 +890,13 @@ public class Test_DocumentServerEngine
 
         for (int i = 0; i < 4; i++)
         {
-            Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                        expectedDescription,
-                                                                                        expectedExtension,
-                                                                                        randomDocType.Id,
-                                                                                        expectedRootObjectId,
-                                                                                        expectedExternalId);
-            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                  expectedDescription,
+                                                                                  expectedExtension,
+                                                                                  randomDocType.Id,
+                                                                                  expectedRootObjectId,
+                                                                                  expectedExternalId);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
             Assert.That(result.IsSuccess, Is.True, "Z05:");
             StoredDocument storedDocument = result.Value;
 
@@ -968,13 +963,13 @@ public class Test_DocumentServerEngine
         for (int i = 0; i < 2; i++)
         {
             //***  Y
-            Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                        expectedDescription,
-                                                                                        expectedExtension,
-                                                                                        randomDocType.Id,
-                                                                                        expectedRootObjectId,
-                                                                                        expectedExternalId);
-            Result<StoredDocument> result = await documentServerEngine.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+            Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                  expectedDescription,
+                                                                                  expectedExtension,
+                                                                                  randomDocType.Id,
+                                                                                  expectedRootObjectId,
+                                                                                  expectedExternalId);
+            Result<StoredDocument> result = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
 
             // First pass we let go thru, 2nd we should get a failure.
             if (i > 0)

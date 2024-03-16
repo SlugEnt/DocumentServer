@@ -88,7 +88,7 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result2 = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto2, fileToSave2.FullName, _appToken);
+                        Result<long> result2 = await _documentServerHttpClient.SaveDocument2Async(transferDocumentDto2, fileToSave2.FullName, _appToken);
 
                         if (result2.IsSuccess)
                         {
@@ -113,7 +113,7 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result = await _documentServerHttpClient.SaveDocumentAsync(transferDocumentDto, fileToSave.FullName, _appToken);
+                        Result<long> result = await _documentServerHttpClient.SaveDocument2Async(transferDocumentDto, fileToSave.FullName, _appToken);
 
                         if (result.IsSuccess)
                         {
@@ -146,7 +146,7 @@ public partial class MainMenu
                                 FileExtension  = xyz.Extension,
                                 RootObjectId   = "1",
                             };
-                            Result<long> resultUp = await _documentServerHttpClient.SaveDocumentAsync(tdo, xyz.FullName, _appToken);
+                            Result<long> resultUp = await _documentServerHttpClient.SaveDocument2Async(tdo, xyz.FullName, _appToken);
                             swUp.Stop();
 
                             if (resultUp.IsSuccess)

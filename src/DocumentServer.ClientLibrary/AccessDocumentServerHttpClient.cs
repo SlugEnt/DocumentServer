@@ -131,9 +131,9 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     }
 
 
-
+    /*
     /// <summary>
-    ///     Saves the given document to Document Server.  
+    ///     Saves the given document to Document Server.
     /// </summary>
     /// <param name="transferDocumentDto">Information required to save the document to the Document Server</param>
     /// <param name="fileName">The full path and file name of file/document to save</param>
@@ -162,6 +162,68 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             form.Add(new StringContent(transferDocumentDto.RootObjectId.ToString()), "Info.RootObjectId");
             form.Add(new StringContent(transferDocumentDto.DocTypeExternalId), "Info.DocTypeExternalId");
             form.Add(new StringContent(transferDocumentDto.CurrentStoredDocumentId.ToString()), "Info.CurrentStoredDocumentId");
+
+            // Add File
+            await using var stream = System.IO.File.OpenRead(fileName);
+            form.Add(new StreamContent(stream), "File", fileName);
+
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
+            response = await _httpClient.PostAsync("documents", form);
+
+            responseContent = await response.Content.ReadAsStringAsync();
+
+            response.EnsureSuccessStatusCode();
+
+            if (!long.TryParse(responseContent, out long value))
+                return Result.Ok(0L);
+            else
+                return Result.Ok(value);
+        }
+        catch (Exception exception)
+        {
+            string msg = "";
+            if (msg == string.Empty)
+                msg = exception.Message + " |  " + responseContent;
+
+
+            _logger.LogError("Failed to store document:   {Description} {Extension}  |  Error: {Error} - Detailed {Msg}",
+                             transferDocumentDto.Description,
+                             transferDocumentDto.FileExtension,
+                             exception,
+                             msg);
+
+            return Result.Fail(msg);
+        }
+    }
+    */
+
+
+    /// <summary>
+    ///     Saves the given document to Document Server.  
+    /// </summary>
+    /// <param name="transferDocumentDto">Information required to save the document to the Document Server</param>
+    /// <param name="fileName">The full path and file name of file/document to save</param>
+    /// <returns>A Result with a value of the Long Id of the Document as stored in the Document Server</returns>
+    public async Task<Result<long>> SaveDocument2Async(TransferDocumentDto transferDocumentDto,
+                                                       string fileName,
+                                                       string appToken)
+    {
+        HttpResponseMessage response;
+        string              responseContent = string.Empty;
+
+        try
+        {
+            MultipartFormDataContent form = new();
+
+            // Fill out the rest of data
+            form.Add(new StringContent(transferDocumentDto.Description), "Description");
+            form.Add(new StringContent(transferDocumentDto.DocumentTypeId.ToString()), "DocumentTypeId");
+            form.Add(new StringContent(transferDocumentDto.FileExtension), "FileExtension");
+            form.Add(new StringContent(transferDocumentDto.RootObjectId.ToString()), "RootObjectId");
+            form.Add(new StringContent(transferDocumentDto.DocTypeExternalId), "DocTypeExternalId");
+            form.Add(new StringContent(transferDocumentDto.CurrentStoredDocumentId.ToString()), "CurrentStoredDocumentId");
 
             // Add File
             await using var stream = System.IO.File.OpenRead(fileName);

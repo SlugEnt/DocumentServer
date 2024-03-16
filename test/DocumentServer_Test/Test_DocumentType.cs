@@ -1,6 +1,7 @@
 ﻿using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
@@ -26,7 +27,7 @@ public class Test_DocumentType
     [TestCase("abc xyz", false)]
     [TestCase("a1", true)]
     [TestCase("ab1 xy", false)]
-    [TestCase("0123456789AB", false)]
+    [TestCase("0123456789AB", true)] // This is true, because we now cut off the folder name at 10 characters in the model
     [TestCase("abc$", false)]
     [TestCase("ab_cd", false)]
     public void DocumentType_StorageFolder_Validation(string folderName,
@@ -110,13 +111,13 @@ public class Test_DocumentType
         Console.WriteLine("Saved Step 1!");
 
         //***  C. Create a document
-        Result<TransferDocumentContainer> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                                    expectedDescription,
-                                                                                    expectedExtension,
-                                                                                    documentType.Id,
-                                                                                    expectedRootObjectId,
-                                                                                    expectedExternalId);
-        Result<StoredDocument> result = await dse.StoreDocumentFirstTimeAsync(genFileResult.Value, TestConstants.APPA_TOKEN);
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              documentType.Id,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId);
+        Result<StoredDocument> result = await dse.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
 
 
         //***  Z. Validate
