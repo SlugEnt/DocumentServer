@@ -281,59 +281,6 @@ public class SupportMethods
     /// <param name="expectedExtension"></param>
     /// <param name="expectedDocTypeId"></param>
     /// <returns></returns>
-    public Result<TransferDocumentContainer> TFX_GenerateUploadFile_old(SupportMethods sm,
-                                                                        string expectedDescription,
-                                                                        string expectedExtension,
-                                                                        int expectedDocTypeId,
-                                                                        string expectedRootObjectId,
-                                                                        string? expectedDocExtKey,
-                                                                        int sizeInKB = 3)
-    {
-        // A10. Create A Document
-
-        string fileName = sm.WriteRandomFile(sm.FileSystem,
-                                             sm.Folder_Test,
-                                             expectedExtension,
-                                             sizeInKB);
-        string fullPath = Path.Combine(sm.Folder_Test, fileName);
-        Console.WriteLine("Generated FileName: " + fullPath);
-        Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "TFX_GenerateUploadFile:");
-
-
-        // Get FormFile 
-        FormFile formFile = GetFormFile(fullPath);
-        Assert.That(formFile.Length, Is.Not.EqualTo(0), "TFX_GenerateUploadFile Formfile is zero length");
-
-        // A20. Read the File
-        //string file = Convert.ToBase64String(sm.FileSystem.File.ReadAllBytes(fullPath));
-        TransferDocumentContainer transferDocumentContainer = new TransferDocumentContainer()
-        {
-            FileInFormFile = formFile,
-        };
-
-        // B.  Now Store it in the DocumentServer
-        TransferDocumentDto upload = new()
-        {
-            Description       = expectedDescription,
-            DocumentTypeId    = expectedDocTypeId,
-            FileExtension     = expectedExtension,
-            RootObjectId      = expectedRootObjectId,
-            DocTypeExternalId = expectedDocExtKey
-        };
-        transferDocumentContainer.TransferDocument = upload;
-
-        return Result.Ok(transferDocumentContainer);
-    }
-
-
-    /// <summary>
-    ///     Generates a random upload file
-    /// </summary>
-    /// <param name="sm"></param>
-    /// <param name="expectedDescription"></param>
-    /// <param name="expectedExtension"></param>
-    /// <param name="expectedDocTypeId"></param>
-    /// <returns></returns>
     public Result<TransferDocumentDto> TFX_GenerateUploadFile(SupportMethods sm,
                                                               string expectedDescription,
                                                               string expectedExtension,

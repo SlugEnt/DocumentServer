@@ -76,10 +76,8 @@ public partial class MainMenu
                         break;
 
                     case ConsoleKey.V:
-                        //System.IO.ReturnedDocumentInfo fileToSave2 = new(Path.Combine(@"T:\Temp\RadzenBlazorStudioSetup.exe"));
-                        System.IO.FileInfo fileToSave2 = new(Path.Combine(@"T:\downloads\discordsetup.exe"));
+                        System.IO.FileInfo fileToSave2 = new(Path.Combine(@"T:\ProgrammingTesting\Original\officecool.jpg"));
 
-                        //System.IO.ReturnedDocumentInfo fileToSave2 = new(Path.Combine(@"T:\crystaldiskinfo.exe"));
                         TransferDocumentDto transferDocumentDto2 = new()
                         {
                             DocumentTypeId = 3,
@@ -88,7 +86,9 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result2 = await _documentServerHttpClient.SaveDocument2Async(transferDocumentDto2, fileToSave2.FullName, _appToken);
+                        byte[] fileBtyes = File.ReadAllBytes(fileToSave2.FullName);
+
+                        Result<long> result2 = await _documentServerHttpClient.SaveDocumentFromBytesAsync(transferDocumentDto2, fileBtyes, _appToken);
 
                         if (result2.IsSuccess)
                         {
@@ -96,10 +96,12 @@ public partial class MainMenu
                             lastDocSaved = result2.Value;
                         }
                         else
+                        {
                             Console.WriteLine("Document failed to be stored due to errors:  ");
 
-                        foreach (IError resultError in result2.Errors)
-                            Console.WriteLine("Error: " + resultError);
+                            foreach (IError resultError in result2.Errors)
+                                Console.WriteLine("Error: " + resultError);
+                        }
 
                         break;
 
@@ -113,7 +115,7 @@ public partial class MainMenu
                             RootObjectId   = "1",
                         };
 
-                        Result<long> result = await _documentServerHttpClient.SaveDocument2Async(transferDocumentDto, fileToSave.FullName, _appToken);
+                        Result<long> result = await _documentServerHttpClient.SaveDocumentFromFileAsync(transferDocumentDto, fileToSave.FullName, _appToken);
 
                         if (result.IsSuccess)
                         {
@@ -146,7 +148,7 @@ public partial class MainMenu
                                 FileExtension  = xyz.Extension,
                                 RootObjectId   = "1",
                             };
-                            Result<long> resultUp = await _documentServerHttpClient.SaveDocument2Async(tdo, xyz.FullName, _appToken);
+                            Result<long> resultUp = await _documentServerHttpClient.SaveDocumentFromFileAsync(tdo, xyz.FullName, _appToken);
                             swUp.Stop();
 
                             if (resultUp.IsSuccess)
