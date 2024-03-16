@@ -112,7 +112,7 @@ public class DocumentsController : ControllerBase
     ///     stored.
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
-    [HttpPost(Name = "PostStoredDocument")]
+/*    [HttpPost(Name = "PostStoredDocument")]
     [Authorize(Policy = "ApiKeyPolicy")]
     public async Task<ActionResult<long>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
                                                              [FromHeader] string appToken)
@@ -137,7 +137,46 @@ public class DocumentsController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+*/
 
+
+
+    // POST api/<DocumentsController>
+    /// <summary>
+    ///     Places a document to be stored in to the DocumentServer
+    /// </summary>
+    /// <param name="transferDocumentDto">
+    ///     The TransferDocumentDto that contains a document and the documents information to be
+    ///     stored.
+    /// </param>
+    /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
+    [HttpPost(Name = "PostStoredDocument2")]
+    [Authorize(Policy = "ApiKeyPolicy")]
+    public async Task<ActionResult<long>> PostStoredDocument2([FromForm] TransferDocumentDto docDTO,
+                                                              [FromHeader] string appToken)
+    {
+        try
+        {
+            /*TransferDocumentContainer txfDocumentContainer = new()
+            {
+                TransferDocument = documentContainer.Info,
+                FileInFormFile   = documentContainer.File,
+            };
+
+            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer, appToken);
+            */
+            Result<StoredDocument> result = await _docEngine.StoreDocumentNew(docDTO, appToken);
+            if (result.IsSuccess)
+                return Ok(result.Value.Id);
+
+
+            return Problem(result.ToString());
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
 
 
     // PUT api/<DocumentsController>/5
