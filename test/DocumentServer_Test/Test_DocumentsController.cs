@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DocumentServer.Controllers;
-using DocumentServer.Core;
+﻿using DocumentServer.Controllers;
 using Microsoft.AspNetCore.Mvc;
-using SlugEnt;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.FluentResults;

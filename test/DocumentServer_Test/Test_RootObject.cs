@@ -1,5 +1,5 @@
-﻿using DocumentServer.Core;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Models.Entities;
 using Test_DocumentServer.SupportObjects;
 

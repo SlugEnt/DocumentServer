@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using ConsoleTesting;
-using DocumentServer.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

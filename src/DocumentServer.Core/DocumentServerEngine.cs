@@ -13,9 +13,10 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 
+
 [assembly: InternalsVisibleTo("Test_DocumentServer")]
 
-namespace DocumentServer.Core;
+namespace SlugEnt.DocumentServer.Core;
 
 /// <summary>
 ///     Performs all core logic operations of the DocumentServer including database access and file access methods.
@@ -144,6 +145,7 @@ public class DocumentServerEngine
     public async Task<Result<ReturnedDocumentInfo>> GetStoredDocumentAsync(long id,
                                                                            string appToken)
     {
+        _logger.LogInformation("GetStoredDocumentAsync:  Starting|   Id: {0}", id);
         try
         {
             // Verify the Application Token is correct.
@@ -156,6 +158,8 @@ public class DocumentServerEngine
                 StoredDocument = s,
                 ApplicationId  = s.DocumentType.ApplicationId
             }).FirstOrDefaultAsync();
+            _logger.LogDebug("Retrieved StoredDocument Id: {0}", id);
+
 
             if (storedDocument == null)
                 return Result.Fail("Unable to find a Stored Document with that Id");
@@ -191,8 +195,9 @@ public class DocumentServerEngine
             sd.NumberOfTimesAccessed++;
             sd.LastAccessedUTC = DateTime.UtcNow;
             _db.Update(sd);
-            _db.SaveChangesAsync();
+            await _db.SaveChangesAsync();
 
+            _logger.LogInformation("GetStoredDocumentAsync Exiting Ok|  Id: {0}", id);
             return Result.Ok(returnedDocumentInfo);
         }
         catch (Exception ex)

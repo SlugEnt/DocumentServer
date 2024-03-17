@@ -1,13 +1,7 @@
-﻿using System.Net;
-using System.Net.Mime;
-using DocumentServer.Core;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
-using Microsoft.Extensions.Options;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
-using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 

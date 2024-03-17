@@ -1,10 +1,5 @@
 #define SWAGGER
 
-using System.Configuration;
-using System.Drawing;
-using System.Reflection;
-using Azure.Core.Extensions;
-using DocumentServer.Core;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +10,7 @@ using SlugEnt.DocumentServer.API.Security;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
+using System.Reflection;
 using ILogger = Serilog.ILogger;
 
 namespace DocumentServer;
@@ -45,7 +41,6 @@ public class Program
 
         // 10 - Logging Setup
         _logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
-        builder.Logging.ClearProviders();
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
         builder.Host.UseSerilog(_logger);
@@ -104,19 +99,18 @@ public class Program
         builder.Services.AddSwaggerGen();
 #endif
 
-
-        // E.  Add Database access
-        builder.Services.AddDbContext<DocServerDbContext>(options =>
+        // E.  Add Database Access
+        builder.Services.AddDbContextPool<DocServerDbContext>(options =>
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()))
 
                    // IF Debug then log all SQL to Console
 #if (DEBUG || SWAGGER)
-                   .LogTo(Console.WriteLine)
                    .EnableDetailedErrors();
 
 #endif
         });
+
 
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         builder.Services.AddAuthentication(options => { options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; }).AddJwtBearer();
@@ -158,6 +152,7 @@ public class Program
 
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        app.UseSerilogRequestLogging();
 
         app.UseHttpsRedirection();
 
@@ -179,6 +174,7 @@ public class Program
 
 
         app.Run();
+        Log.CloseAndFlush();
     }
 
 

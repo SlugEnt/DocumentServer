@@ -88,11 +88,12 @@ public class DocServerDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-        Console.WriteLine("Database:  Configuring DB Context Options");
+        //Console.WriteLine("Database:  Configuring DB Context Options");
         if (!dbContextOptionsBuilder.IsConfigured)
         {
             IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
-                                                                      .AddJsonFile("AppSettings.json", true, true);
+                                                                      .AddJsonFile("AppSettings.json", true, true)
+                ;
             _Configuration = builder.Build();
             string connectionString = _Configuration.GetConnectionString(DatabaseReferenceName());
             dbContextOptionsBuilder.UseSqlServer(connectionString);

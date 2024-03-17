@@ -1,7 +1,7 @@
 ﻿using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 
-namespace DocumentServer.Core;
+namespace SlugEnt.DocumentServer.Core;
 
 /// <summary>
 ///     Represents a Document that attempted to have some operation done to it along with some status information,  such as
