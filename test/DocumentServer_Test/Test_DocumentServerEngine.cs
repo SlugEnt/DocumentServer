@@ -214,8 +214,8 @@ public class Test_DocumentServerEngine
         Assert.That(modeResult.IsSuccess, Is.True, "Y10:");
         string modeLetter = modeResult.Value;
 
-        string expectedPath = Path.Join(h.Path,
-                                        b.NodePath,
+        // Note - The physical path also has the hosts path prepended to this value. 
+        string expectedPath = Path.Join(b.NodePath,
                                         a.StorageFolderName,
                                         modeLetter,
                                         DatePath(a.StorageMode, a.InActiveLifeTime));
@@ -230,7 +230,7 @@ public class Test_DocumentServerEngine
         Assert.That(storedDocument.StorageFolder, Is.EqualTo(expectedPath), "Z40:");
 
         // Make sure it was stored on the drive.
-        string fullFileName = Path.Join(expectedPath, storedDocument.FileName);
+        string fullFileName = Path.Join(h.Path, expectedPath, storedDocument.FileName);
         Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
 
@@ -352,28 +352,11 @@ public class Test_DocumentServerEngine
         stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
 
         Assert.That(rdi.FileInBytes, Is.EqualTo(buffer2), "Z10A:");
-        /*      }
-              else
-              {
-                  Stream stream = tdc.FileInFormFile.OpenReadStream();
-                  Byte[] buffer = new Byte[stream.Length];
-                  stream.ReadExactly(buffer, 0, (int)stream.Length);
 
-                  Stream stream2 = genFileResult.Value.FileInFormFile.OpenReadStream();
-                  byte[] buffer2 = new byte[stream2.Length];
-                  stream.ReadExactly(buffer2, 0, (int)stream2.Length);
-                  Assert.That(buffer, Is.EqualTo(buffer2), "Z10B:");
-              }
-        */
         // Validate other TransferDocument Info
-        //Assert.That(tdd.CurrentStoredDocumentId, Is.Not.EqualTo(0), "Z20:");
         Assert.That(rdi.Description, Is.EqualTo(expectedDescription), "Z30:");
         Assert.That(rdi.Size == buffer2.Length, "Z40:");
         Assert.That(rdi.Extension, Is.EqualTo(expectedExtension), "Z50:");
-
-        //Assert.That(tdd.DocTypeExternalId, Is.EqualTo(expectedExternalId), "Z40:");
-        //Assert.That(tdd.DocumentTypeId, Is.EqualTo(expectedDocTypeId), "Z50:");
-        //Assert.That(tdd.RootObjectId, Is.EqualTo(expectedRootObjectId), "Z60:");
     }
 
 
@@ -455,12 +438,13 @@ public class Test_DocumentServerEngine
         ServerHost?  serverHost  = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == storageNode.ServerHostId);
 
         Assert.That(storageNode, Is.Not.Null, "W10:");
-        string expectedBeginPath = Path.Join(serverHost.Path, storageNode.NodePath, "T");
+        string expectedBeginPath = Path.Join(storageNode.NodePath, "T");
         Assert.That(storedDocument.StorageFolder.StartsWith(expectedBeginPath), Is.True, "W20:");
 
         // Verify it is actually stored where it is supposed to be.
         DateTime currentUtc = DateTime.UtcNow;
-        string fileName = Path.Join(expectedBeginPath,
+        string fileName = Path.Join(serverHost.Path,
+                                    expectedBeginPath,
                                     randomDocType.StorageFolderName,
                                     DatePath(randomDocType.StorageMode, randomDocType.InActiveLifeTime),
                                     storedDocument.FileName);
@@ -678,7 +662,8 @@ public class Test_DocumentServerEngine
         Assert.That(storeFileResult.IsSuccess, Is.True, "Z10: StoreFileResult returned false");
 
         // Make sure it was stored on the drive.
-        string fullFileName = Path.Join(storedDocument.StorageFolder, storedDocument.FileName);
+
+        string fullFileName = sm.DocumentServerEngine.ComputeDocumentRetrievalPath(storedDocument);
         Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
 
@@ -752,7 +737,7 @@ public class Test_DocumentServerEngine
         Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPB_TOKEN);
         StoredDocument         storedDocument = result.Value;
 
-        string originalStoredFileName = storedDocument.FileNameAndPath;
+        string originalStoredFileName = sm.DocumentServerEngine.ComputeDocumentRetrievalPath(storedDocument);
         long   originalId             = storedDocument.Id;
         string originalFileName       = storedDocument.FileName;
 
@@ -788,7 +773,8 @@ public class Test_DocumentServerEngine
         Assert.That(replacementDocument.FileName, Is.Not.EqualTo(originalFileName), "Z50:");
 
         // Make sure the replacement doc was stored on the drive.
-        Assert.That(sm.FileSystem.FileExists(replacementDocument.FileNameAndPath), Is.True, "Z80:");
+        string replacementDocFullName = sm.DocumentServerEngine.ComputeDocumentRetrievalPath(replacementDocument);
+        Assert.That(sm.FileSystem.FileExists(replacementDocFullName), Is.True, "Z80:");
 
         // Make sure the original file is deleted.
         Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.False, "Z90:");

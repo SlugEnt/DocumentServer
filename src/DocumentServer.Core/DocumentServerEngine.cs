@@ -136,14 +136,14 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Retrieves a Stored Document
+    /// Retrieves a Stored Document.  
     /// </summary>
     /// <param name="id"></param>
+    /// <remarks>Note, this method assumes that we are the host that should be retrieving the document.</remarks>
     /// <returns></returns>
     public async Task<Result<ReturnedDocumentInfo>> GetStoredDocumentAsync(long id,
                                                                            string appToken)
     {
-        //TransferDocumentContainer transferDocumentContainer = new();
         try
         {
             // Verify the Application Token is correct.
@@ -151,7 +151,6 @@ public class DocumentServerEngine
                 return Result.Fail("Invalid Application Token provided.");
 
 
-            //StoredDocument? storedDocument = await _db.StoredDocuments.SingleOrDefaultAsync(s => s.Id == id);
             var storedDocument = await _db.StoredDocuments.Where(sd => sd.Id == id).Select(s => new
             {
                 StoredDocument = s,
@@ -166,10 +165,11 @@ public class DocumentServerEngine
 
 
             // Now Load the Stored Document.
-            string fileName     = storedDocument.StoredDocument.FileName;
-            string fullFileName = Path.Join(storedDocument.StoredDocument.StorageFolder, fileName);
+            string fileName = storedDocument.StoredDocument.FileName;
 
-            //transferDocumentContainer.FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName);
+            // The path is the node host path + stored document path + filename
+            string fullFileName = ComputeDocumentRetrievalPath(storedDocument.StoredDocument);
+
             string extension = Path.GetExtension(fileName);
             if (extension == string.Empty)
                 extension = MediaTypes.GetExtension(storedDocument.StoredDocument.MediaType);
@@ -189,18 +189,6 @@ public class DocumentServerEngine
                 ContentType = MediaTypes.GetContentType(storedDocument.StoredDocument.MediaType),
             };
             returnedDocumentInfo.Size = returnedDocumentInfo.FileInBytes.Length;
-            /*
-            transferDocumentContainer.TransferDocument = new TransferDocumentDto()
-            {
-                Description             = storedDocument.StoredDocument.Description,
-                CurrentStoredDocumentId = storedDocument.StoredDocument.Id,
-                DocumentTypeId          = storedDocument.StoredDocument.DocumentTypeId,
-                DocTypeExternalId       = storedDocument.StoredDocument.DocTypeExternalKey,
-                RootObjectId            = storedDocument.StoredDocument.RootObjectExternalKey,
-                MediaType               = storedDocument.StoredDocument.MediaType,
-                FileExtension           = extension,
-            };
-            */
 
             // TODO update the number of times accessed
 
@@ -213,6 +201,16 @@ public class DocumentServerEngine
         }
     }
 
+
+    /// <summary>
+    /// Builds the entire filename path to retrieve the document.
+    /// </summary>
+    /// <param name="storedDocument"></param>
+    /// <returns></returns>
+    internal string ComputeDocumentRetrievalPath(StoredDocument storedDocument)
+    {
+        return Path.Join(_documentServerInformation.ServerHostInfo.Path, storedDocument.StorageFolder, storedDocument.FileName);
+    }
 
 
     /// <summary>
@@ -411,142 +409,6 @@ public class DocumentServerEngine
     }
 
 
-    /*
-    /// <summary>
-    ///     Stores a document to the Storage Engine and database, if it is a new document
-    /// </summary>
-    /// <param name="transferDocumentDto">The file info to be stored</param>
-    /// <param name="storageDirectory">Where to save it to.</param>
-    /// <returns>StoredDocument if successful.  Returns Null if it failed.</returns>
-    public async Task<Result<StoredDocument>> StoreDocumentFirstTimeAsync(TransferDocumentContainer transferDocumentContainer,
-                                                                          string applicationToken)
-    {
-        IDbContextTransaction?  transaction             = null;
-        bool                    fileSavedToStorage      = false;
-        string                  fullFileName            = "";
-        DocumentOperationStatus documentOperationStatus = new();
-        Result<StoredDocument>  result                  = new();
-        try
-        {
-            // File Extension as null causes issues.
-            if (transferDocumentContainer.TransferDocument.FileExtension == null)
-                transferDocumentContainer.TransferDocument.FileExtension = string.Empty;
-
-            // Verify the Application Token is correct.
-            if (!_documentServerInformation.ApplicationTokenLookup.TryGetValue(applicationToken, out Application application))
-                return Result.Fail("Invalid Application Token provided.");
-
-            // Load and Validate the DocumentType is ok to use
-            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentContainer.TransferDocument.DocumentTypeId);
-            if (docTypeResult.IsFailed)
-                return Result.Merge(result, docTypeResult);
-
-            DocumentType docType = docTypeResult.Value;
-
-
-            // Make sure the DocType application matches the application the token was for.
-            if (docType.ApplicationId != application.Id)
-                return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
-
-
-            // We always use the primary node for initial storage.
-
-            int tmpFileSize = transferDocumentContainer.FileSize;
-            int fileSize    = tmpFileSize > 1024 ? tmpFileSize / 1024 : 1;
-
-            if (string.IsNullOrWhiteSpace(transferDocumentContainer.TransferDocument.RootObjectId))
-                return Result.Fail(new Error("No RootObjectId was specified on the transferDocumentContainer.  It is required."));
-
-            if (string.IsNullOrWhiteSpace(transferDocumentContainer.TransferDocument.DocTypeExternalId))
-            {
-                // Ensure it is null.
-                transferDocumentContainer.TransferDocument.DocTypeExternalId = null;
-            }
-            else
-            {
-                // Make sure we are following the rule for not allowing duplicates if it is set.
-                if (!docType.AllowSameDTEKeys)
-                {
-                    // Make sure the external key does not already exist.
-                    bool exists = _db.StoredDocuments.Any(sd => sd.RootObjectExternalKey == transferDocumentContainer.TransferDocument.RootObjectId &&
-                                                                sd.DocTypeExternalKey == transferDocumentContainer.TransferDocument.DocTypeExternalId);
-                    if (exists)
-                    {
-                        string msg =
-                            string.Format("Duplicate Key not allowed.  RootObject Id [ {0} ] already has a DocumentType [ {1} ]  with an External Id of [ {2} ].  This DocumentType does not allow duplicate entries.",
-                                          transferDocumentContainer.TransferDocument.RootObjectId,
-                                          transferDocumentContainer.TransferDocument.DocumentTypeId,
-                                          transferDocumentContainer.TransferDocument.DocTypeExternalId);
-                        return Result.Fail(new Error(msg));
-                    }
-                }
-            }
-
-            StoredDocument storedDocument = new(transferDocumentContainer.TransferDocument.FileExtension,
-                                                transferDocumentContainer.TransferDocument.Description,
-                                                transferDocumentContainer.TransferDocument.RootObjectId,
-                                                transferDocumentContainer.TransferDocument.DocTypeExternalId,
-                                                "",
-                                                fileSize,
-                                                transferDocumentContainer.TransferDocument.DocumentTypeId,
-                                                (int)docType.ActiveStorageNode1Id);
-            SetMediaType(transferDocumentContainer.TransferDocument.MediaType, transferDocumentContainer.TransferDocument.FileExtension, storedDocument);
-
-
-            // Store the document on the storage media
-            Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
-                                                                            docType,
-                                                                            (int)docType.ActiveStorageNode1Id,
-                                                                            transferDocumentContainer.FileInFormFile);
-            if (storeResult.IsFailed)
-                return Result.Merge(result, storeResult);
-
-            fullFileName       = storeResult.Value;
-            fileSavedToStorage = true;
-
-
-            // Save StoredDocument
-            transaction = _db.Database.BeginTransaction();
-            _db.StoredDocuments.Add(storedDocument);
-
-            // TODO PreSaveEdits should return a Result
-            Result preSaveResult = await PreSaveEdits(docType, storedDocument);
-            if (preSaveResult.IsFailed)
-                return preSaveResult;
-
-            _db.Database.CommitTransaction();
-
-            Result<StoredDocument> finalResult = Result.Ok(storedDocument);
-            return finalResult;
-        }
-        catch (Exception ex)
-        {
-            await _db.Database.RollbackTransactionAsync();
-
-
-            // Delete the file from storage if we successfully saved it, but failed afterward.
-            if (fileSavedToStorage)
-                _fileSystem.File.Delete(fullFileName);
-
-            string msg =
-                string.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentContainer.TransferDocument.Description}, Extension: {transferDocumentContainer.TransferDocument.FileExtension}.  Error Was: {ex.Message}.  ");
-
-            StringBuilder sb = new();
-            sb.Append(msg);
-            if (ex.InnerException != null)
-                sb.Append(ex.InnerException.Message);
-            msg = sb.ToString();
-
-            _logger.LogError("StoreDocument: Failed to store document.{Description}{Extension}Error:{Error}.",
-                             transferDocumentContainer.TransferDocument.Description,
-                             transferDocumentContainer.TransferDocument.FileExtension,
-                             msg);
-            Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
-            return errorResult;
-        }
-    }
-    */
-
 
     /// <summary>
     /// Determines and sets the Media Type based upon the passed MediaType or Extension.  
@@ -602,8 +464,9 @@ public class DocumentServerEngine
                 await formFile.CopyToAsync(fs);
             }
 
-            // Save the path in the StoredDocument
-            storedDocument.StorageFolder = storeAtPath;
+            // Save the path in the StoredDocument.  But here we do not save the host prefix part of the path, we only need the unique path to the document.
+            //storedDocument.StorageFolder = storeAtPath;
+            storedDocument.StorageFolder = resultB.Value.StoredDocumentPath;
             return Result.Ok(fullFileName);
         }
         catch (Exception ex)
@@ -648,7 +511,7 @@ public class DocumentServerEngine
 
 
             // Save the current Document FileName so we can delete it in a moment.
-            oldFileName = storedDocument.FileNameAndPath;
+            oldFileName = ComputeDocumentRetrievalPath(storedDocument);
 
             // Store the new document on the storage media
             storedDocument.ReplaceFileName(replacementDto.FileExtension);

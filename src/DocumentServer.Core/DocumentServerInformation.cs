@@ -41,20 +41,6 @@ namespace SlugEnt.DocumentServer.Core
         }
 
 
-        /*
-
-        public DocumentServerInformation(IConfiguration configuration,
-                                         IOptions<DocumentServerFromAppSettings> docOptions)
-        {
-            string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
-            DbContextOptionsBuilder<DocServerDbContext> options = new();
-            options.UseSqlServer(sqlConn);
-            DocServerDbContext db = new(options.Options);
-            ServerHostInfo = new ServerHostInfo();
-            Initialize     = SetupAsync(db);
-        }
-
-        */
         /// <summary>
         /// Task used to perform setup during object creation.
         /// </summary>
