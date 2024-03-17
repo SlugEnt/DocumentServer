@@ -164,13 +164,9 @@ public class DocumentServerEngine
                 return Result.Fail("Application Token provided does not match the application Id of the Stored Document requested.  Access Denied");
 
 
-            // Now Load the Stored Document.
-            string fileName = storedDocument.StoredDocument.FileName;
-
             // The path is the node host path + stored document path + filename
             string fullFileName = ComputeDocumentRetrievalPath(storedDocument.StoredDocument);
-
-            string extension = Path.GetExtension(fileName);
+            string extension    = Path.GetExtension(storedDocument.StoredDocument.FileName);
             if (extension == string.Empty)
                 extension = MediaTypes.GetExtension(storedDocument.StoredDocument.MediaType);
             else
@@ -191,6 +187,11 @@ public class DocumentServerEngine
             returnedDocumentInfo.Size = returnedDocumentInfo.FileInBytes.Length;
 
             // TODO update the number of times accessed
+            StoredDocument sd = storedDocument.StoredDocument;
+            sd.NumberOfTimesAccessed++;
+            sd.LastAccessedUTC = DateTime.UtcNow;
+            _db.Update(sd);
+            _db.SaveChangesAsync();
 
             return Result.Ok(returnedDocumentInfo);
         }

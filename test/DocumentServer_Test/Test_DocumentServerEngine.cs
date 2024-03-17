@@ -319,7 +319,7 @@ public class Test_DocumentServerEngine
         // A. Setup
         SupportMethods sm                   = new(EnumFolderCreation.Test, _useDatabaseTransactions);
         int            expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string         expectedExtension    = sm.Faker.Random.String2(3);
+        string         expectedExtension    = "pdf";
         string         expectedDescription  = sm.Faker.Random.String2(32);
         string         expectedRootObjectId = sm.Faker.Random.String2(10);
         string         expectedExternalId   = sm.Faker.Random.String2(15);
@@ -343,20 +343,27 @@ public class Test_DocumentServerEngine
         // B. Now lets read it.
         Result<ReturnedDocumentInfo> readResult = await documentServerEngine.GetStoredDocumentAsync(storedDocument.Id, TestConstants.APPA_TOKEN);
 
-        ReturnedDocumentInfo rdi = readResult.Value;
-
-//        if (!rdi.IsInFormFileMode)
-//        {
-        Stream stream2 = genFileResult.Value.File.OpenReadStream();
-        byte[] buffer2 = new byte[stream2.Length];
+        ReturnedDocumentInfo rdi     = readResult.Value;
+        Stream               stream2 = genFileResult.Value.File.OpenReadStream();
+        byte[]               buffer2 = new byte[stream2.Length];
         stream2.ReadExactly(buffer2, 0, (int)stream2.Length);
 
-        Assert.That(rdi.FileInBytes, Is.EqualTo(buffer2), "Z10A:");
+        Assert.That(rdi.FileInBytes, Is.EqualTo(buffer2), "B10:");
+
+        // Reread Stored Document
+        StoredDocument updated = sm.DB.StoredDocuments.Local.SingleOrDefault(sd => sd.Id == storedDocument.Id);
 
         // Validate other TransferDocument Info
         Assert.That(rdi.Description, Is.EqualTo(expectedDescription), "Z30:");
         Assert.That(rdi.Size == buffer2.Length, "Z40:");
         Assert.That(rdi.Extension, Is.EqualTo(expectedExtension), "Z50:");
+        Assert.That(rdi.MediaType, Is.EqualTo(MediaTypes.GetMediaType(expectedExtension)), "Z60:");
+
+        // The Documents last accessed counter should have increased.
+
+        Assert.That(updated.LastAccessedUTC, Is.Not.EqualTo(DateTime.MinValue), "Z100:");
+        Assert.That(updated.NumberOfTimesAccessed, Is.EqualTo(1), "Z110:");
+        Assert.That(updated.ModifiedAtUTC, Is.Not.EqualTo(DateTime.MinValue), "Z120:");
     }
 
 
