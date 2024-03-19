@@ -10,20 +10,21 @@ namespace SlugEnt.DocumentServer.Models.Enums;
 /// </summary>
 public enum EnumDocumentLifetimes
 {
-    [Display(Description = "1 Hour")]   HoursOne    = 3,
-    [Display(Description = "4 Hours")]  HoursFour   = 4,
-    [Display(Description = "12 Hours")] HoursTwelve = 12,
-    [Display(Description = "1 Day")]    DayOne      = 14,
-    [Display(Description = "1 Week")]   WeekOne     = 20,
-    [Display(Description = "1 Month")]  MonthOne    = 22,
-    [Display(Description = "3 Months")] MonthsThree = 30,
-    [Display(Description = "6 Months")] MonthsSix   = 35,
-    [Display(Description = "1 Year")]   YearOne     = 101,
-    [Display(Description = "2 Years")]  YearsTwo    = 102,
-    [Display(Description = "3 Years")]  YearsThree  = 103,
-    [Display(Description = "4 Years")]  YearsFour   = 104,
-    [Display(Description = "7 Years")]  YearsSeven  = 107,
-    [Display(Description = "10 Years")] YearsTen    = 110,
+    [Display(Description = "1 Hour")]    HoursOne    = 3,
+    [Display(Description = "4 Hours")]   HoursFour   = 4,
+    [Display(Description = "12 Hours")]  HoursTwelve = 12,
+    [Display(Description = "1 Day")]     DayOne      = 14,
+    [Display(Description = "1 Week")]    WeekOne     = 20,
+    [Display(Description = "1 Month")]   MonthOne    = 22,
+    [Display(Description = "3 Months")]  MonthsThree = 30,
+    [Display(Description = "6 Months")]  MonthsSix   = 35,
+    [Display(Description = "1 Year")]    YearOne     = 101,
+    [Display(Description = "18 Months")] Months18    = 102,
+    [Display(Description = "2 Years")]   YearsTwo    = 120,citrix
+    [Display(Description = "3 Years")]   YearsThree  = 130,
+    [Display(Description = "4 Years")]   YearsFour   = 140,
+    [Display(Description = "7 Years")]   YearsSeven  = 170,
+    [Display(Description = "10 Years")]  YearsTen    = 200,
 
     /// <summary>
     ///     There is no preset value, the parent will determine

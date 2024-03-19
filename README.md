@@ -89,3 +89,21 @@ For these special cases where you need to debug a specific unit test, you can tu
 
   Just #undef it to to turn off the database reset.
 
+
+  # Some Statistics
+  Each of these tests comprises a continuous run of sessions with a 750ms pause between sessions.  A session varies by the test, but there was a Console Program running each test simultaneously with the others.  
+
+  The Big Files session consisted of 3 documents with sizes of 10MB, 70Mb, 23MB.  
+
+  The Small Files session consisted of 21 documents ranging from 19KB to 2.7 MB  With the average about 500KB.  
+
+  The All Files session consisted of all documents from the Big and Small files.  
+
+  The Big Files was achieving a sustained throughput of over 54 MB per second. Typical session run time was about 4.5 seconds
+
+  The Small Files was achieving a sustained throughput of over 22 MB per second.  Typical session run time was around 806ms
+
+  The All Files was achieving a sustained throughput of over 48 MB per second.  Typical session runtime was 6.8 seconds.
+
+  These were running in parallel to the same server from the same pc.  The number above were for over 1000 sessions for each test.
+
