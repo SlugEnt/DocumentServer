@@ -515,6 +515,11 @@ public class DocumentServerEngine
 
             DocumentType docType = docTypeResult.Value;
 
+            // Confirm this is a replaceable Document Type
+            if (!docType.IsReplaceable)
+            {
+                return Result.Fail("This StoredDocument was originally stored as a Document Type that is not replaceable.  You cannot replace the old document with a newer copy!");
+            }
 
             // Save the current Document FileName so we can delete it in a moment.
             oldFileName = ComputeDocumentRetrievalPath(storedDocument);
@@ -537,7 +542,7 @@ public class DocumentServerEngine
 
             transaction = _db.Database.BeginTransaction();
             _db.StoredDocuments.Update(storedDocument);
-            await PreSaveEdits(docType, storedDocument);
+            await PreSaveEdits(docType, storedDocument, false);
             _db.Database.CommitTransaction();
             docSaved = true;
 

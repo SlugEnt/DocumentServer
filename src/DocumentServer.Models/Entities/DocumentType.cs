@@ -17,6 +17,9 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 /// </summary>
 public class DocumentType : AbstractBaseEntity
 {
+    private string _name;
+    private string _storageFolderName = "";
+
     // Storage Nodes 
     public StorageNode? ActiveStorageNode1 { get; set; }
 
@@ -37,23 +40,6 @@ public class DocumentType : AbstractBaseEntity
     [MaxLength(250)]
     public string Description { get; set; }
 
-
-    /// <summary>
-    ///     For displaying information about this in an error type message
-    /// </summary>
-    [NotMapped]
-    public string ErrorMessage
-    {
-        get
-        {
-            string className = GetType().Name;
-            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
-                                       className,
-                                       Id,
-                                       Name);
-            return msg;
-        }
-    }
 
 
     /// <summary>
@@ -90,7 +76,6 @@ public class DocumentType : AbstractBaseEntity
         }
     }
 
-    private string _name;
 
 
     public RootObject RootObject { get; set; }
@@ -119,8 +104,39 @@ public class DocumentType : AbstractBaseEntity
         }
     }
 
-    private string _storageFolderName = "";
 
+
+    /// <summary>
+    ///     Prevent WORM Fields from being able to be updated and saved.
+    /// </summary>
+    /// <returns></returns>
+    public override bool HasWormFields() => true;
+
+
+    public Result IsValid()
+    {
+        Result result = new();
+        if (StorageFolderName.Length > 10)
+            result.WithError(new Error("Storage Folder Name must be less than 10 characters"));
+
+        if (!StorageFolderName.All(c => char.IsLetterOrDigit(c)))
+            result.WithError(new Error("Storage Folder Name can only contain a single word with only letters or digits"));
+        return result;
+    }
+
+
+    public override void OnEditRemoveWORMFields(EntityEntry entityEntry)
+    {
+        entityEntry.Property("ApplicationId").IsModified    = false;
+        entityEntry.Property("StorageMode").IsModified      = false;
+        entityEntry.Property("RootObjectId").IsModified     = false;
+        entityEntry.Property("AllowSameDTEKeys").IsModified = false;
+
+        base.OnEditRemoveWORMFields(entityEntry);
+    }
+
+
+#region "Methods and Functions"
 
     public static Result<DocumentType> CreateDocumentType(string name,
                                                           string description,
@@ -154,35 +170,54 @@ public class DocumentType : AbstractBaseEntity
         throw new ArgumentException(sb.ToString());
     }
 
+#endregion
+
+
+#region "Non Fields"
 
     /// <summary>
-    ///     Prevent WORM Fields from being able to be updated and saved.
+    /// Returns True if the Document Type is one that can have its original document replaced with a newer version or copy.
     /// </summary>
-    /// <returns></returns>
-    public override bool HasWormFields() => true;
-
-
-    public Result IsValid()
+    [NotMapped]
+    public bool IsReplaceable
     {
-        Result result = new();
-        if (StorageFolderName.Length > 10)
-            result.WithError(new Error("Storage Folder Name must be less than 10 characters"));
+        get
+        {
+            return StorageMode switch
+            {
+                EnumStorageMode.WriteOnceReadMany => false,
+                EnumStorageMode.Temporary         => true,
+                EnumStorageMode.Replaceable       => true,
 
-        if (!StorageFolderName.All(c => char.IsLetterOrDigit(c)))
-            result.WithError(new Error("Storage Folder Name can only contain a single word with only letters or digits"));
-        return result;
+                // These 2 are not officially supported / implemented yet.
+                EnumStorageMode.Editable  => false,
+                EnumStorageMode.Versioned => false,
+            };
+        }
     }
 
+    //public bool IsReplaceableDocumentType (Enum)
 
-    public override void OnEditRemoveWORMFields(EntityEntry entityEntry)
+
+
+    /// <summary>
+    ///     For displaying information about this in an error type message
+    /// </summary>
+    [NotMapped]
+    public string ErrorMessage
     {
-        entityEntry.Property("ApplicationId").IsModified    = false;
-        entityEntry.Property("StorageMode").IsModified      = false;
-        entityEntry.Property("RootObjectId").IsModified     = false;
-        entityEntry.Property("AllowSameDTEKeys").IsModified = false;
-
-        base.OnEditRemoveWORMFields(entityEntry);
+        get
+        {
+            string className = GetType().Name;
+            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                       className,
+                                       Id,
+                                       Name);
+            return msg;
+        }
     }
+
+#endregion
 
 
 #region "Worm Fields"

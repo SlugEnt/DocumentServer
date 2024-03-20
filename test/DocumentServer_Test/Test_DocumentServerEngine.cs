@@ -808,6 +808,118 @@ public class Test_DocumentServerEngine
 
 
 
+    [Test]
+    [TestCase(EnumStorageMode.Replaceable, Description = "Document is replaceable")]
+    [TestCase(EnumStorageMode.WriteOnceReadMany, Description = "Document is not replaceable")]
+    [TestCase(EnumStorageMode.Temporary, Description = "Document is replaceable")]
+    [TestCase(EnumStorageMode.Versioned, Description = "Document is not replaceable")]
+    public async Task OnlyReplaceableDocumentsCanBeReplaced(EnumStorageMode storageMode)
+    {
+        //***  A. Setup
+        SupportMethods sm                = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        int            expectedDocTypeId = sm.DocumentType_Test_Worm_A;
+
+        // Override the doc type if this is testing a successful replacement
+
+        string  expectedExtension    = sm.Faker.Random.String2(3);
+        string  expectedDescription  = sm.Faker.Random.String2(32);
+        string  expectedRootObjectId = sm.Faker.Random.String2(10);
+        string? expectedExternalId   = null;
+        string  appToken             = TestConstants.APPA_TOKEN;
+
+        await sm.Initialize;
+        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+
+        bool IsReplaceable = true;
+        switch (storageMode)
+        {
+            case EnumStorageMode.WriteOnceReadMany:
+                IsReplaceable = false;
+                break;
+            case EnumStorageMode.Temporary:
+                IsReplaceable = true;
+                break;
+            case EnumStorageMode.Replaceable:
+                IsReplaceable = true;
+                break;
+            case EnumStorageMode.Versioned:
+                IsReplaceable = false;
+                break;
+
+            case EnumStorageMode.Editable:
+                IsReplaceable = true;
+                break;
+            default: break;
+        }
+
+
+        //***  B. Generate a file and store it
+        // Create a document type
+        //***  Y. Create DocumentType
+        Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Words(1),
+                                                                         sm.Faker.Random.Words(4),
+                                                                         "td",
+                                                                         storageMode,
+                                                                         1,
+                                                                         1,
+                                                                         1);
+        docResult.Value.IsActive         = true;
+        docResult.Value.InActiveLifeTime = EnumDocumentLifetimes.MonthsSix;
+        sm.DB.DocumentTypes.Add(docResult.Value);
+
+        await sm.DB.SaveChangesAsync();
+
+
+        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
+                                                                              expectedDescription,
+                                                                              expectedExtension,
+                                                                              docResult.Value.Id,
+                                                                              expectedRootObjectId,
+                                                                              expectedExternalId,
+                                                                              4);
+        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
+        StoredDocument         storedDocument = result.Value;
+
+        string originalStoredFileName = sm.DocumentServerEngine.ComputeDocumentRetrievalPath(storedDocument);
+        long   originalId             = storedDocument.Id;
+        string originalFileName       = storedDocument.FileName;
+
+
+        //***  C.  Confirm the file is stored.
+        Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.True, "C10:  Original Stored File could not be found");
+        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(2), "C20:");
+
+
+        //***  D.  Generate and store a replacement file
+        string replaceDescription = "Replaced Description";
+        Result<TransferDocumentDto> replacementDtoResult = sm.TFX_GenerateUploadFile(sm,
+                                                                                     replaceDescription,
+                                                                                     expectedExtension,
+                                                                                     expectedDocTypeId,
+                                                                                     expectedRootObjectId,
+                                                                                     expectedExternalId);
+        TransferDocumentDto transferDocumentDto = replacementDtoResult.Value;
+        transferDocumentDto.CurrentStoredDocumentId = storedDocument.Id;
+
+        Result<StoredDocument> replaceResult = await documentServerEngine.StoreReplacementDocumentAsync(transferDocumentDto);
+
+        if (IsReplaceable)
+        {
+            Assert.That(replaceResult.Errors.Count,
+                        Is.EqualTo(0),
+                        "Z10:  The ReplaceDocument function returned errors. " + replaceResult.ToString());
+            Assert.That(replaceResult.IsSuccess, Is.True, "Z100:  The document type was replaceable and it should have been allowed to be replaced.");
+        }
+        else
+        {
+            Assert.That(replaceResult.IsFailed, Is.True, "Z200:  The document type was not replaceable and it should have failed the call to replace it.");
+            string searchMsg = "You cannot replace the old document";
+            Assert.That(replaceResult.ToString().Contains(searchMsg), "Z210:");
+        }
+    }
+
+
+
     /// <summary>
     ///     Confirms we can store a document that has an ExternalDocumentId
     /// </summary>
