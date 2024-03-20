@@ -20,9 +20,10 @@ public enum EnumDocumentLifetimes
     [Display(Description = "6 Months")]  MonthsSix   = 35,
     [Display(Description = "1 Year")]    YearOne     = 101,
     [Display(Description = "18 Months")] Months18    = 102,
-    [Display(Description = "2 Years")]   YearsTwo    = 120,citrix
+    [Display(Description = "2 Years")]   YearsTwo    = 120,
     [Display(Description = "3 Years")]   YearsThree  = 130,
     [Display(Description = "4 Years")]   YearsFour   = 140,
+    [Display(Description = "5 Years")]   YearsFive   = 150,
     [Display(Description = "7 Years")]   YearsSeven  = 170,
     [Display(Description = "10 Years")]  YearsTen    = 200,
 

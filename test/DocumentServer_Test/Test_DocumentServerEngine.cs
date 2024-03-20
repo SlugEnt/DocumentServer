@@ -382,6 +382,7 @@ public class Test_DocumentServerEngine
     [TestCase(EnumDocumentLifetimes.MonthOne)]
     [TestCase(EnumDocumentLifetimes.MonthsThree)]
     [TestCase(EnumDocumentLifetimes.MonthsSix)]
+    [TestCase(EnumDocumentLifetimes.Months18)]
     [TestCase(EnumDocumentLifetimes.WeekOne)]
     [TestCase(EnumDocumentLifetimes.YearOne)]
     [TestCase(EnumDocumentLifetimes.YearsTwo)]
@@ -513,6 +514,10 @@ public class Test_DocumentServerEngine
                 max = DateTime.UtcNow.AddDays(183);
                 break;
 
+            case EnumDocumentLifetimes.Months18:
+                min = DateTime.UtcNow.AddMonths(18).AddMinutes(-1);
+                max = DateTime.UtcNow.AddMonths(18);
+                break;
             case EnumDocumentLifetimes.YearOne:
                 min = DateTime.UtcNow.AddYears(1).AddMinutes(-1);
                 max = DateTime.UtcNow.AddYears(1);
@@ -531,6 +536,11 @@ public class Test_DocumentServerEngine
             case EnumDocumentLifetimes.YearsFour:
                 min = DateTime.UtcNow.AddYears(4).AddMinutes(-1);
                 max = DateTime.UtcNow.AddYears(4);
+                break;
+
+            case EnumDocumentLifetimes.YearsFive:
+                min = DateTime.UtcNow.AddYears(5).AddMinutes(-1);
+                max = DateTime.UtcNow.AddYears(5);
                 break;
 
             case EnumDocumentLifetimes.YearsSeven:
@@ -578,11 +588,13 @@ public class Test_DocumentServerEngine
                 EnumDocumentLifetimes.MonthOne    => folderDatetime.AddMonths(1),
                 EnumDocumentLifetimes.MonthsThree => folderDatetime.AddMonths(3),
                 EnumDocumentLifetimes.MonthsSix   => folderDatetime.AddMonths(6),
+                EnumDocumentLifetimes.Months18    => folderDatetime.AddMonths(18),
                 EnumDocumentLifetimes.WeekOne     => folderDatetime.AddDays(7),
                 EnumDocumentLifetimes.YearOne     => folderDatetime.AddYears(1),
                 EnumDocumentLifetimes.YearsTwo    => folderDatetime.AddYears(2),
                 EnumDocumentLifetimes.YearsThree  => folderDatetime.AddYears(3),
                 EnumDocumentLifetimes.YearsFour   => folderDatetime.AddYears(4),
+                EnumDocumentLifetimes.YearsFive   => folderDatetime.AddYears(5),
                 EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
                 EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
                 EnumDocumentLifetimes.Never       => DateTime.MaxValue,

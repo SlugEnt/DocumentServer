@@ -48,10 +48,12 @@ public class ExpiringDocument
             EnumDocumentLifetimes.MonthOne    => DateTime.UtcNow.AddMonths(1),
             EnumDocumentLifetimes.MonthsThree => DateTime.UtcNow.AddMonths(3),
             EnumDocumentLifetimes.MonthsSix   => DateTime.UtcNow.AddMonths(6),
+            EnumDocumentLifetimes.Months18    => DateTime.UtcNow.AddMonths(18),
             EnumDocumentLifetimes.YearOne     => DateTime.UtcNow.AddYears(1),
             EnumDocumentLifetimes.YearsTwo    => DateTime.UtcNow.AddYears(2),
             EnumDocumentLifetimes.YearsThree  => DateTime.UtcNow.AddYears(3),
             EnumDocumentLifetimes.YearsFour   => DateTime.UtcNow.AddYears(4),
+            EnumDocumentLifetimes.YearsFive   => DateTime.UtcNow.AddYears(5),
             EnumDocumentLifetimes.YearsSeven  => DateTime.UtcNow.AddYears(7),
             EnumDocumentLifetimes.YearsTen    => DateTime.UtcNow.AddYears(10),
             EnumDocumentLifetimes.ParentDetermined => expirationDateOnlySetForParentLifetime != null
