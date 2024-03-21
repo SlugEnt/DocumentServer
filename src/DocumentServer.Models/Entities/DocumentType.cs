@@ -125,6 +125,9 @@ public class DocumentType : AbstractBaseEntity
     }
 
 
+
+#region "Methods and Functions"
+
     public override void OnEditRemoveWORMFields(EntityEntry entityEntry)
     {
         entityEntry.Property("ApplicationId").IsModified    = false;
@@ -135,8 +138,6 @@ public class DocumentType : AbstractBaseEntity
         base.OnEditRemoveWORMFields(entityEntry);
     }
 
-
-#region "Methods and Functions"
 
     public static Result<DocumentType> CreateDocumentType(string name,
                                                           string description,
@@ -220,7 +221,10 @@ public class DocumentType : AbstractBaseEntity
 #endregion
 
 
+
 #region "Worm Fields"
+
+    // Fields that can only be written on first save.
 
     /// <summary>
     ///     Default Storage mode for documents of this type.  This cannot be changed once saved.
@@ -245,6 +249,7 @@ public class DocumentType : AbstractBaseEntity
 
 
     /// <summary>
+    ///    Meaning:  Allow Same Document Type External Keys.  
     ///     If this is false, then there can only be one entry per DocumentType External Key.  Meaning an invoice 123 can only
     ///     exist once for this documenttype and rootObjectKey combination.  If true, there can be multiple of the same key.
     ///     This cannot be changed after initial save

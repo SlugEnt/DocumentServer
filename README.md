@@ -40,6 +40,9 @@ In Document Server every document is categorized into a DocumentType.  The docum
 * Whether the document is temporary or a more permanent document.
 * Whether the document can be replaced with a newer version or all versions are kept.
 
+#### Stored Document
+The Stored Document entity stores information about a single document that is stored in the system.  At present a Stored Document can only exist on a maximum of 2 different storage nodes at a given time.  However, it can move from one node to another depending on what type of document it is as well as settings in the Document Type it is a part of.
+
 
 ## The DocumentServer Solution
 The DocumentServer consists of the following projects

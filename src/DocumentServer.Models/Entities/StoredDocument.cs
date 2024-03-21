@@ -9,6 +9,10 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 ///     The StoredDocument is the database entity that stores information about a single stored document.
 ///     The document itself is saved on a file system with the name  Id.FileExtension
 ///     It is thus vital that FileExtension and Id are never changed.
+///     <remarks>
+///     A Stored Document can only exist on a maximum of 2 storage nodes at one time (This may change in future)
+///     A Stored Document can however move to different nodes during its lifetime.  
+/// </remarks>
 /// </summary>
 [Index(nameof(RootObjectExternalKey), nameof(DocTypeExternalKey), Name = "IDX_Ext_Keys")]
 public class StoredDocument : AbstractBaseEntity
@@ -164,7 +168,6 @@ public class StoredDocument : AbstractBaseEntity
     /// </summary>
     public int SizeInKB { get; set; }
 
-//        [Key] public Guid Id { get; set; }
 
 
     [Column(TypeName = "tinyint")]
@@ -172,11 +175,13 @@ public class StoredDocument : AbstractBaseEntity
     public EnumDocumentStatus Status { get; set; } = 0;
 
     /// <summary>
-    ///     Where its stored.
+    ///     Where its stored.  This should not change after initial save.
     /// </summary>
     public string StorageFolder { get; set; }
 
 
+
+#region "Methods and Functions"
 
     /// <summary>
     ///     Replaces the existing FileName with a new one.
@@ -205,4 +210,6 @@ public class StoredDocument : AbstractBaseEntity
                 FileName = Guid.NewGuid() + "." + fileExtension;
         }
     }
+
+#endregion
 }
