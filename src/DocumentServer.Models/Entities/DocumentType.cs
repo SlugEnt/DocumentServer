@@ -15,7 +15,7 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 ///     <para>2. How it is stored.  Temporary, permanent, editable</para>
 ///     <para>3. How long it is stored for</para>
 /// </summary>
-public class DocumentType : AbstractBaseEntity
+public class DocumentType : AbstractKeyEntity
 {
     private string _name;
     private string _storageFolderName = "";

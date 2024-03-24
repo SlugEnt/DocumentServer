@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SlugEnt.DocumentServer.Db;
 
@@ -11,9 +12,11 @@ using SlugEnt.DocumentServer.Db;
 namespace SlugEnt.DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    partial class DocServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240323104603_AddReplication")]
+    partial class AddReplication
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -372,32 +375,6 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.HasIndex(new[] { "RootObjectExternalKey", "DocTypeExternalKey" }, "IDX_Ext_Keys");
 
                     b.ToTable("StoredDocuments");
-                });
-
-            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.VitalInfo", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<DateTime>("LastUpdateUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<long>("ValueLong")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ValueString")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("VitalInfos");
                 });
 
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.DocumentType", b =>

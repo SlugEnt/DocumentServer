@@ -76,22 +76,6 @@ public class StoredDocument : AbstractBaseEntity
     public int DocumentTypeId { get; set; }
 
 
-    /// <summary>
-    ///     For displaying information about this in an error type message
-    /// </summary>
-    [NotMapped]
-    public string ErrorMessage
-    {
-        get
-        {
-            string className = GetType().Name;
-            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
-                                       className,
-                                       Id,
-                                       FileName);
-            return msg;
-        }
-    }
 
     /// <summary>
     ///     Filename that document is stored as on the file system.  This is just the file name, for full path and name use
@@ -211,5 +195,35 @@ public class StoredDocument : AbstractBaseEntity
         }
     }
 
+
+
+    /// <summary>
+    ///     For displaying information about this in an error type message
+    /// </summary>
+    [NotMapped]
+    public string ErrorMessage
+    {
+        get
+        {
+            string className = GetType().Name;
+            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                       className,
+                                       Id,
+                                       FileName);
+            return msg;
+        }
+    }
+
 #endregion
+
+
+#region "Non Fields"
+
+#endregion
+
+
+    /// <summary>
+    /// Stored Documents that are awaiting Replication.
+    /// </summary>
+    public ICollection<ReplicationTask>? StoredDocumentsNeedingReplication { get; set; }
 }

@@ -8,7 +8,7 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 ///     It is considered the owner of a document and it alone determines how long a document is stored, when it is deleted,
 ///     archived, etc.
 /// </summary>
-public class RootObject : AbstractBaseEntity
+public class RootObject : AbstractKeyEntity
 {
     public ICollection<DocumentType> DocumentTypes;
     public Application Application { get; set; }

@@ -4,63 +4,15 @@ using SlugEnt.DocumentServer.Models.Enums;
 
 namespace SlugEnt.DocumentServer.Models.Entities;
 
-public class StorageNode : AbstractBaseEntity
+/// <summary>
+/// Storage Node, represents a storage location.  It identifies both the server and the root of the path where documents should be stored.
+/// </summary>
+public class StorageNode : AbstractKeyEntity
 {
-    /// <summary>
-    ///     Constructor
-    /// </summary>
-    /// <param name="name"></param>
-    /// <param name="description"></param>
-    /// <param name="isTestNode"></param>
-    /// <param name="storageNodeLocation"></param>
-    /// <param name="storageNodeSpeed"></param>
-    /// <param name="nodePath"></param>
-    public StorageNode(string name,
-                       string description,
-                       bool isTestNode,
-                       EnumStorageNodeLocation storageNodeLocation,
-                       EnumStorageNodeSpeed storageNodeSpeed,
-                       string nodePath)
-    {
-        Name                = name;
-        Description         = description;
-        IsTestNode          = isTestNode;
-        StorageNodeLocation = storageNodeLocation;
-        StorageSpeed        = storageNodeSpeed;
-        NodePath            = nodePath;
-
-        IsActive = false;
-    }
-
-
-    /// <summary>
-    ///     Empty constructor
-    /// </summary>
-    public StorageNode() { }
-
-
+    [Key] public int Id { get; set; }
 
     [MaxLength(400)] public string Description { get; set; }
 
-
-    /// <summary>
-    ///     For displaying information about this in an error type message
-    /// </summary>
-    [NotMapped]
-    public string ErrorMessage
-    {
-        get
-        {
-            string className = GetType().Name;
-            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
-                                       className,
-                                       Id,
-                                       Name);
-            return msg;
-        }
-    }
-
-    [Key] public int Id { get; set; }
 
     /// <summary>
     ///     If true the Node can be used for production use
@@ -106,15 +58,72 @@ public class StorageNode : AbstractBaseEntity
     public EnumStorageNodeSpeed StorageSpeed { get; set; }
 
 
-        // @formatter:off — disable formatter after this line
-        public List<DocumentType>? ActiveNode1DocumentTypes { get; set; }
-        public List<DocumentType>? ActiveNode2DocumentTypes { get; set; }
-        public List<DocumentType>? ArchivalNode1DocumentTypes { get; set; }
-        public List<DocumentType>? ArchivalNode2DocumentTypes { get; set; }
+    // @formatter:off — disable formatter after this line
+    public virtual List<DocumentType>? ActiveNode1DocumentTypes { get; set; }
+    public virtual List<DocumentType>? ActiveNode2DocumentTypes { get; set; }
+    public virtual List<DocumentType>? ArchivalNode1DocumentTypes { get; set; }
+    public virtual List<DocumentType>? ArchivalNode2DocumentTypes { get; set; }
+    public virtual List<StoredDocument> PrimaryNodeStoredDocuments { get; set; }
+    public virtual List<StoredDocument> SecondaryNodeStoredDocuments { get; set; }
 
-        public List<StoredDocument> PrimaryNodeStoredDocuments { get; set; }
-        public List<StoredDocument> SecondaryNodeStoredDocuments { get; set; }
-        
 
+    // Nodes Replicating to/from Collections
+    public virtual ICollection<ReplicationTask>? ReplicationTaskToNodes {get;set;}
+    public virtual ICollection<ReplicationTask>? ReplicationTaskFromNodes { get; set;}
     // @formatter:on — disable formatter after this line
+
+
+#region "Non Fields"
+
+    /// <summary>
+    ///     Constructor
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="description"></param>
+    /// <param name="isTestNode"></param>
+    /// <param name="storageNodeLocation"></param>
+    /// <param name="storageNodeSpeed"></param>
+    /// <param name="nodePath"></param>
+    public StorageNode(string name,
+                       string description,
+                       bool isTestNode,
+                       EnumStorageNodeLocation storageNodeLocation,
+                       EnumStorageNodeSpeed storageNodeSpeed,
+                       string nodePath)
+    {
+        Name                = name;
+        Description         = description;
+        IsTestNode          = isTestNode;
+        StorageNodeLocation = storageNodeLocation;
+        StorageSpeed        = storageNodeSpeed;
+        NodePath            = nodePath;
+
+        IsActive = false;
+    }
+
+
+    /// <summary>
+    ///     Empty constructor
+    /// </summary>
+    public StorageNode() { }
+
+
+    /// <summary>
+    ///     For displaying information about this in an error type message
+    /// </summary>
+    [NotMapped]
+    public string ErrorMessage
+    {
+        get
+        {
+            string className = GetType().Name;
+            string msg = string.Format("{0}:  [Id: {1} | Name: {2} ]",
+                                       className,
+                                       Id,
+                                       Name);
+            return msg;
+        }
+    }
+
+#endregion
 }

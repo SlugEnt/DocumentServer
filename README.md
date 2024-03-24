@@ -75,7 +75,9 @@ WORM Cannot be replaced, Cannot be deleted
 Temporary - Can be replaced, can be deleted.
 Replacable - Can be replaced, cannot be deleted
 
-
+## Internals
+This section describes some of the internal Logic.
+The DocumentServerEngine is a transient object.  However, it needs to keep track of a lot of information between instances.  To do this it uses the DocumentServerInformation ojbect.  This is a singleton object and contains inital Engine setup values as well as cached values that the Engine needs to run efficiently.
 
 ## Unit Testing
 ### ENABLE_TRANSACTIONS

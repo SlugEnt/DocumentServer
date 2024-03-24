@@ -1,0 +1,187 @@
+<mxfile host="Electron" modified="2024-03-22T14:45:47.793Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.0.2 Chrome/114.0.5735.289 Electron/25.8.4 Safari/537.36" etag="Tc3lwj_rwOM588gi_xf4" version="22.0.2" type="device">
+  <diagram name="Page-1" id="_j3kt4ZteOrwqvhP6A2K">
+    <mxGraphModel dx="1914" dy="1180" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-1" value="Document Type" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-2" value="Stored Document" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-8" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="40" y="190" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-3" value="Storage Tier" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="t3rf-IrFCrQk9eIjKrIr-8">
+          <mxGeometry width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-4" value="Hot" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="t3rf-IrFCrQk9eIjKrIr-8">
+          <mxGeometry x="120" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-5" value="Warm" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="t3rf-IrFCrQk9eIjKrIr-8">
+          <mxGeometry x="120" y="20" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-6" value="Cold" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="t3rf-IrFCrQk9eIjKrIr-8">
+          <mxGeometry x="120" y="40" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-7" value="Cloud" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="t3rf-IrFCrQk9eIjKrIr-8">
+          <mxGeometry x="120" y="60" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-9" value="Migration Cycle" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-10" value="Storage Node" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="190" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-17" value="Storage Tier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-18" value="Server" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="270" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-19" value="Folder" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="290" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-21" value="Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="90" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-22" value="Secondary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="110" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-23" value="Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="90" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-24" value="Secondary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="110" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-25" value="Migration Cycle" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="130" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-26" value="Starting Tier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-27" value="Starting Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="420" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-28" value="Starting Secondary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="440" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-29" value="SecondTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-30" value="Starting Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="500" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-31" value="Starting Secondary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-32" value="MinutesInTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-33" value="MinutesInTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="540" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-34" value="ThirdTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-35" value="Starting Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="580" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-36" value="Starting Secondary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-37" value="MinutesInTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="620" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-38" value="Write To Primary Node set on the DocType" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-39" value="Save Document" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="760" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-40" value="Set Tier Migration Time based upon Migration Cycle assigned to DocType" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-42" value="Tier Migration Date" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="130" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-43" value="CurrentTier" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="150" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-44" value="ReplicationTask" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-45" value="StoredDocId" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="400" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="t3rf-IrFCrQk9eIjKrIr-46">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-51" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t3rf-IrFCrQk9eIjKrIr-46" target="t3rf-IrFCrQk9eIjKrIr-50">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-52" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="t3rf-IrFCrQk9eIjKrIr-51">
+          <mxGeometry x="-0.1333" y="3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-46" value="2nd Node?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="760" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-50" value="Add Replication Task" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-53" value="Primary Node" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="420" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-56" value="Return DocId to Caller" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.terminator;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="640" y="770" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-57" value="Start Replication" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="20" y="870" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-59" value="Get upto next 10 replications" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.sequential_data;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="120" y="865" width="80" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-63" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="t3rf-IrFCrQk9eIjKrIr-61" target="t3rf-IrFCrQk9eIjKrIr-62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-67" value="Yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="t3rf-IrFCrQk9eIjKrIr-63">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-61" value="Doc Stored on this Node?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="860" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-62" value="Read Document" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="t3rf-IrFCrQk9eIjKrIr-68" target="t3rf-IrFCrQk9eIjKrIr-71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-68" value="Send to Node to Replicate To" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="860" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-71" value="Get Document Info" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="870" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="t3rf-IrFCrQk9eIjKrIr-68" target="t3rf-IrFCrQk9eIjKrIr-59">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="900" />
+              <mxPoint x="720" y="980" />
+              <mxPoint x="160" y="980" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t3rf-IrFCrQk9eIjKrIr-77" value="" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="500" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

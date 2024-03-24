@@ -8,6 +8,10 @@ using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
 using Test_DocumentServer.SupportObjects;
 
+
+[assembly: LevelOfParallelism(4)]
+
+
 namespace Test_DocumentServer;
 
 [TestFixture]
@@ -96,7 +100,7 @@ public class Test_DocumentServerEngine
     public async Task ComputeStorageFolder_CorrectPath_Generated(EnumStorageMode storageMode)
     {
         // A. Setup
-        SupportMethods sm         = new();
+        SupportMethods sm         = new(EnumFolderCreation.Test, _useDatabaseTransactions);
         UniqueKeys     uniqueKeys = new("");
         string         filePart   = uniqueKeys.GetKey("fn");
         string         nodePath   = @"a\b\c\d";
@@ -131,7 +135,7 @@ public class Test_DocumentServerEngine
             StorageMode          = storageMode,
             StorageFolderName    = sm.Faker.Random.AlphaNumeric(7)
         };
-        sm.DB.AddAsync(randomDocType);
+        await sm.DB.AddAsync(randomDocType);
         await sm.DB.SaveChangesAsync();
 
 
@@ -809,6 +813,7 @@ public class Test_DocumentServerEngine
 
 
     [Test]
+    [NonParallelizable]
     [TestCase(EnumStorageMode.Replaceable, Description = "Document is replaceable")]
     [TestCase(EnumStorageMode.WriteOnceReadMany, Description = "Document is not replaceable")]
     [TestCase(EnumStorageMode.Temporary, Description = "Document is replaceable")]

@@ -118,7 +118,7 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        Result<string> appSaveResult = await docEngine.ApplicationSaveAsync(_application);
+        Result<string> appSaveResult = await docEngine.SaveApplicationAsync(_application);
         if (appSaveResult.IsSuccess)
         {
             ReturnToList();

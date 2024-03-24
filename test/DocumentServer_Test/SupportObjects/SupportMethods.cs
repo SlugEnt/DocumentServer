@@ -95,13 +95,13 @@ public class SupportMethods
 
 
             // Setup DocumentServer Engine
-            DocumentServerInformation dsi = new DocumentServerInformation(DB);
-            await dsi.Initialize;
+            DocumentServerInformation = new DocumentServerInformation(DB);
+            await DocumentServerInformation.Initialize;
 
 
             DocumentServerEngine = new DocumentServerEngine(_logger,
                                                             DB,
-                                                            dsi,
+                                                            DocumentServerInformation,
                                                             FileSystem);
         }
 
@@ -109,6 +109,9 @@ public class SupportMethods
     }
 
 
+    /// <summary>
+    /// This is the Initialize Task.  Must be called to finalize setup of key objects
+    /// </summary>
     public Task Initialize { get; }
 
     /// <summary>
@@ -126,6 +129,12 @@ public class SupportMethods
     ///     Return the DocumentServerEngine
     /// </summary>
     public DocumentServerEngine DocumentServerEngine { get; private set; }
+
+    /// <summary>
+    ///    Returns the DocumentServerInformation object
+    /// </summary>
+    public DocumentServerInformation DocumentServerInformation { get; private set; }
+
 
     /// <summary>
     ///     Returns the Document Type for a Replaceable document
