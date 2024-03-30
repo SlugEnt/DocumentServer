@@ -225,15 +225,9 @@ public class Test_DocumentServerEngine
         Assert.That(modeResult.IsSuccess, Is.True, "Y10:");
         string modeLetter = modeResult.Value;
 
-        // Note - The physical path also has the hosts path prepended to this value. 
-        /*string expectedPath = Path.Join(b.NodePath,
-                                        a.StorageFolderName,
-                                        modeLetter,
-                                        DatePath(a.StorageMode, a.InActiveLifeTime));
-        */
 
-        string expectedPath = Path.Join(a.StorageFolderName,
-                                        modeLetter,
+        string expectedPath = Path.Join(modeLetter,
+                                        a.StorageFolderName,
                                         DatePath(a.StorageMode, a.InActiveLifeTime));
 
         // Z. Validate
@@ -790,7 +784,9 @@ public class Test_DocumentServerEngine
         //***  C.  Confirm the file is stored.
 
         Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.True, "C10:  Original Stored File could not be found");
-        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(2), "C20:");
+        Assert.That(sm.FileSystem.AllFiles.Count(),
+                    Is.EqualTo(3),
+                    "C20:  Should be 3 files.  The original one used to upload, then 2 files, one for primary node and one for secondary node.");
 
 
         //***  D.  Generate and store a replacement file
@@ -825,14 +821,8 @@ public class Test_DocumentServerEngine
         // Make sure the original file is deleted.
         Assert.That(sm.FileSystem.File.Exists(originalStoredFileName), Is.False, "Z90:");
 
-        // 2 generated files and the one new stored file.
-        if (sm.FileSystem.AllFiles.Count() == 2)
-        {
-            int j = 3;
-            j++;
-        }
-
-        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(3), "Z91:");
+        // 2 generated files (Original and replacement.  Document is stored on 2 nodes. = 4
+        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(4), "Z91:");
     }
 
 

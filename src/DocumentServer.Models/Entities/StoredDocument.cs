@@ -33,7 +33,7 @@ public class StoredDocument : AbstractBaseEntity
                           string storageFolder,
                           int sizeInKB,
                           int documentTypeId,
-                          int primaryStorageNodeId,
+                          int? primaryStorageNodeId = null,
                           int? secondaryStorageNodeId = null) : this()
     {
         SetFileName(fileExtension);

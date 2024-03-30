@@ -392,12 +392,13 @@ public class DocumentServerEngine
     public async Task<Result<StoredDocument>> StoreDocumentNew(TransferDocumentDto transferDocumentDto,
                                                                string applicationToken)
     {
-        IDbContextTransaction?  transaction             = null;
-        bool                    fileSavedToStorage      = false;
-        string                  fullFileName            = "";
-        DocumentOperationStatus documentOperationStatus = new();
-        Result<StoredDocument>  result                  = new();
-        bool                    IsPrimaryNode           = false;
+        IDbContextTransaction?       transaction             = null;
+        bool                         fileSavedToStorage      = false;
+        string                       fullFileName            = "";
+        DocumentOperationStatus      documentOperationStatus = new();
+        Result<StoredDocument>       result                  = new();
+        bool                         IsPrimaryNode           = false;
+        List<DestinationStorageNode> destinationNodes        = null;
 
         try
         {
@@ -422,7 +423,6 @@ public class DocumentServerEngine
                 return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
 
 
-            // TODO Determine if we are Primary or Secondary Node and fix this code
             // We always use the primary node for initial storage.
 
             int tmpFileSize = (int)transferDocumentDto.File.Length;
@@ -456,26 +456,38 @@ public class DocumentServerEngine
                 }
             }
 
+
             StoredDocument storedDocument = new(transferDocumentDto.FileExtension,
                                                 transferDocumentDto.Description,
                                                 transferDocumentDto.RootObjectId,
                                                 transferDocumentDto.DocTypeExternalId,
                                                 "",
                                                 fileSize,
-                                                transferDocumentDto.DocumentTypeId,
-                                                (int)docType.ActiveStorageNode1Id);
+                                                transferDocumentDto.DocumentTypeId);
             SetMediaType(transferDocumentDto.MediaType, transferDocumentDto.FileExtension, storedDocument);
 
 
+            // TODO Determine if we are Primary or Secondary Node and fix this code
+
+            bool        NodeIsOnThisHost = false;
+            StorageNode storageNode      = null;
+            Result<List<DestinationStorageNode>> storeResult = await StoreFile(storedDocument,
+                                                                               docType,
+                                                                               transferDocumentDto.File,
+                                                                               true);
+
+
             // Store the document on the storage media
-            Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
+            /*Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
                                                                             docType,
                                                                             (int)docType.ActiveStorageNode1Id,
                                                                             transferDocumentDto.File);
             if (storeResult.IsFailed)
                 return Result.Merge(result, storeResult);
+            */
+            destinationNodes = storeResult.Value;
 
-            fullFileName       = storeResult.Value;
+            //fullFileName       = storeResult.Value;
             fileSavedToStorage = true;
 
 
@@ -496,11 +508,25 @@ public class DocumentServerEngine
         catch (Exception ex)
         {
             await _db.Database.RollbackTransactionAsync();
-
+            string cleanupMsg = "";
 
             // Delete the file from storage if we successfully saved it, but failed afterward.
             if (fileSavedToStorage)
-                _fileSystem.File.Delete(fullFileName);
+            {
+                try
+                {
+                    foreach (DestinationStorageNode destinationStorageNode in destinationNodes)
+                    {
+                        if (destinationStorageNode.IsOnThisHost)
+                            _fileSystem.File.Delete(destinationStorageNode.FullFileNameAsStored);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    cleanupMsg = "StoreDocumentNew:  During Error Cleanup encountered another error: " + exception.ToString();
+                    _logger.LogError(cleanupMsg);
+                }
+            }
 
             string msg =
                 string.Format($"StoreDocument:  Failed to store the document:  Description: {transferDocumentDto.Description}, Extension: {transferDocumentDto.FileExtension}.  Error Was: {ex.Message}.  ");
@@ -515,9 +541,156 @@ public class DocumentServerEngine
                              transferDocumentDto.Description,
                              transferDocumentDto.FileExtension,
                              msg);
+
             Result errorResult = Result.Fail(new Error("Failed to store the document due to errors.").CausedBy(ex));
             return errorResult;
         }
+    }
+
+
+
+    /// <summary>
+    /// Performs the actual storage of a file to a node.  Note, this only stores the physical file.  
+    /// </summary>
+    /// <param name="storedDocument"></param>
+    /// <param name="documentType"></param>
+    /// <param name="file"></param>
+    /// <param name="isInitialSave">True, if this is the first time save of this document. Ie. Its not a replica save</param>
+    /// <returns>List of the DestinationStorageNodes.  This is needed if errors following this code require this document to be deleted</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    internal async Task<Result<List<DestinationStorageNode>>> StoreFile(StoredDocument storedDocument,
+                                                                        DocumentType documentType,
+                                                                        IFormFile file,
+                                                                        bool isInitialSave)
+    {
+        DestinationStorageNode? destinationStorageNode1 = null;
+        DestinationStorageNode? destinationStorageNode2 = null;
+
+        List<DestinationStorageNode> destinationStorageNodes = new();
+
+        try
+        {
+            // Check to see if the primary storage node is on this host (The host this code is running on now)
+            if (documentType.ActiveStorageNode1Id != null)
+            {
+                DestinationStorageNode destinationStorageNode = new();
+                Result<StorageNode>    storageNodeResult      = _documentServerInformation.GetCachedStorageNode((int)documentType.ActiveStorageNode1Id);
+                if (storageNodeResult.IsFailed)
+                {
+                    _logger.LogError("StoreDocumentNew | " + storageNodeResult.ToString());
+                    return Result.Fail(storageNodeResult.Errors);
+                }
+
+                destinationStorageNode.StorageNodeId           = storageNodeResult.Value.Id;
+                destinationStorageNode.IsPrimaryDocTypeStorage = true;
+
+                if (storageNodeResult.Value.ServerHostId == _documentServerInformation.ServerHostInfo.ServerHostId)
+                {
+                    destinationStorageNode.IsOnThisHost = true;
+                    destinationStorageNode1             = destinationStorageNode;
+                }
+                else
+                {
+                    destinationStorageNode2 = destinationStorageNode;
+                }
+
+                destinationStorageNodes.Add(destinationStorageNode);
+            }
+
+            // Check to see if the secondary storage node is on this host (The host this code is running on now)
+            if (documentType.ActiveStorageNode2Id != null)
+            {
+                DestinationStorageNode destinationStorageNode = new();
+                Result<StorageNode>    storageNodeResult      = _documentServerInformation.GetCachedStorageNode((int)documentType.ActiveStorageNode2Id);
+                if (storageNodeResult.IsFailed)
+                {
+                    _logger.LogError("StoreDocumentNew | " + storageNodeResult.ToString());
+                    return Result.Fail(storageNodeResult.Errors);
+                }
+
+                destinationStorageNode.StorageNodeId           = storageNodeResult.Value.Id;
+                destinationStorageNode.IsPrimaryDocTypeStorage = false;
+                if (storageNodeResult.Value.ServerHostId == _documentServerInformation.ServerHostInfo.ServerHostId)
+                    destinationStorageNode.IsOnThisHost = true;
+
+                // Figure out if it is 1st or 2nd.
+                if (destinationStorageNode1 == null)
+                    destinationStorageNode1 = destinationStorageNode;
+                else
+                    destinationStorageNode2 = destinationStorageNode;
+                destinationStorageNodes.Add(destinationStorageNode);
+            }
+
+
+            // At this point we should have AT least one node if not 2 for storage.  They will be listed by if they are on this host first, then other hosts 2nd.
+            // If the first one is not on this host then neither is the 2nd.
+            if (destinationStorageNode1.IsOnThisHost)
+            {
+                Result resultStore = await InternalStoreDocumentOnThisHost(destinationStorageNode1,
+                                                                           storedDocument,
+                                                                           documentType,
+                                                                           file);
+                if (resultStore.IsFailed)
+                    return resultStore;
+            }
+            else
+            {
+                // TODO 
+                throw new NotImplementedException("No code for storing a document when neither of the storage locations are on this host.");
+
+                // Neither of the storage nodes are on this host - need to make remote call to store on destination server the 1st one
+            }
+
+            // Store Document on Node2
+            if (destinationStorageNode2 != null)
+            {
+                if (destinationStorageNode2.IsOnThisHost)
+                {
+                    Result resultStore2 = await InternalStoreDocumentOnThisHost(destinationStorageNode2,
+                                                                                storedDocument,
+                                                                                documentType,
+                                                                                file);
+                    if (resultStore2.IsFailed)
+                        return resultStore2;
+                }
+                else
+                    throw new NotImplementedException("No code to save the document to the secondary location");
+
+
+                // TODO Add Code
+                // If size < 1MB store it as well..
+                // Otherwise write to actions table to replicate it at a later time.
+            }
+
+            return Result.Ok(destinationStorageNodes);
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine(exception);
+            throw;
+        }
+    }
+
+
+    internal async Task<Result> InternalStoreDocumentOnThisHost(DestinationStorageNode destinationStorageNode,
+                                                                StoredDocument storedDocument,
+                                                                DocumentType documentType,
+                                                                IFormFile file)
+    {
+        // Store the document on the storage media
+        Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
+                                                                        documentType,
+                                                                        destinationStorageNode.StorageNodeId,
+                                                                        file);
+        if (storeResult.IsFailed)
+            return Result.Fail(storeResult.Errors);
+
+        // Save the file name in case we need to delete it due to errors following this code.
+        destinationStorageNode.FullFileNameAsStored = storeResult.Value;
+
+        if (destinationStorageNode.IsPrimaryDocTypeStorage)
+            storedDocument.PrimaryStorageNodeId = destinationStorageNode.StorageNodeId;
+        return Result.Ok();
     }
 
 
@@ -574,13 +747,7 @@ public class DocumentServerEngine
             Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, formFile);
             if (!storeFileResult.IsSuccess)
                 return storeFileResult;
-            /*
 
-            using (Stream fs = _fileSystem.File.Create(fullFileName))
-            {
-                await formFile.CopyToAsync(fs);
-            }
-            */
 
             // Save the path in the StoredDocument.  But here we do not save the host prefix part of the path, we only need the unique path to the document.
             // TODO DO NOT store the drive, host path or nodepath part of the path.
