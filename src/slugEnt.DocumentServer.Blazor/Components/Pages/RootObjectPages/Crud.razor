@@ -6,6 +6,7 @@
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.FluentResults
 @inherits AbstractCRUDComponent
 
 
@@ -130,9 +131,13 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        DB.RootObjects.Add(_rootObject);
-        await DB.SaveChangesAsync();
-        ReturnToList();
+        EntityRules    entityRules = new(DB);
+        Result<string> saveResult  = await entityRules.SaveRootObjectAsync(_rootObject);
+        if (saveResult.IsSuccess)
+            ReturnToList();
+        else
+            _errMsg = saveResult.ToString();
+
     }
 
 

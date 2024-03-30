@@ -12,8 +12,8 @@ using SlugEnt.DocumentServer.Db;
 namespace SlugEnt.DocumentServer.Db.Migrations
 {
     [DbContext(typeof(DocServerDbContext))]
-    [Migration("20240323154847_AddVitals")]
-    partial class AddVitals
+    [Migration("20240325103804_Add VitalInfo")]
+    partial class AddVitalInfo
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -401,6 +401,16 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("VitalInfos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "LastKeyEntityUpdate",
+                            LastUpdateUtc = new DateTime(1, 1, 1, 0, 0, 0, 1, DateTimeKind.Unspecified),
+                            Name = "Last Update to Key Entities",
+                            ValueLong = 0L,
+                            ValueString = ""
+                        });
                 });
 
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.DocumentType", b =>

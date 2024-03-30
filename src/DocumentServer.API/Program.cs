@@ -116,6 +116,7 @@ public class Program
         builder.Services.AddAuthentication(options => { options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme; }).AddJwtBearer();
         builder.Services.AddAuthorization(options =>
         {
+            // This defines a policy for clients to talk to us
             options.AddPolicy("ApiKeyPolicy",
                               policy =>
                               {
@@ -125,8 +126,20 @@ public class Program
                                   });
                                   policy.Requirements.Add(new ApiKeyRequirement());
                               });
+
+            // This defines policy for nodes that need to talk to each other
+            options.AddPolicy("NodeKeyPolicy",
+                              policy =>
+                              {
+                                  policy.AddAuthenticationSchemes(new[]
+                                  {
+                                      JwtBearerDefaults.AuthenticationScheme
+                                  });
+                                  policy.Requirements.Add(new NodeKeyRequirement());
+                              });
         });
         builder.Services.AddSingleton<IAuthorizationHandler, ApiKeyHandler>();
+        builder.Services.AddSingleton<IAuthorizationHandler, NodeKeyHandler>();
 
 
         builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });

@@ -50,12 +50,13 @@ namespace Test_DocumentServer
                 StorageMode          = EnumStorageMode.WriteOnceReadMany,
                 IsActive             = true,
             };
-            Result resultSave = await dse.SaveDocumentTypeAsync(randomDocType);
+            EntityRules entityRules = new EntityRules(sm.DB);
+            Result      resultSave  = await entityRules.SaveDocumentTypeAsync(randomDocType);
 
             // Z Validate
             Assert.That(resultSave.IsSuccess, Is.True, "Z100: " + resultSave.ToString());
 
-            await sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
+            sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
             Assert.That(sm.DocumentServerInformation.CachedDocumentTypes.Count, Is.GreaterThan(documentTypeCount), "Z200:");
 
             VitalInfo vitalInfo2 = sm.DB.VitalInfos.SingleOrDefault(vi => vi.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
@@ -89,13 +90,14 @@ namespace Test_DocumentServer
                 IsActive = true,
             };
 
-            Result resultSave = await dse.SaveApplicationAsync(application);
+            EntityRules entityRules = new EntityRules(sm.DB);
+            Result      resultSave  = await entityRules.SaveApplicationAsync(application);
 
 
             // Z Validate
             Assert.That(resultSave.IsSuccess, Is.True, "Z100: " + resultSave.ToString());
 
-            await sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
+            sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
             Assert.That(sm.DocumentServerInformation.CachedApplications.Count, Is.GreaterThan(applicationCount), "Z200:");
             Assert.That(sm.DocumentServerInformation.CachedApplicationTokenLookup.Count, Is.GreaterThan(appTokenCount), "Z210:");
 
@@ -131,11 +133,12 @@ namespace Test_DocumentServer
                 IsActive      = true,
             };
 
-            Result resultSave = await dse.SaveRootObjectAsync(rootObect);
+            EntityRules entityRules = new EntityRules(sm.DB);
+            Result      resultSave  = await entityRules.SaveRootObjectAsync(rootObect);
 
             // Z Validate
             Assert.That(resultSave.IsSuccess, Is.True, "Z100: " + resultSave.ToString());
-            await sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
+            sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
             Assert.That(sm.DocumentServerInformation.CachedRootObjects.Count, Is.GreaterThan(rootObjectCount), "Z200:");
 
             VitalInfo vitalInfo2 = sm.DB.VitalInfos.SingleOrDefault(vi => vi.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
@@ -168,15 +171,16 @@ namespace Test_DocumentServer
                                           true,
                                           EnumStorageNodeLocation.HostedSMB,
                                           EnumStorageNodeSpeed.Hot,
-                                          TestConstants.FOLDER_TEST_PRIMARY);
-            storageNode.IsActive     = true;
+                                          TestConstants.FOLDER_TEST_PRIMARY,
+                                          true);
             storageNode.ServerHostId = 1;
 
-            Result resultSave = await dse.SaveStorageNodeAsync(storageNode);
+            EntityRules entityRules = new EntityRules(sm.DB);
+            Result      resultSave  = await entityRules.SaveStorageNodeAsync(storageNode);
 
             // Z Validate
             Assert.That(resultSave.IsSuccess, Is.True, "Z100: " + resultSave.ToString());
-            await sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
+            sm.DocumentServerInformation.CheckIfKeyEntitiesUpdated(sm.DB);
             Assert.That(sm.DocumentServerInformation.CachedStorageNodes.Count, Is.GreaterThan(storageNodeCount), "Z200:");
 
             VitalInfo vitalInfo2 = sm.DB.VitalInfos.SingleOrDefault(vi => vi.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);

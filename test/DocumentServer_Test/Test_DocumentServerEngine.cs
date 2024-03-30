@@ -53,7 +53,8 @@ public class Test_DocumentServerEngine
                                       true,
                                       EnumStorageNodeLocation.HostedSMB,
                                       EnumStorageNodeSpeed.Hot,
-                                      nodePath);
+                                      nodePath,
+                                      true);
         storageNode.ServerHostId = 1;
         sm.DB.Add(storageNode);
         await sm.DB.SaveChangesAsync();
@@ -109,13 +110,16 @@ public class Test_DocumentServerEngine
         await sm.Initialize;
         DocumentServerEngine dse = sm.DocumentServerEngine;
 
-        // Create a random StorageNode
+
+        //***  B)
+        //  Create a random StorageNode
         StorageNode storageNode = new(sm.Faker.Music.Genre(),
                                       sm.Faker.Random.Words(3),
                                       true,
                                       EnumStorageNodeLocation.HostedSMB,
                                       EnumStorageNodeSpeed.Hot,
-                                      nodePath);
+                                      nodePath,
+                                      true);
         storageNode.ServerHostId = 1;
         sm.DB.Add(storageNode);
         await sm.DB.SaveChangesAsync();
@@ -133,11 +137,17 @@ public class Test_DocumentServerEngine
             RootObjectId         = rootObject.Id,
             ApplicationId        = rootObject.ApplicationId,
             StorageMode          = storageMode,
-            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7)
+            StorageFolderName    = sm.Faker.Random.AlphaNumeric(7),
+            IsActive             = true,
         };
         await sm.DB.AddAsync(randomDocType);
         await sm.DB.SaveChangesAsync();
 
+
+        //***  C)
+        //   We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "C10: The cache failed to load.");
 
         // Load Server Host
         ServerHost? serverHost = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == 1);
@@ -165,11 +175,10 @@ public class Test_DocumentServerEngine
 
         // Paths should be:  NodePath\ModeLetter\DocTypeFolder\ymd\filename
         string ymdPath = DatePath(storageMode, randomDocType.InActiveLifeTime);
-        string expectedStoredDocPath = Path.Combine(storageNode.NodePath,
-                                                    modeLetter,
+        string expectedStoredDocPath = Path.Combine(modeLetter,
                                                     randomDocType.StorageFolderName,
                                                     ymdPath);
-        string expectedWithHostPath = Path.Combine(serverHost.Path, expectedStoredDocPath);
+        string expectedWithHostPath = Path.Combine(serverHost.Path, storageNode.NodePath, expectedStoredDocPath);
 
         Assert.That(result.Value.ActualPath, Is.EqualTo(expectedWithHostPath), "Z10: The path should start with Host Path");
         Assert.That(result.Value.StoredDocumentPath, Is.EqualTo(expectedStoredDocPath), "Z20: The Stored Document Path should not include the host path");
@@ -217,8 +226,13 @@ public class Test_DocumentServerEngine
         string modeLetter = modeResult.Value;
 
         // Note - The physical path also has the hosts path prepended to this value. 
-        string expectedPath = Path.Join(b.NodePath,
+        /*string expectedPath = Path.Join(b.NodePath,
                                         a.StorageFolderName,
+                                        modeLetter,
+                                        DatePath(a.StorageMode, a.InActiveLifeTime));
+        */
+
+        string expectedPath = Path.Join(a.StorageFolderName,
                                         modeLetter,
                                         DatePath(a.StorageMode, a.InActiveLifeTime));
 
@@ -232,7 +246,10 @@ public class Test_DocumentServerEngine
         Assert.That(storedDocument.StorageFolder, Is.EqualTo(expectedPath), "Z40:");
 
         // Make sure it was stored on the drive.
-        string fullFileName = Path.Join(h.Path, expectedPath, storedDocument.FileName);
+        string fullFileName = Path.Join(h.Path,
+                                        b.NodePath,
+                                        expectedPath,
+                                        storedDocument.FileName);
         Assert.That(sm.FileSystem.FileExists(fullFileName), Is.True, "Z90");
     }
 
@@ -369,6 +386,7 @@ public class Test_DocumentServerEngine
     }
 
 
+
     /// <summary>
     ///     Validates that temporary documents:
     ///     - Have an expiringDocuments entry
@@ -378,6 +396,7 @@ public class Test_DocumentServerEngine
     /// </summary>
     /// <returns></returns>
     [Test]
+    [NonParallelizable]
     [TestCase(EnumDocumentLifetimes.Never)]
     [TestCase(EnumDocumentLifetimes.HoursOne)]
     [TestCase(EnumDocumentLifetimes.HoursTwelve)]
@@ -431,6 +450,11 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
+        //***  B)  We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "B10: The cache failed to load.");
+
+
         //***  C.  Generate File and store it
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
@@ -448,12 +472,13 @@ public class Test_DocumentServerEngine
         ServerHost?  serverHost  = await sm.DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == storageNode.ServerHostId);
 
         Assert.That(storageNode, Is.Not.Null, "W10:");
-        string expectedBeginPath = Path.Join(storageNode.NodePath, "T");
+        string expectedBeginPath = "T";
         Assert.That(storedDocument.StorageFolder.StartsWith(expectedBeginPath), Is.True, "W20:");
 
         // Verify it is actually stored where it is supposed to be.
         DateTime currentUtc = DateTime.UtcNow;
         string fileName = Path.Join(serverHost.Path,
+                                    storageNode.NodePath,
                                     expectedBeginPath,
                                     randomDocType.StorageFolderName,
                                     DatePath(randomDocType.StorageMode, randomDocType.InActiveLifeTime),
@@ -858,22 +883,23 @@ public class Test_DocumentServerEngine
         }
 
 
-        //***  B. Generate a file and store it
         // Create a document type
-        //***  Y. Create DocumentType
+        //***  B. Create DocumentType
         Result<DocumentType> docResult = DocumentType.CreateDocumentType(sm.Faker.Random.Words(1),
                                                                          sm.Faker.Random.Words(4),
                                                                          "td",
                                                                          storageMode,
                                                                          1,
                                                                          1,
-                                                                         1);
-        docResult.Value.IsActive         = true;
+                                                                         1,
+                                                                         true);
         docResult.Value.InActiveLifeTime = EnumDocumentLifetimes.MonthsSix;
         sm.DB.DocumentTypes.Add(docResult.Value);
-
         await sm.DB.SaveChangesAsync();
 
+        //   We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "B10: The cache failed to load.");
 
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               expectedDescription,
@@ -1008,6 +1034,12 @@ public class Test_DocumentServerEngine
         sm.DB.AddAsync(randomDocType);
         await sm.DB.SaveChangesAsync();
 
+
+        //***  C)   We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "C10: The cache failed to load.");
+
+
         for (int i = 0; i < 4; i++)
         {
             Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -1079,6 +1111,12 @@ public class Test_DocumentServerEngine
 
         sm.DB.AddAsync(randomDocType);
         await sm.DB.SaveChangesAsync();
+
+
+        //***  C)   We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "C10: The cache failed to load.");
+
 
         for (int i = 0; i < 2; i++)
         {

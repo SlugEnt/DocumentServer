@@ -89,7 +89,8 @@ public class StorageNode : AbstractKeyEntity
                        bool isTestNode,
                        EnumStorageNodeLocation storageNodeLocation,
                        EnumStorageNodeSpeed storageNodeSpeed,
-                       string nodePath)
+                       string nodePath,
+                       bool isActive = false)
     {
         Name                = name;
         Description         = description;
@@ -98,7 +99,7 @@ public class StorageNode : AbstractKeyEntity
         StorageSpeed        = storageNodeSpeed;
         NodePath            = nodePath;
 
-        IsActive = false;
+        IsActive = isActive;
     }
 
 

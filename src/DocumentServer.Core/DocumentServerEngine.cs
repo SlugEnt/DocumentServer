@@ -61,7 +61,12 @@ public class DocumentServerEngine
     /// <returns>Result.Success if good, Result.Fail if bad</returns>
     internal async Task<Result<DocumentType>> LoadDocumentType_ForSavingStoredDocument(int documentTypeId)
     {
+        // We now use the Document Cache
+        Result<DocumentType> result = _documentServerInformation.GetCachedDocumentType(documentTypeId);
+        return result;
+
         // Retrieve the DocumentType
+        /*
         DocumentType? docType = await _db.DocumentTypes
                                          .Include(i => i.ActiveStorageNode1)
                                          .Include(i => i.ActiveStorageNode2)
@@ -90,6 +95,7 @@ public class DocumentServerEngine
         }
 
         return Result.Ok(docType);
+        */
     }
 
 
@@ -161,6 +167,8 @@ public class DocumentServerEngine
             }).FirstOrDefaultAsync();
             _logger.LogDebug("Retrieved StoredDocument Id: {0}", id);
 
+            // Lookup storage Node Info
+
 
             if (storedDocument == null)
                 return Result.Fail("Unable to find a Stored Document with that Id");
@@ -169,11 +177,13 @@ public class DocumentServerEngine
                 return Result.Fail("Application Token provided does not match the application Id of the Stored Document requested.  Access Denied");
 
 
+            StoredDocument thisStoredDocument = storedDocument.StoredDocument;
+
             // The path is the node host path + stored document path + filename
-            string fullFileName = ComputeDocumentRetrievalPath(storedDocument.StoredDocument);
-            string extension    = Path.GetExtension(storedDocument.StoredDocument.FileName);
+            string fullFileName = ComputeDocumentRetrievalPath(thisStoredDocument);
+            string extension    = Path.GetExtension(thisStoredDocument.FileName);
             if (extension == string.Empty)
-                extension = MediaTypes.GetExtension(storedDocument.StoredDocument.MediaType);
+                extension = MediaTypes.GetExtension(thisStoredDocument.MediaType);
             else
 
                 // Strip the returned period.
@@ -183,15 +193,22 @@ public class DocumentServerEngine
             // Load the TransferDocument info
             ReturnedDocumentInfo returnedDocumentInfo = new()
             {
-                FileInBytes = _fileSystem.File.ReadAllBytes(fullFileName),
                 Description = storedDocument.StoredDocument.Description,
                 Extension   = extension,
                 MediaType   = storedDocument.StoredDocument.MediaType,
                 ContentType = MediaTypes.GetContentType(storedDocument.StoredDocument.MediaType),
             };
-            returnedDocumentInfo.Size = returnedDocumentInfo.FileInBytes.Length;
 
-            // TODO update the number of times accessed
+            // Load the file from the storage system
+            Result resultRetrieveDocument =
+                await RetrieveDocumentFromThisHost(returnedDocumentInfo,
+                                                   thisStoredDocument.PrimaryStorageNodeId,
+                                                   thisStoredDocument.StorageFolder,
+                                                   thisStoredDocument.FileName);
+            if (!resultRetrieveDocument.IsSuccess)
+                return resultRetrieveDocument;
+
+
             StoredDocument sd = storedDocument.StoredDocument;
             sd.NumberOfTimesAccessed++;
             sd.LastAccessedUTC = DateTime.UtcNow;
@@ -209,6 +226,61 @@ public class DocumentServerEngine
     }
 
 
+
+    /// <summary>
+    /// Retrieves the document from this host.  Assumes you have already validated that it is on this host or should be.
+    /// </summary>
+    /// <param name="nodePath"></param>
+    /// <param name="documentPath"></param>
+    /// <param name="filenameWithExtension"></param>
+    /// <returns></returns>
+    internal async Task<Result> RetrieveDocumentFromThisHost(ReturnedDocumentInfo returnedDocumentInfo,
+                                                             int? fromNodeID,
+                                                             string documentPath,
+                                                             string filenameWithExtension)
+    {
+        if (fromNodeID == null)
+            return Result.Fail("Cannot retrieve a document from a null Storage Node");
+
+        try
+        {
+            // Lookup the Node's path
+            StorageNode storageNode = null;
+            if (!_documentServerInformation.CachedStorageNodes.TryGetValue((int)fromNodeID, out storageNode))
+                return Result.Fail("Unable to locate the Storage Node with Id " + fromNodeID + " from the local Cache");
+
+
+            string path = Path.Join(_documentServerInformation.ServerHostInfo.Path,
+                                    storageNode.NodePath,
+                                    documentPath,
+                                    filenameWithExtension);
+
+            returnedDocumentInfo.FileInBytes = _fileSystem.File.ReadAllBytes(path);
+            returnedDocumentInfo.Size        = returnedDocumentInfo.FileInBytes.Length;
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail(new Error("Failed to retrieve the document from File System. ").CausedBy(ex));
+        }
+    }
+
+
+
+    internal async Task<Result> RetrieveDocument(StoredDocument storedDocument,
+                                                 int? fromNodeId = null)
+    {
+        // If fromNodeId is null then use the one that matches this host.
+        if (fromNodeId == null)
+        {
+            //    _documentServerInformation.CachedStorageNodes.TryGetValue(stored)
+        }
+
+        return Result.Ok();
+    }
+
+
+
     /// <summary>
     /// Builds the entire filename path to retrieve the document.
     /// </summary>
@@ -216,7 +288,18 @@ public class DocumentServerEngine
     /// <returns></returns>
     internal string ComputeDocumentRetrievalPath(StoredDocument storedDocument)
     {
-        return Path.Join(_documentServerInformation.ServerHostInfo.Path, storedDocument.StorageFolder, storedDocument.FileName);
+        // Lookup the node so we can get its NodePath
+        Result<StorageNode> result = _documentServerInformation.GetCachedStorageNode((int)storedDocument.PrimaryStorageNodeId);
+        if (result.IsFailed)
+        {
+            _logger.LogError("Failed to Compute Document Retrieval Path: " + result.ToString());
+            return string.Empty;
+        }
+
+        return Path.Join(_documentServerInformation.ServerHostInfo.Path,
+                         result.Value.NodePath,
+                         storedDocument.StorageFolder,
+                         storedDocument.FileName);
     }
 
 
@@ -287,6 +370,19 @@ public class DocumentServerEngine
     }
 
 
+    public async Task<Result> StoreDocumentReplica(DocumentReplicationDto documentReplicationDto)
+    {
+        try
+        {
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail(new Error("Failed to store replica.").CausedBy(ex));
+        }
+    }
+
+
     /// <summary>
     /// Saves a document to the Document Server
     /// </summary>
@@ -314,11 +410,11 @@ public class DocumentServerEngine
                 return Result.Fail("Invalid Application Token provided.");
 
             // Load and Validate the DocumentType is ok to use
-            Result<DocumentType> docTypeResult = await LoadDocumentType_ForSavingStoredDocument(transferDocumentDto.DocumentTypeId);
-            if (docTypeResult.IsFailed)
-                return Result.Merge(result, docTypeResult);
+            Result<DocumentType> documentTypeResult = _documentServerInformation.GetCachedDocumentType(transferDocumentDto.DocumentTypeId);
+            if (documentTypeResult.IsFailed)
+                return Result.Merge(result, documentTypeResult);
 
-            DocumentType docType = docTypeResult.Value;
+            DocumentType docType = documentTypeResult.Value;
 
 
             // Make sure the DocType application matches the application the token was for.
@@ -326,8 +422,7 @@ public class DocumentServerEngine
                 return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
 
 
-            // Determine if we are Primary or Secondary Node:
-
+            // TODO Determine if we are Primary or Secondary Node and fix this code
             // We always use the primary node for initial storage.
 
             int tmpFileSize = (int)transferDocumentDto.File.Length;
@@ -476,13 +571,19 @@ public class DocumentServerEngine
 
             // Decode the file bytes
             fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
+            Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, formFile);
+            if (!storeFileResult.IsSuccess)
+                return storeFileResult;
+            /*
+
             using (Stream fs = _fileSystem.File.Create(fullFileName))
             {
                 await formFile.CopyToAsync(fs);
             }
+            */
 
             // Save the path in the StoredDocument.  But here we do not save the host prefix part of the path, we only need the unique path to the document.
-            //storedDocument.StorageFolder = storeAtPath;
+            // TODO DO NOT store the drive, host path or nodepath part of the path.
             storedDocument.StorageFolder = resultB.Value.StoredDocumentPath;
             return Result.Ok(fullFileName);
         }
@@ -491,6 +592,34 @@ public class DocumentServerEngine
             return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
         }
     }
+
+
+
+    /// <summary>
+    /// Stores the file on the filesystem of the node this is running from.
+    /// </summary>
+    /// <param name="fullFileName"></param>
+    /// <param name="file"></param>
+    /// <returns></returns>
+    internal async Task<Result> StoreFileOnStorageMediaAsync(string fullFileName,
+                                                             IFormFile file)
+    {
+        try
+        {
+            // TODO Missing Storage Node path...
+            _fileSystem.Directory.CreateDirectory(fullFileName);
+
+            using (Stream fs = _fileSystem.File.Create(fullFileName))
+                await file.CopyToAsync(fs);
+
+            return Result.Ok();
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
+        }
+    }
+
 
 
     /// <summary>
@@ -603,147 +732,11 @@ public class DocumentServerEngine
     */
 
 
-    /// <summary>
-    /// This is the preferred method of saving a document type.  It ensures the VitalInfo record is updated which is critical to informating the
-    /// API's and services that key information has changed.
-    /// </summary>
-    /// <param name="documentType"></param>
-    /// <returns></returns>
-    public async Task<Result> SaveDocumentTypeAsync(DocumentType documentType)
-    {
-        try
-        {
-            if (documentType.Id > 0) { }
-            else
-            {
-                await _db.AddAsync(documentType);
-            }
-
-            VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
-            vitalInfo.LastUpdateUtc = DateTime.UtcNow;
-
-            int rowsUpdated = await _db.SaveChangesAsync();
-            if (rowsUpdated > 0)
-                return Result.Ok();
-
-            return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
-        }
-        catch (Exception exception)
-        {
-            return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
-        }
-    }
-
-
-    /// <summary>
-    /// This is the preferred method of saving an Application.  It ensures the VitalInfo record is updated which is critical to informating the
-    /// API's and services that key information has changed.
-    /// </summary>
-    /// <param name="application"></param>
-    /// <returns></returns>
-    public async Task<Result> SaveApplicationAsync(Application application)
-    {
-        try
-        {
-            if (application.Id > 0) { }
-
-            // Is a new Application
-            else
-            {
-                // Create App Token
-                string guid = Guid.NewGuid().ToString("N");
-                application.Token = guid;
-                await _db.AddAsync(application);
-            }
-
-            VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
-            vitalInfo.LastUpdateUtc = DateTime.UtcNow;
-            int rowsUpdated = await _db.SaveChangesAsync();
-            if (rowsUpdated > 0)
-                return Result.Ok();
-
-            return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
-        }
-        catch (Exception exception)
-        {
-            return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
-        }
-    }
-
-
-
-    /// <summary>
-    /// This is the preferred method of saving a RootObject.  It ensures the VitalInfo record is updated which is critical to informating the
-    /// API's and services that key information has changed.
-    /// </summary>
-    /// <param name="rootObject"></param>
-    /// <returns></returns>
-    public async Task<Result> SaveRootObjectAsync(RootObject rootObject)
-    {
-        try
-        {
-            if (rootObject.Id > 0) { }
-
-            // Its a new Rootobject
-            else
-            {
-                await _db.AddAsync(rootObject);
-            }
-
-            VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
-            vitalInfo.LastUpdateUtc = DateTime.UtcNow;
-
-            int rowsUpdated = await _db.SaveChangesAsync();
-            if (rowsUpdated > 0)
-                return Result.Ok();
-
-            return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
-        }
-        catch (Exception exception)
-        {
-            return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
-        }
-    }
-
-
-
-    /// <summary>
-    /// This is the preferred method of saving a StorageNode.  It ensures the VitalInfo record is updated which is critical to informating the
-    /// API's and services that key information has changed.
-    /// </summary>
-    /// <param name="storageNode"></param>
-    /// <returns></returns>
-    public async Task<Result> SaveStorageNodeAsync(StorageNode storageNode)
-    {
-        try
-        {
-            if (storageNode.Id > 0) { }
-            else
-            {
-                await _db.AddAsync(storageNode);
-            }
-
-            VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
-            vitalInfo.LastUpdateUtc = DateTime.UtcNow;
-
-            int rowsUpdated = await _db.SaveChangesAsync();
-            if (rowsUpdated > 0)
-                return Result.Ok();
-
-            return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
-        }
-        catch (Exception exception)
-        {
-            return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
-        }
-    }
-
-
 
 #region "Support Functions"
 
     /// <summary>
-    ///     Computes the complete path including the actual file name.  Note.  Does not include the HostName Path part.
+    ///     Computes the complete path including the actual file name.  Note.  Does not include the HostName or Storage Node Path parts.
     ///     All files are stored in a folder by
     ///     storageNodePath\StorageModeLetter\DocumentTypePath\year\month
     /// </summary>
@@ -787,9 +780,14 @@ public class DocumentServerEngine
 
 
             // Retrieve Storage Node
-            //StorageNode storageNode = await _db.StorageNodes.SingleOrDefaultAsync(n => n.Id == storageNodeId);
-            StorageNode? storageNode = await _db.StorageNodes
-                                                .Include(sh => sh.ServerHost).SingleOrDefaultAsync(n => n.Id == storageNodeId);
+            Result<StorageNode> storageNodeResult = _documentServerInformation.GetCachedStorageNode(storageNodeId);
+            if (storageNodeResult.IsFailed)
+            {
+                _logger.LogError("Failed to locate a storage node Id [ " + storageNodeId + " ] in the StorageNode Cache.  Cannot compute Storage Folder Location");
+                return Result.Fail(storageNodeResult.Errors);
+            }
+
+            StorageNode storageNode = storageNodeResult.Value;
             if (storageNode == null)
             {
                 string nodeMsg = string.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
@@ -811,12 +809,13 @@ public class DocumentServerEngine
             string modePath = modeResult.Value;
 
 
+            // TODO DONE!  Need to remove storagenode from the StoredDocumentPath
             StoragePathInfo storagePathInfo = new();
-            storagePathInfo.StoredDocumentPath = Path.Combine(storageNode.NodePath,
-                                                              modePath,
+            storagePathInfo.StoredDocumentPath = Path.Combine(modePath,
                                                               documentType.StorageFolderName,
                                                               year,
                                                               month);
+
 
             Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHost, storageNode, storagePathInfo.StoredDocumentPath);
             if (resultCP.IsFailed)
@@ -851,6 +850,7 @@ public class DocumentServerEngine
 
     /// <summary>
     /// Computes the physical location on the node that the document is stored at.
+    /// This is HostPath + NodePath + DocumentPath
     /// </summary>
     /// <param name="serverHost"></param>
     /// <param name="documentPath"></param>
@@ -867,7 +867,8 @@ public class DocumentServerEngine
             return Result.Fail(msg);
         }
 
-        return Result.Ok(Path.Join(serverHost.Path, documentPath));
+        // TODO DONE!  Need to add in the StorageNodePath
+        return Result.Ok(Path.Join(serverHost.Path, node.NodePath, documentPath));
     }
 
 

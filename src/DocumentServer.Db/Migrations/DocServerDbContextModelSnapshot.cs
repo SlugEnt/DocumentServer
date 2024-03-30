@@ -398,6 +398,16 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("VitalInfos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "LastKeyEntityUpdate",
+                            LastUpdateUtc = new DateTime(1, 1, 1, 0, 0, 0, 1, DateTimeKind.Unspecified),
+                            Name = "Last Update to Key Entities",
+                            ValueLong = 0L,
+                            ValueString = ""
+                        });
                 });
 
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.DocumentType", b =>

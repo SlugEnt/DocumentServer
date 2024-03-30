@@ -2,6 +2,7 @@
 @page "/applications/crud/{mode}/{recordId:int}"
 @rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.Extensions.Configuration
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
@@ -69,8 +70,8 @@
 
 
 @code {
-    private readonly Application _application = new();
-
+    private Application _application = new();
+    private Application _original    = new();
 
 
     // Constructor
@@ -107,9 +108,15 @@
 
         Application? ro = await DB.Applications.SingleOrDefaultAsync(ro => ro.Id == recordId);
         if (ro == null)
+        {
             _errMsg = "Unable to locate the Application with Id of [ " + recordId + " ].  Unable to continue";
-    }
+            return;
+        }
 
+        _original    = ro;
+        _application = _original.Copy();
+    }
+     
 
 
     /// <summary>
@@ -118,7 +125,8 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        Result<string> appSaveResult = await docEngine.SaveApplicationAsync(_application);
+        EntityRules    entityRules   = new EntityRules(DB);
+        Result<string> appSaveResult = await entityRules.SaveApplicationAsync(_application);
         if (appSaveResult.IsSuccess)
         {
             ReturnToList();

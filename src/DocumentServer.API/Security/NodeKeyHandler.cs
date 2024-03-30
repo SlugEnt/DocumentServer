@@ -1,34 +1,35 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using SlugEnt.DocumentServer.Core;
 
+
 namespace SlugEnt.DocumentServer.API.Security;
 
-public class ApiKeyHandler : AuthorizationHandler<ApiKeyRequirement>
+public class NodeKeyHandler : AuthorizationHandler<NodeKeyRequirement>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IApiKeyValidation    _apiKeyValidation;
+    private readonly INodeKeyValidation   _nodeKeyValidation;
 
 
-    public ApiKeyHandler(IHttpContextAccessor httpContextAccessor,
-                         IApiKeyValidation apiKeyValidation)
+    public NodeKeyHandler(IHttpContextAccessor httpContextAccessor,
+                          INodeKeyValidation nodeKeyValidation)
     {
         _httpContextAccessor = httpContextAccessor;
-        _apiKeyValidation    = apiKeyValidation;
+        _nodeKeyValidation   = nodeKeyValidation;
     }
 
 
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
-        ApiKeyRequirement requirement)
+        NodeKeyRequirement requirement)
     {
-        string apiKey = _httpContextAccessor?.HttpContext?.Request.Headers[ApiConstants.ApiKeyHeaderName].ToString();
-        if (string.IsNullOrWhiteSpace(apiKey))
+        string nodeKey = _httpContextAccessor?.HttpContext?.Request.Headers[ApiConstants.NodeKeyHeaderName].ToString();
+        if (string.IsNullOrWhiteSpace(nodeKey))
         {
             context.Fail();
             return Task.CompletedTask;
         }
 
-        if (!_apiKeyValidation.IsValidApiKey(apiKey))
+        if (!_nodeKeyValidation.IsValidNodeKey(nodeKey))
         {
             context.Fail();
             return Task.CompletedTask;

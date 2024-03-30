@@ -43,6 +43,7 @@
     protected IEnumerable<ServerHost> _serverHosts = Enumerable.Empty<ServerHost>();
     protected IList<ServerHost>?      _selectedHosts;
     protected bool                    _showInActive;
+    private   string                  _pageReferenceName = "serverhosts";
 
     protected bool SetIsActive
     {
@@ -80,6 +81,6 @@
 
     protected void AddNew() { NavigationManager.NavigateTo("serverhosts/crud/C"); }
 
-    protected void OnEdit(int Id) { }
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo(_pageReferenceName + "/CRUD/E/" + Id); }
     protected void OnDetails(int Id) { }
 }

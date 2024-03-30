@@ -148,8 +148,8 @@ public static class DatabaseSetup_Test
                                 true,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_TEST_PRIMARY);
-        testA.IsActive     = true;
+                                TestConstants.FOLDER_TEST_PRIMARY,
+                                true);
         testA.ServerHostId = hostA.Id;
 
         StorageNode testB = new(TestConstants.STORAGE_NODE_TEST_B,
@@ -157,8 +157,8 @@ public static class DatabaseSetup_Test
                                 true,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_TEST_SECONDARY);
-        testB.IsActive     = true;
+                                TestConstants.FOLDER_TEST_SECONDARY,
+                                true);
         testB.ServerHostId = hostA.Id;
 
         // True Production Nodes
@@ -167,8 +167,8 @@ public static class DatabaseSetup_Test
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_PROD_PRIMARY);
-        prodX.IsActive     = true;
+                                TestConstants.FOLDER_PROD_PRIMARY,
+                                true);
         prodX.ServerHostId = hostA.Id;
 
         StorageNode prodY = new(TestConstants.STORAGE_NODE_PROD_Y,
@@ -176,8 +176,8 @@ public static class DatabaseSetup_Test
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_PROD_SECONDARY);
-        prodY.IsActive     = true;
+                                TestConstants.FOLDER_PROD_SECONDARY,
+                                true);
         prodY.ServerHostId = hostA.Id;
         db.AddRange(testA,
                     testB,

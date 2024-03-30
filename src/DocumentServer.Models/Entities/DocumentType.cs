@@ -146,6 +146,7 @@ public class DocumentType : AbstractKeyEntity
                                                           int applicationId,
                                                           int rootObjectId,
                                                           int activeStorageNodeId,
+                                                          bool isActive = true,
                                                           EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
     {
         DocumentType x = new();
@@ -157,6 +158,7 @@ public class DocumentType : AbstractKeyEntity
         x.ApplicationId        = applicationId;
         x.ActiveStorageNode1Id = activeStorageNodeId;
         x.InActiveLifeTime     = lifeTime;
+        x.IsActive             = isActive;
 
         Result result = x.IsValid();
         if (result.IsSuccess)
@@ -167,8 +169,6 @@ public class DocumentType : AbstractKeyEntity
             sb.Append(Environment.NewLine + resultError);
 
         return Result.Fail(new Error(sb.ToString()));
-
-        throw new ArgumentException(sb.ToString());
     }
 
 #endregion
