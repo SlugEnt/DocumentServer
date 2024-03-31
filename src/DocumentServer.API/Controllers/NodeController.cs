@@ -43,15 +43,15 @@ public class NodeController : ControllerBase
     ///     stored.
     /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
-    [HttpPost(Name = "StoreReplicateDocument")]
+    [HttpPost(Name = "StoreDocument")]
     [Authorize(Policy = "NodeKeyPolicy")]
-    public async Task<ActionResult<long>> StoreReplicateDocument([FromForm] DocumentReplicationDto documentReplicationDto)
+    public async Task<ActionResult> StoreDocument([FromForm] RemoteDocumentStorageDto remoteDocumentStorageDto)
     {
         try
         {
-            Result<StoredDocument> result = await _docEngine.StoreDocumentReplica(documentReplicationDto);
+            Result<StoredDocument> result = await _docEngine.StoreFileFromRemoteNode(remoteDocumentStorageDto);
             if (result.IsSuccess)
-                return Ok(result.Value.Id);
+                return Ok();
 
             return Problem(result.ToString());
         }

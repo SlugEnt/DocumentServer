@@ -370,7 +370,7 @@ public class DocumentServerEngine
     }
 
 
-    public async Task<Result> StoreDocumentReplica(DocumentReplicationDto documentReplicationDto)
+    public async Task<Result> StoreDocumentReplica(RemoteDocumentStorageDto remoteDocumentStorageDto)
     {
         try
         {
@@ -550,7 +550,11 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Performs the actual storage of a file to a node.  Note, this only stores the physical file.  
+    /// Performs the actual storage of a file to a node.  Note, this only stores the physical file.
+    /// Will store to all nodes in which the Server Host Id (server we are running on) matches the Node's Server ID, ie, it will store locally.
+    /// It will store to remote node(s) if:
+    ///   - None of the nodes are tied to this server host.  It will store on at least one node and depending on size more than 1 node.
+    ///   - If one of the nodes was local, and the size of the document is within immediate storage limits.
     /// </summary>
     /// <param name="storedDocument"></param>
     /// <param name="documentType"></param>
@@ -672,6 +676,60 @@ public class DocumentServerEngine
     }
 
 
+    /// <summary>
+    /// Stores a file on the local host that was requested from a remote host.  This bypasses 95% of all logic for
+    /// storing a document.  Leaving it for the remote node to complete that task. This literally calculates the entire
+    /// document storage path, stores it and returns result.
+    /// </summary>
+    /// <param name="storageNodeId">The Node ID that is being requested to store the document on</param>
+    /// <param name="path">The Document specific part of the path to the document.</param>
+    /// <param name="file">The file bytes to be stored.</param>
+    /// <returns></returns>
+    public async Task<Result> StoreFileFromRemoteNode(RemoteDocumentStorageDto remoteDto)
+    {
+        try
+        {
+            // Retrieve Storage Node
+            Result<StorageNode> storageNodeResult = _documentServerInformation.GetCachedStorageNode(remoteDto.StorageNodeId);
+            if (storageNodeResult.IsFailed)
+            {
+                _logger.LogError("Failed to locate a storage node Id [ " + remoteDto.StorageNodeId + " ] in the StorageNode Cache.  Cannot compute Storage Folder Location");
+                return Result.Fail(storageNodeResult.Errors);
+            }
+
+            StorageNode storageNode = storageNodeResult.Value;
+
+
+            // Determine the Entire Physical storage path
+            Result<string> result = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, remoteDto.StoragePathAndFileName);
+            if (result.IsFailed)
+            {
+                _logger.LogWarning("StoreFileFromRemoteNode:  Failed to compute path: " + result.ToString());
+                return Result.Fail(result.Errors);
+            }
+
+
+            string fullFileName    = result.Value;
+            Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, remoteDto.File);
+            return storeFileResult;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("StoreFileFromRemoteNode |  " + e);
+            return Result.Fail(new Error("StoreFileFromRemoteNode Error").CausedBy(e));
+        }
+    }
+
+
+
+    /// <summary>
+    /// Stores a document on the local host.  This is called when the local host is also the host that received the initial call to store the document.
+    /// </summary>
+    /// <param name="destinationStorageNode"></param>
+    /// <param name="storedDocument"></param>
+    /// <param name="documentType"></param>
+    /// <param name="file"></param>
+    /// <returns></returns>
     internal async Task<Result> InternalStoreDocumentOnThisHost(DestinationStorageNode destinationStorageNode,
                                                                 StoredDocument storedDocument,
                                                                 DocumentType documentType,
@@ -742,7 +800,6 @@ public class DocumentServerEngine
             _fileSystem.Directory.CreateDirectory(storeAtPath);
 
 
-            // Decode the file bytes
             fullFileName = Path.Combine(storeAtPath, storedDocument.FileName);
             Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, formFile);
             if (!storeFileResult.IsSuccess)
@@ -767,7 +824,7 @@ public class DocumentServerEngine
     /// </summary>
     /// <param name="fullFileName"></param>
     /// <param name="file"></param>
-    /// <returns></returns>
+    /// <returns>Result indicating success or failure</returns>
     internal async Task<Result> StoreFileOnStorageMediaAsync(string fullFileName,
                                                              IFormFile file)
     {
@@ -984,7 +1041,7 @@ public class DocumentServerEngine
                                                               month);
 
 
-            Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHost, storageNode, storagePathInfo.StoredDocumentPath);
+            Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, storagePathInfo.StoredDocumentPath);
             if (resultCP.IsFailed)
                 return Result.Fail(new Error("Failed to determine host path").CausedBy(resultCP.Errors));
 
@@ -1021,12 +1078,12 @@ public class DocumentServerEngine
     /// </summary>
     /// <param name="serverHost"></param>
     /// <param name="documentPath"></param>
-    /// <returns></returns>
-    internal Result<string> ComputePhysicalStoragePath(ServerHost serverHost,
+    /// <returns>The entire complete path to the file on the file system</returns>
+    internal Result<string> ComputePhysicalStoragePath(int serverHostId,
                                                        StorageNode node,
                                                        string documentPath)
     {
-        if (_documentServerInformation.ServerHostInfo.ServerHostId != serverHost.Id)
+        if (_documentServerInformation.ServerHostInfo.ServerHostId != serverHostId)
         {
             string msg = String.Format("This host is not the host that can write for this StorageNode.  Host: [ " + _documentServerInformation.ServerHostInfo.ServerHostName +
                                        " ]  Requested StorageNode [ " + node.Name + " - " + node.Id + " ]");
@@ -1034,8 +1091,7 @@ public class DocumentServerEngine
             return Result.Fail(msg);
         }
 
-        // TODO DONE!  Need to add in the StorageNodePath
-        return Result.Ok(Path.Join(serverHost.Path, node.NodePath, documentPath));
+        return Result.Ok(Path.Join(_documentServerInformation.ServerHostInfo.Path, node.NodePath, documentPath));
     }
 
 

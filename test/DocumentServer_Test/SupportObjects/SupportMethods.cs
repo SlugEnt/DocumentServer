@@ -180,6 +180,14 @@ public class SupportMethods
 
 
     /// <summary>
+    /// Stores key database objects for quicker access and retrieval
+    /// </summary>
+    public Dictionary<string, object> IDLookupDictionary
+    {
+        get { return DatabaseSetup_Test.IdLookupDictionary; }
+    }
+
+    /// <summary>
     ///     Returns the Mocked File System
     /// </summary>
     public MockFileSystem FileSystem { get; }

@@ -2,14 +2,20 @@
 
 namespace SlugEnt.DocumentServer.Core;
 
-public class DocumentReplicationDto
+public class RemoteDocumentStorageDto
 {
     public IFormFile File;
 
-    public long StoredDocumentID { get; set; }
+    //public long StoredDocumentID { get; set; }
 
-    public string FullFileName { get; set; }
+    /// <summary>
+    /// This is the StoragePath component of the StoredDocument plus the filename and extension.
+    /// </summary>
+    public string StoragePathAndFileName { get; set; }
 
+    /// <summary>
+    /// The node this should be stored on.
+    /// </summary>
     public int StorageNodeId { get; set; }
 }
 

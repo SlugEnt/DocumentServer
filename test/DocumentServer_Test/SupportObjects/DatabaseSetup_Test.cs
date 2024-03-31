@@ -138,8 +138,17 @@ public static class DatabaseSetup_Test
             Path     = "hostA",
         };
         db.Add(hostA);
+        ServerHost hostB = new()
+        {
+            IsActive = true,
+            NameDNS  = "otherHost",
+            FQDN     = "otherHost.abc.local",
+            Path     = "hostB",
+        };
+        db.Add(hostB);
         db.SaveChanges();
         IdLookupDictionary.Add("ServerHost_A", hostA);
+        IdLookupDictionary.Add("ServerHost_B", hostB);
 
 
         // Add Storage Nodes
@@ -179,13 +188,25 @@ public static class DatabaseSetup_Test
                                 TestConstants.FOLDER_PROD_SECONDARY,
                                 true);
         prodY.ServerHostId = hostA.Id;
+
+        StorageNode testC = new(TestConstants.STORAGE_NODE_TEST_C,
+                                "Test Node C - Other Host",
+                                false,
+                                EnumStorageNodeLocation.HostedSMB,
+                                EnumStorageNodeSpeed.Hot,
+                                TestConstants.FOLDER_TEST_SECONDARYC,
+                                true);
+        testC.ServerHostId = hostB.Id;
+
         db.AddRange(testA,
                     testB,
+                    testC,
                     prodX,
                     prodY);
         db.SaveChanges();
         IdLookupDictionary.Add("StorageNodeA", testA);
         IdLookupDictionary.Add("StorageNodeB", testB);
+        IdLookupDictionary.Add("StorageNodeC", testC);
         IdLookupDictionary.Add("StorageNodeX", prodX);
         IdLookupDictionary.Add("StorageNodeY", prodY);
 
