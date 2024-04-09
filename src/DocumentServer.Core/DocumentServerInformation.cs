@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
+using Serilog;
 
 namespace SlugEnt.DocumentServer.Core
 {
@@ -19,8 +21,13 @@ namespace SlugEnt.DocumentServer.Core
     /// </summary>
     public class DocumentServerInformation
     {
+        private IConfiguration  _configuration;
+        private Serilog.ILogger _logger;
+
+
         public static DocumentServerInformation Create(IConfiguration configuration,
-                                                       DocServerDbContext docServerDbContext = null)
+                                                       DocServerDbContext docServerDbContext = null,
+                                                       Serilog.ILogger logger = null)
         {
             if (docServerDbContext == null)
             {
@@ -30,14 +37,18 @@ namespace SlugEnt.DocumentServer.Core
                 docServerDbContext = new(options.Options);
             }
 
-            return new DocumentServerInformation(docServerDbContext);
+
+            return new DocumentServerInformation(docServerDbContext, configuration, logger);
         }
 
 
-        public DocumentServerInformation(DocServerDbContext docServerDbContext)
+        public DocumentServerInformation(DocServerDbContext docServerDbContext,
+                                         IConfiguration configuration = null,
+                                         Serilog.ILogger logger = null)
         {
             ServerHostInfo = new ServerHostInfo();
-            Initialize     = SetupAsync(docServerDbContext);
+            _logger        = logger;
+            Initialize     = SetupAsync(docServerDbContext, configuration);
         }
 
 
@@ -61,33 +72,55 @@ namespace SlugEnt.DocumentServer.Core
         /// </summary>
         /// <param name="db"></param>
         /// <exception cref="ApplicationException"></exception>
-        private async Task SetupAsync(DocServerDbContext db)
+        private async Task SetupAsync(DocServerDbContext db,
+                                      IConfiguration configuration = null)
         {
-            string localHost = Dns.GetHostName();
-            Id = Guid.NewGuid().ToString("N");
+            try
+            {
+                string localHost = Dns.GetHostName();
+                Id = Guid.NewGuid().ToString("N");
 
 
-            ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
-            if (host == null)
-                throw new ApplicationException("Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ]");
+                ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
+                if (host == null)
+                    throw new ApplicationException("Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ]");
 
 
-            // Load the ServerHost Information
-            ServerHostInfo.Path           = host.Path;
-            ServerHostInfo.ServerHostId   = host.Id;
-            ServerHostInfo.ServerHostName = host.NameDNS;
-            ServerHostInfo.ServerFQDN     = host.FQDN;
+                // Load the ServerHost Information
+                ServerHostInfo.Path           = host.Path;
+                ServerHostInfo.ServerHostId   = host.Id;
+                ServerHostInfo.ServerHostName = host.NameDNS;
+                ServerHostInfo.ServerFQDN     = host.FQDN;
 
-            // Ensure the TTL is expired.  This forces the Document Server Engine to load this information the first time it tries to access anything
-            KeyObjectTTLExpirationUtc = DateTime.MinValue;
+                // Node Ket is coming from the AppSettings
+                if (configuration != null)
+                {
+                    ServerHostInfo.NodeKey = configuration.GetValue<string>("DocumentServer:NodeKey");
+                    _logger.Warning("DocumentServerInformation:  Found NodeKey!");
+                }
+                else
+                    _logger.Error("DocumentServerInformation:  Did not Find NodeKey.  This will stop replication and other functionality from working correctly");
 
-            // Load the required cached objects
-            Result<bool>? result = CheckIfKeyEntitiesUpdated(db, true);
 
-            if (result.IsFailed)
-                throw new ApplicationException("Failed to load the Key Object Caches.  This is required for the program to function correctly.  Errors: " + result.ToString());
+                // Ensure the TTL is expired.  This forces the Document Server Engine to load this information the first time it tries to access anything
+                KeyObjectTTLExpirationUtc = DateTime.MinValue;
 
-            IsInitialized = true;
+                // Load the required cached objects
+                Result<bool>? result = CheckIfKeyEntitiesUpdated(db, true);
+
+                if (result.IsFailed)
+                {
+                    string msg = "Failed to load the Key Object Caches.  This is required for the program to function correctly.  Errors: " + result.ToString();
+                    _logger.Error(msg);
+                    throw new ApplicationException(msg);
+                }
+
+                IsInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Error Setting up DocumentServerInformation:SetupAsync  |  " + ex.ToString());
+            }
         }
 
 
@@ -157,8 +190,8 @@ namespace SlugEnt.DocumentServer.Core
                 if (!NeedToLoad)
                     return Result.Ok(true);
 
-                Console.WriteLine("CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
-                                  CachedLock.IsUpgradeableReadLockHeld);
+//                Console.WriteLine("CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
+//                                  CachedLock.IsUpgradeableReadLockHeld);
 
 
                 // Reload the Cached Entities
@@ -170,7 +203,8 @@ namespace SlugEnt.DocumentServer.Core
                     {
                         // TODO we should at least log this or something.
                         KeyObjectTTLExpirationUtc = DateTime.UtcNow.AddSeconds(10);
-                        Console.WriteLine("Failed to load updated Cached Entities.  Setting recheck interval for 10 seconds");
+                        string msg = "Failed to load updated Cached Entities.  Setting recheck interval for 10 seconds";
+                        _logger.Warning(msg);
                         return Result.Ok(false);
                     }
 
@@ -181,7 +215,9 @@ namespace SlugEnt.DocumentServer.Core
             }
             catch (Exception ex)
             {
-                return Result.Fail(new Error("CheckIfKeyEntitiesUpdated failed to run successfully.  ").CausedBy(ex));
+                string msg = "CheckIfKeyEntitiesUpdated failed to run successfully.";
+                _logger.Error(msg);
+                return Result.Fail(new Error(msg).CausedBy(ex));
             }
             finally
             {
@@ -198,25 +234,27 @@ namespace SlugEnt.DocumentServer.Core
         /// <returns></returns>
         internal Result LoadCachedObjects(DocServerDbContext db)
         {
-            Console.WriteLine("Time:  " + DateTime.Now);
-            Console.WriteLine("Current Thread ID:  " + Thread.CurrentThread.ManagedThreadId);
-            Console.WriteLine("DSI ID:  " + Id);
+            bool cachedObjectsUpdated = false;
 
-            Console.WriteLine("Recursive CachedLock Read Count: " + CachedLock.RecursiveReadCount);
-            Console.WriteLine("Recursive CachedLock Write Count: " + CachedLock.RecursiveWriteCount);
+            //Console.WriteLine("Time:  " + DateTime.Now);
+            //Console.WriteLine("Current Thread ID:  " + Thread.CurrentThread.ManagedThreadId);
+            //Console.WriteLine("DSI ID:  " + Id);
+
+            //Console.WriteLine("Recursive CachedLock Read Count: " + CachedLock.RecursiveReadCount);
+            //Console.WriteLine("Recursive CachedLock Write Count: " + CachedLock.RecursiveWriteCount);
 
             if (!CachedLock.TryEnterUpgradeableReadLock(1000))
             {
-                // TODO REALLY need ILogger in this class.
-                Console.WriteLine("Failed to acquire Upgradable Read Lock for [ CachedLock ].");
+                string msg = "Failed to acquire Upgradable Read Lock for [ CachedLock ].  Occassional errors of this type are ok.  Continued are probably a sign of a problem.";
+                _logger.Warning(msg);
 
                 // TODO Not sure what to do if this fails...
-                return Result.Fail(new Error("Failed to acquire an Upgradeable Read Lock for [ CachedLock ]"));
+                return Result.Fail(new Error(msg));
             }
 
 
-            Console.WriteLine("A  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
-                              CachedLock.IsUpgradeableReadLockHeld);
+            //Console.WriteLine("A  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
+            //                  CachedLock.IsUpgradeableReadLockHeld);
 
             // ****************************************************************************************************
             // ************************************   VERY IMPORTANT  *********************************************
@@ -237,15 +275,15 @@ namespace SlugEnt.DocumentServer.Core
 
 
                 // TODO Now we need to Lock the caches while we replace/
-                Console.WriteLine("B  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
-                                  CachedLock.IsUpgradeableReadLockHeld);
+                //Console.WriteLine("B  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
+                //                  CachedLock.IsUpgradeableReadLockHeld);
                 if (!CachedLock.TryEnterWriteLock(2500))
                 {
-                    // Todo This REALLY needs to be logged
-                    Console.WriteLine("Failed to acquire Write Lock [ CachedLock ].  Cached entries not updated!");
+                    string msg = "Failed to acquire Write Lock [ CachedLock ].  Cached entries not updated!";
+                    _logger.Error(msg);
 
                     //CachedLock.ExitUpgradeableReadLock();
-                    return Result.Fail("Failed to acquire Write Lock [ CachedLock ].  Cached entries not updated!");
+                    return Result.Fail(msg);
                 }
 
                 try
@@ -255,32 +293,34 @@ namespace SlugEnt.DocumentServer.Core
                     CachedRootObjects            = cachedRootObjects;
                     CachedDocumentTypes          = cachedDocumentTypes;
                     CachedStorageNodes           = cachedStorageNodes;
+                    _logger.Information("Cached Objects were successfully updated");
+                    cachedObjectsUpdated = true;
                     return Result.Ok();
                 }
                 catch (Exception exception)
                 {
+                    _logger.Error("Exception during assignment of cached objects to new values.");
                     return Result.Fail(new Error("Failed to update the Cached entries").CausedBy(exception));
                 }
                 finally
                 {
-                    Console.WriteLine("Exiting WriteLock  for [ CachedLock ]");
+                    //Console.WriteLine("Exiting WriteLock  for [ CachedLock ]");
                     CachedLock.ExitWriteLock();
-
-                    //CachedLock.ExitUpgradeableReadLock();
                 }
             }
             catch (Exception exception)
             {
+                _logger.Error("Exception during Loading of Cached Objects.  Cached Entries Failed to update.  Repeated same errors can cause issues.");
                 return Result.Fail(new Error("Failed to Load CachedObjects").CausedBy(exception));
             }
             finally
             {
-                Console.WriteLine("C  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
-                                  CachedLock.IsUpgradeableReadLockHeld);
-
-                Console.WriteLine("Exiting UpgradeableReadLock for [ CachedLock ]");
+                //Console.WriteLine("C  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
+                //                  CachedLock.IsUpgradeableReadLockHeld);
+                //Console.WriteLine("Exiting UpgradeableReadLock for [ CachedLock ]");
                 CachedLock.ExitUpgradeableReadLock();
-                Console.WriteLine("Time:  " + DateTime.Now);
+
+                //Console.WriteLine("Time:  " + DateTime.Now);
             }
         }
 
@@ -321,19 +361,30 @@ namespace SlugEnt.DocumentServer.Core
         public Result<Application> GetCachedApplication(int id)
         {
             if (!CachedLock.TryEnterReadLock(2000))
-                return Result.Fail(new Error("Failed to acquire a lock to enter Read mode for the CachedApplications.  Cannot locate an application."));
+            {
+                string msg = "Failed to acquire a lock to enter Read mode for the CachedApplications.  Cannot locate an application.";
+                _logger.Error(msg);
+                return Result.Fail(new Error(msg));
+            }
+
 
             try
             {
                 Application application;
                 if (!CachedApplications.TryGetValue(id, out application))
-                    return Result.Fail("No Active Application with Id [ " + id + " ] exists in the cache.");
+                {
+                    string msg = "No Active Application with Id [ " + id + " ] exists in the cache.";
+                    _logger.Error(msg);
+                    return Result.Fail(msg);
+                }
 
                 return Result.Ok(application);
             }
             catch (Exception ex)
             {
-                return Result.Fail(new Error("Error looking for Application with Id [ " + id + " ] in the Application Cache.").CausedBy(ex));
+                string msg = "Error looking for Application with Id [ " + id + " ] in the Application Cache.";
+                _logger.Error(msg + "  |  " + ex.ToString());
+                return Result.Fail(new Error(msg).CausedBy(ex));
             }
             finally
             {
@@ -420,9 +471,17 @@ namespace SlugEnt.DocumentServer.Core
         public short ServerHostId { get; set; }
 
         public string ServerHostName { get; set; }
+
         public string ServerFQDN { get; set; }
 
-
+        /// <summary>
+        /// Path to the data files on this host.
+        /// </summary>
         public string Path { get; set; }
+
+        /// <summary>
+        /// Unique Value that all nodes must agree on to talk to each other.
+        /// </summary>
+        public string NodeKey { get; set; }
     }
 }

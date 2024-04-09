@@ -13,7 +13,7 @@ using SlugEnt.ResourceHealthChecker;
 using System.Reflection;
 using ILogger = Serilog.ILogger;
 
-namespace DocumentServer;
+namespace SlugEnt.DocumentServer.Api;
 
 public class Program
 {
@@ -40,23 +40,54 @@ public class Program
         WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
         // 10 - Logging Setup
-        _logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+        ILogger logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+        _logger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
+
+
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
         builder.Host.UseSerilog(_logger);
 
-
+        LoadAppSettings(builder);
+        /*
         // 20 - AppSettings File loading
-        IWebHostEnvironment environment          = builder.Environment;
-        string              versionPath          = Directory.GetCurrentDirectory();
-        DirectoryInfo       appRootDirectoryInfo = Directory.GetParent(versionPath);
-        string              appRoot              = appRootDirectoryInfo.FullName;
-        Console.WriteLine("Running from Directory:  " + appRoot);
+        string        versionPath          = Directory.GetCurrentDirectory();
+        DirectoryInfo appRootDirectoryInfo = Directory.GetParent(versionPath);
+        string        appRoot              = appRootDirectoryInfo.FullName;
+
+        List<string> AppSettingsDirectories = new()
+        {
+            {
+                versionPath
+            },
+            {
+                appRoot
+            }
+        };
 
         // Get Sensitive Appsettings.json file location
-        string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+        string              sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+        string              sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        IWebHostEnvironment environment          = builder.Environment;
+        string              appSettingFileName   = "appsettings." + environment.EnvironmentName + ".json";
+
+        List<string> AppSettingsFiles = new()
+        {
+            {
+                sensitiveFileName
+            },
+            {
+                appSettingFileName
+            },
+
+        };
 
 
+
+        Console.WriteLine("Running from Directory:  " + appRoot);
+
+        */
+        /*
         // Load Environment Specific App Setting file
         string appSettingFileName = "appsettings." + environment.EnvironmentName + ".json";
         string appSettingFile     = Path.Join(appRoot, appSettingFileName);
@@ -68,7 +99,7 @@ public class Program
         appSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
         builder.Configuration.AddJsonFile(appSettingFile, true);
         DisplayAppSettingStatus(appSettingFile);
-
+        */
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
@@ -84,11 +115,13 @@ public class Program
 
         builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
         {
-            IConfiguration x = dsi.GetService<IConfiguration>();
-            return DocumentServerInformation.Create(x);
+            IConfiguration x         = dsi.GetService<IConfiguration>();
+            ILogger        dsiLogger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
+            return DocumentServerInformation.Create(x, null, dsiLogger);
         });
 
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
+        builder.Services.AddTransient<INodeKeyValidation, NodeKeyValidation>();
         builder.Services.AddControllers();
         builder.Services.AddProblemDetails();
 
@@ -202,5 +235,51 @@ public class Program
         apiInfoBase.AddConfigHideCriteria("password");
         apiInfoBase.AddConfigHideCriteria("os");
         return apiInfoBase;
+    }
+
+
+    private static void LoadAppSettings(WebApplicationBuilder builder)
+    {
+        string        versionPath          = Directory.GetCurrentDirectory();
+        DirectoryInfo appRootDirectoryInfo = Directory.GetParent(versionPath);
+        string        appRoot              = appRootDirectoryInfo.FullName;
+
+        List<string> appSettingsDirectories = new()
+        {
+            versionPath,
+            appRoot,
+        };
+
+        IWebHostEnvironment environment        = builder.Environment;
+        string              appSettingFileName = "appsettings." + environment.EnvironmentName + ".json";
+        string              appSettingsBase    = "appsettings.json";
+        List<string> appSettingsFiles = new()
+        {
+            appSettingsBase,
+            appSettingFileName,
+        };
+
+
+        Console.WriteLine("Running from Directory:  " + appRoot);
+
+
+        // Now load the appsettings
+        foreach (string filename in appSettingsFiles)
+        {
+            foreach (string directory in appSettingsDirectories)
+            {
+                string appSettingFile = Path.Join(directory, filename);
+                builder.Configuration.AddJsonFile(appSettingFile, true);
+                DisplayAppSettingStatus(appSettingFile);
+            }
+        }
+
+        // Finally Check the AppSettingSensitive folder
+        // Get Sensitive Appsettings.json file location
+        string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
+        string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        string path                 = Path.Join(sensitiveAppSettings, sensitiveFileName);
+        builder.Configuration.AddJsonFile(path, true);
+        DisplayAppSettingStatus(path);
     }
 }

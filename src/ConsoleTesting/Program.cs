@@ -31,7 +31,7 @@ public class Program
 #endif
                                               .Enrich.FromLogContext()
                                               .WriteTo.Console()
-                                              .CreateLogger();
+                                              .CreateLogger().ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
         _logger = Log.Logger;
         Log.Information("Starting {AppName}", Assembly.GetExecutingAssembly().GetName().Name);
 

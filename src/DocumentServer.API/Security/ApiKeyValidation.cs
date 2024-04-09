@@ -1,7 +1,4 @@
-﻿using System.Drawing;
-using SlugEnt.DocumentServer.Core;
-
-namespace SlugEnt.DocumentServer.API.Security;
+﻿namespace SlugEnt.DocumentServer.API.Security;
 
 public class ApiKeyValidation : IApiKeyValidation
 {
