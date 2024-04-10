@@ -34,10 +34,15 @@ public class Program
     }
 
 
-    public static void Main(string[] args)
+    /// <summary>
+    /// API for DocumentServer
+    /// </summary>
+    /// <param name="overrideHostname">Should never be used in production.  Only value is in Unit Testing.  It overrides the Hostname DNS lookup
+    /// with the value provided</param>
+    public static void Main(string overrideHostname = "")
     {
         Console.WriteLine("API Starting Up");
-        WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
         // 10 - Logging Setup
         ILogger logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
@@ -49,57 +54,6 @@ public class Program
         builder.Host.UseSerilog(_logger);
 
         LoadAppSettings(builder);
-        /*
-        // 20 - AppSettings File loading
-        string        versionPath          = Directory.GetCurrentDirectory();
-        DirectoryInfo appRootDirectoryInfo = Directory.GetParent(versionPath);
-        string        appRoot              = appRootDirectoryInfo.FullName;
-
-        List<string> AppSettingsDirectories = new()
-        {
-            {
-                versionPath
-            },
-            {
-                appRoot
-            }
-        };
-
-        // Get Sensitive Appsettings.json file location
-        string              sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
-        string              sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
-        IWebHostEnvironment environment          = builder.Environment;
-        string              appSettingFileName   = "appsettings." + environment.EnvironmentName + ".json";
-
-        List<string> AppSettingsFiles = new()
-        {
-            {
-                sensitiveFileName
-            },
-            {
-                appSettingFileName
-            },
-
-        };
-
-
-
-        Console.WriteLine("Running from Directory:  " + appRoot);
-
-        */
-        /*
-        // Load Environment Specific App Setting file
-        string appSettingFileName = "appsettings." + environment.EnvironmentName + ".json";
-        string appSettingFile     = Path.Join(appRoot, appSettingFileName);
-        builder.Configuration.AddJsonFile(appSettingFile, true);
-        DisplayAppSettingStatus(appSettingFile);
-
-        // Load the Sensitive AppSettings.JSON file.
-        string sensitiveFileName = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
-        appSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
-        builder.Configuration.AddJsonFile(appSettingFile, true);
-        DisplayAppSettingStatus(appSettingFile);
-        */
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
@@ -117,7 +71,10 @@ public class Program
         {
             IConfiguration x         = dsi.GetService<IConfiguration>();
             ILogger        dsiLogger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
-            return DocumentServerInformation.Create(x, null, dsiLogger);
+            return DocumentServerInformation.Create(x,
+                                                    null,
+                                                    dsiLogger,
+                                                    overrideHostname);
         });
 
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();

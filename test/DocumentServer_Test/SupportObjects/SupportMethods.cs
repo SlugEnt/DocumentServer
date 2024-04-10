@@ -15,6 +15,8 @@ using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using SlugEnt.DocumentServer.ClientLibrary;
+using ILogger = Serilog.ILogger;
+using Serilog;
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -27,25 +29,35 @@ namespace Test_DocumentServer.SupportObjects;
 /// </summary>
 public class SupportMethods
 {
-    private static   Faker                            _faker;
-    private readonly MockLogger<DocumentServerEngine> _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
-    private readonly UniqueKeys                       _uniqueKeys = new("");
+    private static   Faker                                 _faker;
+    private readonly MockLogger<DocumentServerEngine>      _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
+    private readonly UniqueKeys                            _uniqueKeys = new("");
+    private readonly MockLogger<DocumentServerInformation> _logDSI     = Substitute.For<MockLogger<DocumentServerInformation>>();
+    private static   ILogger                               serilog;
 
 
     /// <summary>
     ///     Constructore.  Builds Mock Filesystem, Mock Logger, and the DocServerEngine
     /// </summary>
-    /// <param name="databaseSetupTest"></param>
+    /// <param name="createFolders">What Folder Creation Mode to use.  None is the default, which creates none of the Fake File System folders.</param>
+    /// <param name="useTransactions">If using the database, this determines if the system should use transactions or not.  Some of the tests use
+    /// code that cannot have a nested transaction so it needs to be false.</param>
+    /// <param name="useDatabase">If true, the database will be setup and utilized.  If false, it will not.</param>
+    /// <param name="overrideDNSName">If set this will override the DNS Host name for the DocumentServerInformation Object on creation using the HostB in the database.</param>
     public SupportMethods(EnumFolderCreation createFolders = EnumFolderCreation.None,
                           bool useTransactions = true,
-                          bool useDatabase = true)
+                          bool useDatabase = true,
+                          bool overrideDNSName = false)
     {
+        serilog = new LoggerConfiguration().WriteTo.Console().Enrich.FromLogContext().CreateLogger();
+
+
         if (_faker == null)
             _faker = new Faker();
 
         FileSystem = new MockFileSystem();
 
-        Initialize = SetupAsync(useTransactions, useDatabase);
+        Initialize = SetupAsync(useTransactions, useDatabase, overrideDNSName);
 
         switch (createFolders)
         {
@@ -69,7 +81,8 @@ public class SupportMethods
     /// </summary>
     /// <returns></returns>
     private async Task SetupAsync(bool useTransactions,
-                                  bool useDatabase)
+                                  bool useDatabase,
+                                  bool overrideDNSName = false)
     {
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
         if (useDatabase)
@@ -95,7 +108,18 @@ public class SupportMethods
 
 
             // Setup DocumentServer Engine
-            DocumentServerInformation = new DocumentServerInformation(DB);
+            // Use OverrideHost name if specified
+            string overrideHostName = "";
+            if (overrideDNSName)
+            {
+                ServerHost overrideHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+                overrideHostName = overrideHost.NameDNS;
+            }
+
+            DocumentServerInformation = new DocumentServerInformation(DB,
+                                                                      NodeKey,
+                                                                      serilog,
+                                                                      overrideHostName);
             await DocumentServerInformation.Initialize;
 
 
@@ -119,6 +143,14 @@ public class SupportMethods
     /// </summary>
     public DocServerDbContext DB { get; private set; }
 
+
+    /// <summary>
+    /// The Node key for this host when Unit Testing.
+    /// </summary>
+    public string NodeKey
+    {
+        get { return "UT_KEY"; }
+    }
 
     /// <summary>
     /// Returns True if all initialization is completed.

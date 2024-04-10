@@ -422,9 +422,6 @@ public class DocumentServerEngine
             if (docType.ApplicationId != application.Id)
                 return Result.Fail("The document type requested is not a member of the application you provided a token for.  Access denied.");
 
-
-            // We always use the primary node for initial storage.
-
             int tmpFileSize = (int)transferDocumentDto.File.Length;
             int fileSize    = tmpFileSize > 1024 ? tmpFileSize / 1024 : 1;
 
@@ -577,6 +574,7 @@ public class DocumentServerEngine
             // Check to see if the primary storage node is on this host (The host this code is running on now)
             if (documentType.ActiveStorageNode1Id != null)
             {
+                // Retrieve ActiveStorageNode1's information
                 DestinationStorageNode destinationStorageNode = new();
                 Result<StorageNode>    storageNodeResult      = _documentServerInformation.GetCachedStorageNode((int)documentType.ActiveStorageNode1Id);
                 if (storageNodeResult.IsFailed)
@@ -588,6 +586,7 @@ public class DocumentServerEngine
                 destinationStorageNode.StorageNodeId           = storageNodeResult.Value.Id;
                 destinationStorageNode.IsPrimaryDocTypeStorage = true;
 
+                // Determine if this destination node is on this server...
                 if (storageNodeResult.Value.ServerHostId == _documentServerInformation.ServerHostInfo.ServerHostId)
                 {
                     destinationStorageNode.IsOnThisHost = true;
@@ -630,6 +629,7 @@ public class DocumentServerEngine
             // If the first one is not on this host then neither is the 2nd.
             if (destinationStorageNode1.IsOnThisHost)
             {
+                // Store the document on media
                 Result resultStore = await InternalStoreDocumentOnThisHost(destinationStorageNode1,
                                                                            storedDocument,
                                                                            documentType,

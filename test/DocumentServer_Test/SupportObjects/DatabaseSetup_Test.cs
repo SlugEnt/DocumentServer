@@ -129,6 +129,7 @@ public static class DatabaseSetup_Test
 
 
         //  Add ServerHost
+        //  - HostA must always be the localhost DNS name or unit tests will fail.
         string localHost = Dns.GetHostName();
         ServerHost hostA = new()
         {
@@ -138,6 +139,8 @@ public static class DatabaseSetup_Test
             Path     = "hostA",
         };
         db.Add(hostA);
+
+        // HostB can be anything
         ServerHost hostB = new()
         {
             IsActive = true,

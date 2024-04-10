@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using Serilog;
+using System.Runtime.Intrinsics.X86;
 
 namespace SlugEnt.DocumentServer.Core
 {
@@ -25,30 +26,68 @@ namespace SlugEnt.DocumentServer.Core
         private Serilog.ILogger _logger;
 
 
+        /// <summary>
+        /// Creates a DocumentServerInformation object
+        /// </summary>
+        /// <param name="docServerDbContext">The DB Context to connect to database.  Only used during object setup</param>
+        /// <param name="configuration">Configuration object.  Only used during object setup</param>
+        /// <param name="logger">Serilog logger object.  Note this is not a Microsoft ILogger!</param>
+        /// <param name="overrideDNSName">Should only ever be used during unit testing.  Forces the code to use the passed in value
+        ///   for the fully qualified name instead of using the medhod Dns.GetHostName.  This allows the unit testing code to start
+        ///   a second instance of the API up so it can test API<-->API communication.</param>
         public static DocumentServerInformation Create(IConfiguration configuration,
                                                        DocServerDbContext docServerDbContext = null,
-                                                       Serilog.ILogger logger = null)
+                                                       Serilog.ILogger logger = null,
+                                                       string overrideDNSName = "")
         {
-            if (docServerDbContext == null)
+            try
             {
-                string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
-                DbContextOptionsBuilder<DocServerDbContext> options = new();
-                options.UseSqlServer(sqlConn);
-                docServerDbContext = new(options.Options);
+                if (docServerDbContext == null)
+                {
+                    string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+                    DbContextOptionsBuilder<DocServerDbContext> options = new();
+                    options.UseSqlServer(sqlConn);
+                    docServerDbContext = new(options.Options);
+                }
+
+                // Get Node Key from configuration
+                string nodeKey = configuration.GetValue<string>("DocumentServer:NodeKey");
+                if (!string.IsNullOrWhiteSpace(nodeKey))
+                    logger.Warning("DocumentServerInformation:  Found NodeKey!");
+                else
+                {
+                    string msg = "Failed to find NodeKey in the configuration.  This is a required property.";
+                    logger.Error(msg);
+                    throw new ApplicationException(msg);
+                }
+
+                return new DocumentServerInformation(docServerDbContext, nodeKey, logger);
             }
-
-
-            return new DocumentServerInformation(docServerDbContext, configuration, logger);
+            catch (Exception ex)
+            {
+                logger.Error("Failed to Create DocumentServerInformation object in Create Method.  Error:  |  " + ex.ToString());
+                throw;
+            }
         }
 
 
+        /// <summary>
+        /// Creates a DocumentServerInformation object
+        /// </summary>
+        /// <param name="docServerDbContext">The DB Context to connect to database.  Only used during object setup</param>
+        /// <param name="configuration">Configuration object.  Only used during object setup</param>
+        /// <param name="logger">Serilog logger object.  Note this is not a Microsoft ILogger!</param>
+        /// <param name="overrideDNSName">Should only ever be used during unit testing.  Forces the code to use the passed in value
+        ///   for the fully qualified name instead of using the medhod Dns.GetHostName.  This allows the unit testing code to start
+        ///   a second instance of the API up so it can test API<-->API communication.</param>
         public DocumentServerInformation(DocServerDbContext docServerDbContext,
-                                         IConfiguration configuration = null,
-                                         Serilog.ILogger logger = null)
+                                         string nodeKey,
+                                         Serilog.ILogger logger = null,
+                                         string overrideDNSName = "")
         {
             ServerHostInfo = new ServerHostInfo();
             _logger        = logger;
-            Initialize     = SetupAsync(docServerDbContext, configuration);
+            Initialize     = SetupAsync(docServerDbContext, nodeKey, overrideDNSName);
         }
 
 
@@ -71,14 +110,28 @@ namespace SlugEnt.DocumentServer.Core
         /// Performs initial setup upon construction
         /// </summary>
         /// <param name="db"></param>
+        /// <param name="overrideDNSName">Should only ever be used during unit testing.  Forces the code to use the passed in value
+        ///   for the fully qualified name instead of using the medhod Dns.GetHostName.  This allows the unit testing code to start
+        ///   a second instance of the API up so it can test API<-->API communication.</param>
         /// <exception cref="ApplicationException"></exception>
         private async Task SetupAsync(DocServerDbContext db,
-                                      IConfiguration configuration = null)
+                                      string nodeKey,
+                                      string overrideDNSName = "")
         {
             try
             {
+                // Get LocalHost name.  
                 string localHost = Dns.GetHostName();
-                Id = Guid.NewGuid().ToString("N");
+
+                // If overrideDNSName is set then we will use that.
+                // OverrideDNSName should only be used by unit test code and never in production.
+                if (!string.IsNullOrWhiteSpace(overrideDNSName))
+                    localHost = overrideDNSName;
+
+
+                // Generate a Unique ID for this host...
+                // TODO IS this needed anymore...
+                //Id = Guid.NewGuid().ToString("N");
 
 
                 ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
@@ -91,15 +144,7 @@ namespace SlugEnt.DocumentServer.Core
                 ServerHostInfo.ServerHostId   = host.Id;
                 ServerHostInfo.ServerHostName = host.NameDNS;
                 ServerHostInfo.ServerFQDN     = host.FQDN;
-
-                // Node Ket is coming from the AppSettings
-                if (configuration != null)
-                {
-                    ServerHostInfo.NodeKey = configuration.GetValue<string>("DocumentServer:NodeKey");
-                    _logger.Warning("DocumentServerInformation:  Found NodeKey!");
-                }
-                else
-                    _logger.Error("DocumentServerInformation:  Did not Find NodeKey.  This will stop replication and other functionality from working correctly");
+                ServerHostInfo.NodeKey        = nodeKey;
 
 
                 // Ensure the TTL is expired.  This forces the Document Server Engine to load this information the first time it tries to access anything

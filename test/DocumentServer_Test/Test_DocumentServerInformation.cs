@@ -187,5 +187,26 @@ namespace Test_DocumentServer
             Assert.That(vitalInfo2.LastUpdateUtc, Is.GreaterThan(lastUpdateUtc), "Z300:");
             sm.DB.Database.RollbackTransactionAsync();
         }
+
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task OverrideDNSName_Success(bool overrideHost)
+        {
+            SupportMethods sm = new(EnumFolderCreation.None,
+                                    true,
+                                    true,
+                                    overrideHost);
+            await sm.Initialize;
+
+            // Get Host name depending on override
+            ServerHost? serverHost;
+            if (!overrideHost)
+                serverHost = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_A");
+            else
+                serverHost = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+            Assert.That(sm.DocumentServerInformation.ServerHostInfo.ServerFQDN, Is.EqualTo(serverHost.FQDN), "Z100: Host name did not match expected value");
+        }
     }
 }
