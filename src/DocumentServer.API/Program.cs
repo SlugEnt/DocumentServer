@@ -250,9 +250,9 @@ public class Program
             appRoot,
         };
 
-        IWebHostEnvironment environment        = builder.Environment;
-        string              appSettingFileName = "appsettings." + environment.EnvironmentName + ".json";
-        string              appSettingsBase    = "appsettings.json";
+        string? environmentName    = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        string  appSettingFileName = "appsettings." + environmentName + ".json";
+        string  appSettingsBase    = "appsettings.json";
         List<string> appSettingsFiles = new()
         {
             appSettingsBase,
@@ -279,6 +279,7 @@ public class Program
         string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
         string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
         string path                 = Path.Join(sensitiveAppSettings, sensitiveFileName);
+
         builder.Configuration.AddJsonFile(path, true);
         DisplayAppSettingStatus(path);
     }

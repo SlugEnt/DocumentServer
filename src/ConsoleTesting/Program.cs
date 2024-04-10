@@ -10,7 +10,7 @@ using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
-
+using System.Configuration;
 
 
 namespace SlugEnt.DocumentServer.ConsoleTesting;
