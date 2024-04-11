@@ -14,9 +14,11 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SlugEnt.DocumentServer.ClientLibrary;
 using ILogger = Serilog.ILogger;
 using Serilog;
+using Microsoft.EntityFrameworkCore;
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -70,6 +72,7 @@ public class SupportMethods
         };
         SetupStage1();
     }
+
 
 
     /// <summary>
@@ -155,15 +158,21 @@ public class SupportMethods
         }
 
         // If start Second API Instance - Get it going...
-        if (_smConfiguration.StartSecondAPIInstance)
+        if (_smConfiguration.StartSecondAPIInstance && SecondAPI.IsInitialized == false)
         {
-            SecondAPI  secondApi  = new SecondAPI();
+            //SecondAPI  = new SecondAPI();
             ServerHost secondHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-            secondApi.StartAPI(secondHost.NameDNS);
+            SecondAPI.StartAPI(secondHost.NameDNS, DB.Database.GetConnectionString());
         }
 
         IsInitialized = true;
     }
+
+
+    /// <summary>
+    /// Sometime we need a second API for tests...
+    /// </summary>
+    //public static condAPI SecondAPI { get; private set; }
 
 
     /// <summary>
@@ -189,6 +198,17 @@ public class SupportMethods
     /// Returns True if all initialization is completed.
     /// </summary>
     public bool IsInitialized { get; private set; }
+
+
+    public void Shutdown()
+    {
+        if (!IsInitialized)
+            return;
+
+        SecondAPI.StopSecondAPI();
+        IsInitialized = false;
+    }
+
 
     /// <summary>
     ///     Return the DocumentServerEngine

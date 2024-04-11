@@ -40,7 +40,10 @@
             <RadzenFormField Text="Path to Data Folder on Server" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_serverHost.Path" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-
+            <RadzenFormField Text="Is Active" Variant="@radDisplay" style="width: 100%">
+                <RadzenCheckBox @bind-Value=@_serverHost.IsActive TriState="false" TValue="bool" ReadOnly="@_canEdit" />
+            </RadzenFormField>
+            
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">

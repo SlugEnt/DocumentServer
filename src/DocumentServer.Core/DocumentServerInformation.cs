@@ -38,13 +38,20 @@ namespace SlugEnt.DocumentServer.Core
         public static DocumentServerInformation Create(IConfiguration configuration,
                                                        DocServerDbContext docServerDbContext = null,
                                                        Serilog.ILogger logger = null,
-                                                       string overrideDNSName = "")
+                                                       string overrideDNSName = "",
+                                                       string overrideDBConnection = "")
         {
             try
             {
                 if (docServerDbContext == null)
                 {
-                    string?                                     sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+                    string? sqlConn;
+
+                    if (overrideDBConnection == string.Empty)
+                        sqlConn = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+                    else
+                        sqlConn = overrideDBConnection;
+
                     DbContextOptionsBuilder<DocServerDbContext> options = new();
                     options.UseSqlServer(sqlConn);
                     docServerDbContext = new(options.Options);
@@ -133,6 +140,9 @@ namespace SlugEnt.DocumentServer.Core
                 string localHost = Dns.GetHostName();
                 string origHost  = localHost;
 
+                _logger.Information("Database Connection Status: " + db.Database.CanConnect());
+                _logger.Information(("Connection String: " + db.Database.GetConnectionString()));
+
                 // If overrideDNSName is set then we will use that.
                 // OverrideDNSName should only be used by unit test code and never in production.
                 if (!string.IsNullOrWhiteSpace(overrideDNSName))
@@ -150,6 +160,7 @@ namespace SlugEnt.DocumentServer.Core
                     string msg = "Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ].";
                     if (overrideDNSName != string.Empty)
                         msg = msg + "  NOTE:  This hostname was overridden by command line argument!  It's pre-override value was: " + origHost;
+                    _logger.Fatal(msg);
                     throw new ApplicationException(msg);
                 }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing.Text;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,33 +13,30 @@ namespace Test_DocumentServer.SupportObjects;
 ///   - Starts the vault server in Dev mode, with a known root token.
 ///   - Scans the startup process to look for the unseal key.
 /// </summary>
-public class SecondAPI : IDisposable
+public static class SecondAPI
 {
-    private Process _process;
-    private bool    _disposed;
+    private static Process _process;
+    private static bool    _disposed;
 
     private static bool _startingUP = true;
 
-    public SecondAPI() { }
+    static SecondAPI() { }
+
+    public static bool IsInitialized { get; private set; }
 
 
     // Starts up an instance of Vault for development and testing purposes.
-    public void StartAPI(string hostname)
+    public static void StartAPI(string hostname,
+                                string connectionString)
     {
-        string apiArgs = string.Join(" ",
-                                     new List<string>
-                                     {
-                                         "--override-Hostname " + hostname,
-                                     });
+        if (IsInitialized)
+            return;
+
+        string apiArgs = " --override-hostname " + hostname + " --port " + 9898 + " --db \"" + connectionString + "\"";
 
 
         string apiBin  = "SlugEnt.DocumentServer.API.exe";
         string apiPath = @"D:\A_Dev\SlugEnt\DocumentServer\src\DocumentServer.API\bin\Debug\net8.0";
-
-        //string apiFullPath = Path.Join(, apiBin);
-
-        //string apiFullPath = @"..\..\..\..\..\src\DocumentServer.API\bin\Debug\net8.0\" + apiBin;
-
 
         var startInfo = new ProcessStartInfo(apiBin)
         {
@@ -48,6 +46,7 @@ public class SecondAPI : IDisposable
             RedirectStandardError  = true,
             RedirectStandardOutput = true,
             WorkingDirectory       = apiPath,
+            Arguments              = apiArgs,
         };
 
         try
@@ -88,6 +87,8 @@ public class SecondAPI : IDisposable
             {
                 throw new Exception($"Process could not be started: {_process.StandardError}");
             }
+
+            IsInitialized = true;
         }
         catch (Exception ex)
         {
@@ -96,42 +97,14 @@ public class SecondAPI : IDisposable
     }
 
 
-    public void StopVaultServer()
+    /// <summary>
+    /// Stops the Second API Server
+    /// </summary>
+    public static void StopSecondAPI()
     {
         _process.CloseMainWindow();
         _process.Kill();
     }
-
-
-
-    /// <summary>
-    /// Ensures the Vault process is stopped.
-    /// </summary>
-    /// <param name="disposing"></param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            try
-            {
-                _process.CloseMainWindow();
-                _process.Kill();
-            }
-            catch { }
-
-            _process.Dispose();
-        }
-
-        _disposed = true;
-    }
-
-
-    public void Dispose() { Dispose(true); }
 
 
 
@@ -142,6 +115,15 @@ public class SecondAPI : IDisposable
                               DataReceivedEventArgs e)
     {
         ShowOutput(e.Data, true);
+
+        // If starting up then we need to look for some stuff.
+        if (SecondAPI._startingUP)
+        {
+            if (e.Data?.StartsWith("API Successfully Started") == true)
+            {
+                SecondAPI._startingUP = false;
+            }
+        }
     }
 
 
@@ -169,27 +151,18 @@ public class SecondAPI : IDisposable
         // Write the line to the Debug window.
         Debug.WriteLine(data, cat);
 
-        // If starting up then we need to look for some stuff.
-        if (SecondAPI._startingUP)
+        /*
+        // Now look for successful start message.
+        if (data?.StartsWith("==> Vault server started!") == true)
         {
-            if (data?.StartsWith("API Successfully Started") == true)
-            {
-                SecondAPI._startingUP = false;
-                return;
-            }
-            /*
-            // Now look for successful start message.
-            if (data?.StartsWith("==> Vault server started!") == true)
-            {
-                VaultServerInstance._startingUP = false;
-                return;
-            }
-
-            if (data?.StartsWith("Unseal Key:") == true)
-            {
-                VaultServerRef.unSealKey = data.Substring("Unseal Key:".Length + 1);
-            }
-            */
+            VaultServerInstance._startingUP = false;
+            return;
         }
+
+        if (data?.StartsWith("Unseal Key:") == true)
+        {
+            VaultServerRef.unSealKey = data.Substring("Unseal Key:".Length + 1);
+        }
+        */
     }
 }

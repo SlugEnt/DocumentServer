@@ -91,6 +91,7 @@ public class DocServerDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
+        /*
         //Console.WriteLine("Database:  Configuring DB Context Options");
         if (!dbContextOptionsBuilder.IsConfigured)
         {
@@ -101,6 +102,7 @@ public class DocServerDbContext : DbContext
             string connectionString = _Configuration.GetConnectionString(DatabaseReferenceName());
             dbContextOptionsBuilder.UseSqlServer(connectionString);
         }
+        */
     }
 
 

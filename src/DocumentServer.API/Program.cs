@@ -12,6 +12,7 @@ using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
 using System.Reflection;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using ILogger = Serilog.ILogger;
 
 namespace SlugEnt.DocumentServer.Api;
@@ -40,22 +41,75 @@ public class Program
     /// </summary>
     /// <param name="overrideHostname">Should never be used in production.  Only value is in Unit Testing.  It overrides the Hostname DNS lookup </param>
     /// <param name="listenPort">The port to listen on.  This is for unit testing only.  Never to be used in production</param>
+    /// <param name="db">A complete database connection string.  Never to be used in production!</param>
     public static void Main(string overrideHostname = "",
-                            int port = 0)
+                            int port = 0,
+                            string db = "")
     {
         Console.WriteLine("API Starting Up");
+
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
         // 10 - Logging Setup
         ILogger logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
         _logger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
-
-
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
         builder.Host.UseSerilog(_logger);
 
         LoadAppSettings(builder);
+
+
+        // 15 - Display Passed Command Line Arguments
+        if (overrideHostname != String.Empty)
+            _logger.Warning("Argument Found: overrideHostname: " + overrideHostname);
+        if (db != String.Empty)
+            _logger.Warning("Argument Found: db: " + db);
+        if (port != 0)
+            _logger.Warning("Argument Found: port: " + port);
+
+
+        //*********************************************************************
+        // E.  Add Database Access
+        //  - 3 Connection possibilities.  
+        //      A)  DEBUG and db override specified.  Use passed Connection string
+        //      B)  DEBUG and no db override.  Read from Configuration and enable detailed errors
+        //      C)  NO DEBUG.  Production.  Read from Configuration.
+
+#if DEBUG
+        if (db != string.Empty)
+        {
+            _logger.Warning("Database Connection:  Using passed in value of " + db);
+            builder.Services.AddDbContextPool<DocServerDbContext>(options =>
+            {
+                options.UseSqlServer(db)
+
+                       // IF Debug then log all SQL to Console
+                       .EnableDetailedErrors();
+            });
+        }
+        else
+        {
+            string connStr = builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+            _logger.Warning("Database Connection:  Using value found in Configuration: " + connStr);
+            builder.Services.AddDbContextPool<DocServerDbContext>(options =>
+            {
+                options.UseSqlServer(connStr)
+
+                       // IF Debug then log all SQL to Console
+                       .EnableDetailedErrors();
+            });
+        }
+#else
+        builder.Services.AddDbContextPool<DocServerDbContext>(options =>
+        {
+            options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()))
+        });
+
+#endif
+
+        //*********************************************************************
+
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
@@ -76,7 +130,8 @@ public class Program
             return DocumentServerInformation.Create(x,
                                                     null,
                                                     dsiLogger,
-                                                    overrideHostname);
+                                                    overrideHostname,
+                                                    db);
         });
 
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
@@ -90,18 +145,6 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 #endif
-
-        // E.  Add Database Access
-        builder.Services.AddDbContextPool<DocServerDbContext>(options =>
-        {
-            options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()))
-
-                   // IF Debug then log all SQL to Console
-#if (DEBUG || SWAGGER)
-                   .EnableDetailedErrors();
-
-#endif
-        });
 
 
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

@@ -218,7 +218,7 @@ namespace Test_DocumentServer
         {
             SupportMethodsConfiguration supportMethodsConfiguration = new()
             {
-                UseDatabase            = false,
+                UseDatabase            = true,
                 StartSecondAPIInstance = true,
             };
 
