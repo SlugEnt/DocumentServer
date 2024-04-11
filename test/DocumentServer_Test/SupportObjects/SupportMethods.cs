@@ -34,6 +34,18 @@ public class SupportMethods
     private readonly UniqueKeys                            _uniqueKeys = new("");
     private readonly MockLogger<DocumentServerInformation> _logDSI     = Substitute.For<MockLogger<DocumentServerInformation>>();
     private static   ILogger                               serilog;
+    private readonly SupportMethodsConfiguration           _smConfiguration;
+
+
+    /// <summary>
+    /// The Preferred Constructor...
+    /// </summary>
+    /// <param name="smConfiguration"></param>
+    public SupportMethods(SupportMethodsConfiguration smConfiguration)
+    {
+        _smConfiguration = smConfiguration;
+        SetupStage1();
+    }
 
 
     /// <summary>
@@ -49,17 +61,32 @@ public class SupportMethods
                           bool useDatabase = true,
                           bool overrideDNSName = false)
     {
-        serilog = new LoggerConfiguration().WriteTo.Console().Enrich.FromLogContext().CreateLogger();
+        _smConfiguration = new()
+        {
+            FolderCreationSetting = createFolders,
+            UseDatabase           = useDatabase,
+            UseTransactions       = useTransactions,
+            OverrideDNSName       = overrideDNSName,
+        };
+        SetupStage1();
+    }
 
+
+    /// <summary>
+    /// Performs initial setup of the SupportMethods object.  Then starts the SetupStage2Async 
+    /// </summary>
+    private void SetupStage1()
+    {
+        serilog = new LoggerConfiguration().WriteTo.Console().Enrich.FromLogContext().CreateLogger();
 
         if (_faker == null)
             _faker = new Faker();
 
         FileSystem = new MockFileSystem();
 
-        Initialize = SetupAsync(useTransactions, useDatabase, overrideDNSName);
+        Initialize = SetupStage2Async();
 
-        switch (createFolders)
+        switch (_smConfiguration.FolderCreationSetting)
         {
             case EnumFolderCreation.Test:
                 CreateTestFolders();
@@ -80,12 +107,10 @@ public class SupportMethods
     /// caller must call await Initialize to ensure these operations have completed.
     /// </summary>
     /// <returns></returns>
-    private async Task SetupAsync(bool useTransactions,
-                                  bool useDatabase,
-                                  bool overrideDNSName = false)
+    private async Task SetupStage2Async()
     {
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
-        if (useDatabase)
+        if (_smConfiguration.UseDatabase)
         {
             DB = DatabaseSetup_Test.CreateContext();
             LoadDatabaseInfo();
@@ -93,7 +118,7 @@ public class SupportMethods
 
 
             ConsoleColor color = ConsoleColor.Green;
-            if (useTransactions)
+            if (_smConfiguration.UseTransactions)
             {
                 DB.Database.BeginTransaction();
                 tmsg =
@@ -102,7 +127,7 @@ public class SupportMethods
             }
 
             Console.ForegroundColor = color;
-            Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
+            Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", _smConfiguration.UseTransactions.ToString());
             Console.WriteLine(tmsg);
             Console.ForegroundColor = ConsoleColor.White;
 
@@ -110,7 +135,7 @@ public class SupportMethods
             // Setup DocumentServer Engine
             // Use OverrideHost name if specified
             string overrideHostName = "";
-            if (overrideDNSName)
+            if (_smConfiguration.OverrideDNSName)
             {
                 ServerHost overrideHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
                 overrideHostName = overrideHost.NameDNS;
@@ -129,6 +154,14 @@ public class SupportMethods
                                                             FileSystem);
         }
 
+        // If start Second API Instance - Get it going...
+        if (_smConfiguration.StartSecondAPIInstance)
+        {
+            SecondAPI  secondApi  = new SecondAPI();
+            ServerHost secondHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+            secondApi.StartAPI(secondHost.NameDNS);
+        }
+
         IsInitialized = true;
     }
 
@@ -136,7 +169,7 @@ public class SupportMethods
     /// <summary>
     /// This is the Initialize Task.  Must be called to finalize setup of key objects
     /// </summary>
-    public Task Initialize { get; }
+    public Task Initialize { get; private set; }
 
     /// <summary>
     ///     Returns the DB Context
@@ -222,7 +255,7 @@ public class SupportMethods
     /// <summary>
     ///     Returns the Mocked File System
     /// </summary>
-    public MockFileSystem FileSystem { get; }
+    public MockFileSystem FileSystem { get; private set; }
 
     public string Folder_Prod => TestConstants.FOLDER_PROD;
     public string Folder_Prod_Primary => TestConstants.FOLDER_PROD_PRIMARY;

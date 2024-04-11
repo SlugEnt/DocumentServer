@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Build.ObjectModelRemoting;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Protocol.Resources;
 using NUnit.Framework.Interfaces;
 using SlugEnt;
 using SlugEnt.DocumentServer.Core;
+using SlugEnt.DocumentServer.EntityManager;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
 using SlugEnt.FluentResults;
@@ -17,7 +19,7 @@ namespace Test_DocumentServer
 {
     [TestFixture]
     [NonParallelizable]
-    public class Test_DocumentServerInformation
+    public class Test_EntityManager
     {
         [Test]
         public async Task AddDocumentType_Success()
@@ -207,6 +209,21 @@ namespace Test_DocumentServer
             else
                 serverHost = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
             Assert.That(sm.DocumentServerInformation.ServerHostInfo.ServerFQDN, Is.EqualTo(serverHost.FQDN), "Z100: Host name did not match expected value");
+        }
+
+
+        //This is not a real Test.  Just validating I can start a seocnd API instance
+        [Test]
+        public async Task Second()
+        {
+            SupportMethodsConfiguration supportMethodsConfiguration = new()
+            {
+                UseDatabase            = false,
+                StartSecondAPIInstance = true,
+            };
+
+            SupportMethods sm = new(supportMethodsConfiguration);
+            await sm.Initialize;
         }
     }
 }

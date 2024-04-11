@@ -27,7 +27,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlugEnt.DocumentServer.Blaz
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentServer.API", "DocumentServer.API\DocumentServer.API.csproj", "{BA6767AC-C449-4F01-B724-3C0C313FA412}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BundleBuilderSimple", "BundleBuilderSimple\BundleBuilderSimple.csproj", "{257B406C-CDBB-4673-952B-22B0900A02B9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BundleBuilderSimple", "BundleBuilderSimple\BundleBuilderSimple.csproj", "{257B406C-CDBB-4673-952B-22B0900A02B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentServer.EntityManager", "DocumentServer.EntityManager\DocumentServer.EntityManager.csproj", "{34DE4BB8-026A-4D9D-BAA3-C46B53D8CA09}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +73,10 @@ Global
 		{257B406C-CDBB-4673-952B-22B0900A02B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{257B406C-CDBB-4673-952B-22B0900A02B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{257B406C-CDBB-4673-952B-22B0900A02B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34DE4BB8-026A-4D9D-BAA3-C46B53D8CA09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34DE4BB8-026A-4D9D-BAA3-C46B53D8CA09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34DE4BB8-026A-4D9D-BAA3-C46B53D8CA09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34DE4BB8-026A-4D9D-BAA3-C46B53D8CA09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

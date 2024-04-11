@@ -1,5 +1,6 @@
 #define SWAGGER
 
+using System.Net;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -37,9 +38,10 @@ public class Program
     /// <summary>
     /// API for DocumentServer
     /// </summary>
-    /// <param name="overrideHostname">Should never be used in production.  Only value is in Unit Testing.  It overrides the Hostname DNS lookup
-    /// with the value provided</param>
-    public static void Main(string overrideHostname = "")
+    /// <param name="overrideHostname">Should never be used in production.  Only value is in Unit Testing.  It overrides the Hostname DNS lookup </param>
+    /// <param name="listenPort">The port to listen on.  This is for unit testing only.  Never to be used in production</param>
+    public static void Main(string overrideHostname = "",
+                            int port = 0)
     {
         Console.WriteLine("API Starting Up");
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
@@ -132,8 +134,19 @@ public class Program
         builder.Services.AddSingleton<IAuthorizationHandler, NodeKeyHandler>();
 
 
-        builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
-
+#if DEBUG
+        if (port > 0)
+        {
+            IPAddress address = IPAddress.Parse("127.0.0.1");
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.MaxRequestBodySize = 1024 * 1024 * 100;
+                options.Listen(address, port);
+            });
+        }
+#else
+    builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
+#endif
         WebApplication app = builder.Build();
 
         app.UseRouting();
@@ -174,10 +187,66 @@ public class Program
 
         // Configure The Document Server Engine for first time.
         DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
+        if (dsi.IsInitialized == false)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                if (dsi.Initialize.IsFaulted)
+                    throw new ApplicationException("Error 9863:  Error in DocumentServerInformation object.  Cannot run without this object!");
+
+                if (dsi.IsInitialized == true)
+                    break;
+
+                Thread.Sleep(500);
+            }
+
+            if (!dsi.IsInitialized)
+                throw new ApplicationException("Error 9844: Failed to succesfully initialize DocumentServerInformation object.  Cannot run without this object initialized.");
+        }
 
 
-        app.Run();
+        // We start it because we need to acquire the port it is listening on, we do not have it until after the app starts!
+        app.Start();
+        Console.WriteLine("API Successfully Started");
+        _logger.Warning("API Completed Setup and Preparing to Run");
+
+        GetListeningPorts(dsi, app.Urls);
+
+        app.WaitForShutdown();
+
         Log.CloseAndFlush();
+    }
+
+
+    /// <summary>
+    /// Determines what ports the API is listening on.
+    /// </summary>
+    /// <param name="dsi"></param>
+    /// <param name="urls"></param>
+    private static void GetListeningPorts(DocumentServerInformation dsi,
+                                          ICollection<string> urls)
+    {
+        // There really should only be one listening port for unit testing.
+        foreach (string appUrl in urls)
+        {
+            _logger.Information("Listening on: " + appUrl);
+
+            int i = appUrl.IndexOf(":", 6);
+            if (i > 0)
+            {
+                string portStr = appUrl.Substring(i + 1);
+                int    port    = int.Parse(portStr);
+                bool?  http    = null;
+
+                // Determine if http or https
+                if (appUrl.StartsWith("https"))
+                    http = false;
+                else if (appUrl.StartsWith("http"))
+                    http = true;
+
+                dsi.RemoteNodePort = port;
+            }
+        }
     }
 
 

@@ -319,25 +319,6 @@ public class DocumentServerEngine
     }
 
 
-#region "RootObject Code"
-
-    /// <summary>
-    ///     Marks a RootObject as InActive.
-    /// </summary>
-    /// <param name="rootObjectId"></param>
-    /// <returns></returns>
-    public async Task<bool> RootObjectDeleteAsync(int rootObjectId)
-    {
-        int rowsAffected = await _db.RootObjects.Where(ro => ro.Id == rootObjectId).ExecuteUpdateAsync(s => s.SetProperty(ro => ro.IsActive, false));
-        if (rowsAffected > 0)
-            return true;
-
-        return false;
-    }
-
-#endregion
-
-
 
     /// <summary>
     /// Changes the Alive Status for a Document Type

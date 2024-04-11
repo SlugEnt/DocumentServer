@@ -3,16 +3,18 @@
 @rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Configuration
+@using SlugEnt.DocumentServer.Core
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
-@using SlugEnt.DocumentServer.Core
 @using SlugEnt.FluentResults
+@using SlugEnt.DocumentServer.EntityManager
+
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+
 
 
 <h1>@_pageTitle</h1>

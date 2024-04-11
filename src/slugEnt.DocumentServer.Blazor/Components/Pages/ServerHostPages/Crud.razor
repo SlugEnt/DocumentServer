@@ -5,12 +5,12 @@
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
-@using SlugEnt.DocumentServer.Core
+<!--@using SlugEnt.DocumentServer.Core -->
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+
 
 
 <h1>@_pageTitle</h1>
@@ -74,7 +74,7 @@
 
 @code {
     private          List<ApplicationSelectDto> _applicationsSelectDtos = new();
-    private readonly ServerHost                 _serverHost             = new();
+    private          ServerHost                 _serverHost             = new();
 
 
 
@@ -114,6 +114,7 @@
         ServerHost? ro = await DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == recordId);
         if (ro == null)
             _errMsg = "Unable to locate the RootObject with Id of [ " + recordId + " ].  Unable to continue";
+        _serverHost = ro;
     }
 
 

@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SlugEnt.DocumentServer.Db;
 
-namespace SlugEnt.DocumentServer.Core
+namespace SlugEnt.DocumentServer.EntityManager
 {
     /// <summary>
     /// Contains logic to save and update entities to the Database to ensure fields are correctly set and on updates, some fields are not updated.
@@ -153,5 +154,25 @@ namespace SlugEnt.DocumentServer.Core
                 return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
             }
         }
+
+
+
+    #region "RootObject Code"
+
+        /// <summary>
+        ///     Marks a RootObject as InActive.
+        /// </summary>
+        /// <param name="rootObjectId"></param>
+        /// <returns></returns>
+        public async Task<bool> RootObjectDeleteAsync(int rootObjectId)
+        {
+            int rowsAffected = await _db.RootObjects.Where(ro => ro.Id == rootObjectId).ExecuteUpdateAsync(s => s.SetProperty(ro => ro.IsActive, false));
+            if (rowsAffected > 0)
+                return true;
+
+            return false;
+        }
+
+    #endregion
     }
 }

@@ -61,7 +61,10 @@ namespace SlugEnt.DocumentServer.Core
                     throw new ApplicationException(msg);
                 }
 
-                return new DocumentServerInformation(docServerDbContext, nodeKey, logger);
+                return new DocumentServerInformation(docServerDbContext,
+                                                     nodeKey,
+                                                     logger,
+                                                     overrideDNSName);
             }
             catch (Exception ex)
             {
@@ -105,6 +108,12 @@ namespace SlugEnt.DocumentServer.Core
         public bool IsInitialized { get; private set; } = false;
 
 
+        /// <summary>
+        /// The port that the remote nodes are listening on.  This is only needed to facilitate unit testing where more than one "node" is
+        /// running on the same server.
+        /// </summary>
+        public int RemoteNodePort { get; set; }
+
 
         /// <summary>
         /// Performs initial setup upon construction
@@ -122,6 +131,7 @@ namespace SlugEnt.DocumentServer.Core
             {
                 // Get LocalHost name.  
                 string localHost = Dns.GetHostName();
+                string origHost  = localHost;
 
                 // If overrideDNSName is set then we will use that.
                 // OverrideDNSName should only be used by unit test code and never in production.
@@ -136,7 +146,12 @@ namespace SlugEnt.DocumentServer.Core
 
                 ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
                 if (host == null)
-                    throw new ApplicationException("Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ]");
+                {
+                    string msg = "Unable to find a ServerHosts Table Entry that matches this machines host name [ " + localHost + " ].";
+                    if (overrideDNSName != string.Empty)
+                        msg = msg + "  NOTE:  This hostname was overridden by command line argument!  It's pre-override value was: " + origHost;
+                    throw new ApplicationException(msg);
+                }
 
 
                 // Load the ServerHost Information
@@ -165,6 +180,7 @@ namespace SlugEnt.DocumentServer.Core
             catch (Exception ex)
             {
                 _logger.Error("Error Setting up DocumentServerInformation:SetupAsync  |  " + ex.ToString());
+                throw;
             }
         }
 

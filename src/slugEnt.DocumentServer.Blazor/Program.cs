@@ -5,6 +5,7 @@ using Serilog;
 using SlugEnt.DocumentServer.Blazor.Components;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
+using SlugEnt.DocumentServer.EntityManager;
 using ILogger = Serilog.ILogger;
 
 namespace SlugEnt.DocumentServer.Blazor;
@@ -84,13 +85,14 @@ public class Program
         builder.Services.AddRadzenComponents();
         builder.Services.AddScoped<DialogService>();
         builder.Services.AddScoped<TooltipService>();
-        builder.Services.AddScoped<DocumentServerEngine>();
+        builder.Services.AddScoped<EntityRules>();
+/*        builder.Services.AddScoped<DocumentServerEngine>();
         builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
         {
             IConfiguration x = dsi.GetService<IConfiguration>();
             return DocumentServerInformation.Create(x);
         });
-
+*/
 
         // WSH End 
         // Add services to the container.

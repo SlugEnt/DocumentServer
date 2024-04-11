@@ -6,13 +6,14 @@
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Models.Enums
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.EntityManager
 @using SlugEnt.FluentResults
 
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+@inject EntityRules __EntityRules
 
 
 <h1>@_pageTitle</h1>

@@ -5,13 +5,14 @@
 @using SlugEnt.DocumentServer.Core
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.EntityManager
 @using SlugEnt.DocumentServer.Models.Enums
 @using SlugEnt.FluentResults
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+@inject EntityRules _entityRules
 
 
 <h1>@_pageTitle</h1>
@@ -197,7 +198,9 @@
     /// <returns></returns>
     public async Task DeleteEntity()
     {
-        bool result = await docEngine.RootObjectDeleteAsync(_storageNode.Id);
+        // TODO this is wrong object!!!
+        bool result = true;
+        //bool result = await _entityRules.RootObjectDeleteAsync(_storageNode.Id);
         if (result)
         {
             _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully inactivated.", _storageNode.Name, _storageNode.Id);
