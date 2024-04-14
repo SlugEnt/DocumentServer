@@ -38,7 +38,7 @@ public class Test_NodesController
                                        "month",
                                        "day",
                                        "somefile.txt");
-        StorageNode    storageNode = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNodeA");
+        StorageNode    storageNode = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_A");
         NodeController controller  = new NodeController(dse);
 
 
@@ -73,6 +73,29 @@ public class Test_NodesController
         Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(2), "Z210:  Expected 2 files.  Original and the stored one");
         Assert.That(sm.FileSystem.File.Exists(completePath), Is.True, "Z220:  File should exist");
     }
+
+
+    [Test]
+    public async Task IsAlive_Success()
+    {
+        //*** A) Setup
+        SupportMethodsConfiguration smConfiguration = new()
+        {
+            UseTransactions = _useDatabaseTransactions
+        };
+        SupportMethods sm = new(smConfiguration);
+        await sm.Initialize;
+        DocumentServerEngine dse        = sm.DocumentServerEngine;
+        NodeController       controller = new NodeController(dse);
+
+
+        //*** T - Test
+        var actionResult = await controller.Alive();
+
+        //*** V - Validate
+        Assert.That(actionResult, Is.InstanceOf<OkResult>(), "Z100:  Expected an Ok Response");
+    }
+
 
 
     private static T GetObjectResultContent<T>(ActionResult<T> result) { return (T)((ObjectResult)result.Result).Value; }

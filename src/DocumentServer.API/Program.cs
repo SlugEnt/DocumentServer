@@ -42,9 +42,12 @@ public class Program
     /// <param name="overrideHostname">Should never be used in production.  Only value is in Unit Testing.  It overrides the Hostname DNS lookup </param>
     /// <param name="listenPort">The port to listen on.  This is for unit testing only.  Never to be used in production</param>
     /// <param name="db">A complete database connection string.  Never to be used in production!</param>
+    /// <param name="nodekey">The Node to Node key that is required for 2 nodes to talk to each other.  This is normally set thru
+    /// configuration, but this will override it</param>
     public static void Main(string overrideHostname = "",
                             int port = 0,
-                            string db = "")
+                            string db = "",
+                            string nodekey = "")
     {
         Console.WriteLine("API Starting Up");
 
@@ -85,7 +88,8 @@ public class Program
                 options.UseSqlServer(db)
 
                        // IF Debug then log all SQL to Console
-                       .EnableDetailedErrors();
+                       .EnableDetailedErrors()
+                       .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
             });
         }
         else
@@ -95,6 +99,7 @@ public class Program
             builder.Services.AddDbContextPool<DocServerDbContext>(options =>
             {
                 options.UseSqlServer(connStr)
+                       .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
 
                        // IF Debug then log all SQL to Console
                        .EnableDetailedErrors();
@@ -110,6 +115,16 @@ public class Program
 
         //*********************************************************************
 
+        // Add Node2Node Http Client
+        builder.Services.AddHttpClient<NodeToNodeHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
+               {
+                   return new SocketsHttpHandler
+                   {
+                       PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+                   };
+               })
+               .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
@@ -123,6 +138,19 @@ public class Program
         builder.Services.AddSingleton<HealthCheckProcessor>();
         builder.Services.AddHostedService<HealthCheckerBackgroundProcessor>();
 
+
+        // Build DocumentServerInformation Object
+        ILogger                          dsiLogger  = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
+        DocumentServerInformationBuilder dsiBuilder = new(dsiLogger);
+        dsiBuilder.UseConfiguration(builder.Configuration);
+        if (overrideHostname != string.Empty)
+            dsiBuilder.TestOverrideServerDNSName(overrideHostname);
+        if (db != string.Empty)
+            dsiBuilder.TestUseDatabase(db);
+        DocumentServerInformation dsi = dsiBuilder.Build();
+        builder.Services.AddSingleton<DocumentServerInformation>(dsi);
+
+        /*
         builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
         {
             IConfiguration x         = dsi.GetService<IConfiguration>();
@@ -133,7 +161,7 @@ public class Program
                                                     overrideHostname,
                                                     db);
         });
-
+        */
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
         builder.Services.AddTransient<INodeKeyValidation, NodeKeyValidation>();
         builder.Services.AddControllers();
@@ -228,8 +256,9 @@ public class Program
         });
 
 
-        // Configure The Document Server Engine for first time.
-        DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
+        // Wait for The DocumentServerInformation object to finish initializing
+        dsiBuilder.AwaitInitialization();
+        /*DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
         if (dsi.IsInitialized == false)
         {
             for (int i = 0; i < 10; i++)
@@ -246,7 +275,7 @@ public class Program
             if (!dsi.IsInitialized)
                 throw new ApplicationException("Error 9844: Failed to succesfully initialize DocumentServerInformation object.  Cannot run without this object initialized.");
         }
-
+        */
 
         // We start it because we need to acquire the port it is listening on, we do not have it until after the app starts!
         app.Start();

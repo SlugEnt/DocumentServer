@@ -135,25 +135,35 @@ public class SupportMethods
             Console.ForegroundColor = ConsoleColor.White;
 
 
-            // Setup DocumentServer Engine
+            // Setup DocumentServerInformation Engine Configuration
+            DocumentServerInformationBuilder dsiBuilder = new DocumentServerInformationBuilder(serilog).UseNodeKey(NodeKey).UseDatabase(DB)
+                                                                                                       .SetCacheExpiration(DocumentServerInformation.CACHE_TTL)
+                                                                                                       .TestRemoteNodePort(SecondAPI.Port);
+
             // Use OverrideHost name if specified
-            string overrideHostName = "";
             if (_smConfiguration.OverrideDNSName)
             {
                 ServerHost overrideHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-                overrideHostName = overrideHost.NameDNS;
+                dsiBuilder.TestOverrideServerDNSName(overrideHost.NameDNS);
             }
 
+/*
             DocumentServerInformation = new DocumentServerInformation(DB,
                                                                       NodeKey,
                                                                       serilog,
-                                                                      overrideHostName);
+                                                                      overrideHostName,
+                                                                      DocumentServerInformation.CACHE_TTL,
+                                                                      SecondAPI.Port);
             await DocumentServerInformation.Initialize;
+*/
+            DocumentServerInformation = await dsiBuilder.BuildAndAwaitInitialization();
 
 
+            NodeHttpClient = new(new HttpClient());
             DocumentServerEngine = new DocumentServerEngine(_logger,
                                                             DB,
                                                             DocumentServerInformation,
+                                                            NodeHttpClient,
                                                             FileSystem);
         }
 
@@ -161,18 +171,17 @@ public class SupportMethods
         if (_smConfiguration.StartSecondAPIInstance && SecondAPI.IsInitialized == false)
         {
             //SecondAPI  = new SecondAPI();
-            ServerHost secondHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-            SecondAPI.StartAPI(secondHost.NameDNS, DB.Database.GetConnectionString());
+            ServerHost secondHost      = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+            Result     secondAPIResult = SecondAPI.StartAPI(secondHost.NameDNS, DB.Database.GetConnectionString(), NodeKey);
+            IsInitialized = false;
+            return;
         }
 
         IsInitialized = true;
     }
 
 
-    /// <summary>
-    /// Sometime we need a second API for tests...
-    /// </summary>
-    //public static condAPI SecondAPI { get; private set; }
+    public static NodeToNodeHttpClient NodeHttpClient { get; private set; }
 
 
     /// <summary>
@@ -359,6 +368,15 @@ public class SupportMethods
         DocumentType_Prod_Temp_Y        = doc.Id;
         doc                             = DB.DocumentTypes.Single(s => s.Name == TestConstants.DOCTYPE_REPLACE_A);
         DocumentType_Prod_Replaceable_A = doc.Id;
+    }
+
+
+    /// <summary>
+    /// Returns the Actual Serilog logger
+    /// </summary>
+    public ILogger Logger
+    {
+        get { return serilog; }
     }
 
 

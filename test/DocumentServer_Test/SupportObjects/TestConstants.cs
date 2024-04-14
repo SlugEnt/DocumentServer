@@ -18,7 +18,8 @@ public static class TestConstants
     public const string FOLDER_TEST            = @"test";
     public const string FOLDER_TEST_PRIMARY    = @"test\primary";
     public const string FOLDER_TEST_SECONDARY  = @"test\secondary";
-    public const string FOLDER_TEST_SECONDARYC = @"test\csec";
+    public const string FOLDER_TEST_PRIMARYC   = @"test\C_Primary";
+    public const string FOLDER_TEST_SECONDARYC = @"test\C_Secondary";
     public const string STORAGE_NODE_PROD_X    = "NodeX";
     public const string STORAGE_NODE_PROD_Y    = "NodeY";
 

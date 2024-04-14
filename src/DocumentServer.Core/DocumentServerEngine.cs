@@ -28,6 +28,7 @@ public class DocumentServerEngine
     private readonly ILogger                   _logger;
     private          DocServerDbContext        _db;
     private          DocumentServerInformation _documentServerInformation;
+    private          NodeToNodeHttpClient      _nodeHttpClient;
 
 
     /// <summary>
@@ -38,11 +39,14 @@ public class DocumentServerEngine
     public DocumentServerEngine(ILogger<DocumentServerEngine> logger,
                                 DocServerDbContext dbContext,
                                 DocumentServerInformation documentServerInformation,
-                                IFileSystem? fileSystem = null)
+                                NodeToNodeHttpClient nodeHttpClient,
+                                IFileSystem? fileSystem = null
+    )
     {
         _logger                    = logger;
         _db                        = dbContext;
         _documentServerInformation = documentServerInformation;
+        _nodeHttpClient            = nodeHttpClient;
 
         if (fileSystem != null)
             _fileSystem = fileSystem;
@@ -485,7 +489,6 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            await _db.Database.RollbackTransactionAsync();
             string cleanupMsg = "";
 
             // Delete the file from storage if we successfully saved it, but failed afterward.
@@ -493,6 +496,7 @@ public class DocumentServerEngine
             {
                 try
                 {
+                    await _db.Database.RollbackTransactionAsync();
                     foreach (DestinationStorageNode destinationStorageNode in destinationNodes)
                     {
                         if (destinationStorageNode.IsOnThisHost)
@@ -564,7 +568,7 @@ public class DocumentServerEngine
                     return Result.Fail(storageNodeResult.Errors);
                 }
 
-                destinationStorageNode.StorageNodeId           = storageNodeResult.Value.Id;
+                destinationStorageNode.StorageNode             = storageNodeResult.Value;
                 destinationStorageNode.IsPrimaryDocTypeStorage = true;
 
                 // Determine if this destination node is on this server...
@@ -592,7 +596,7 @@ public class DocumentServerEngine
                     return Result.Fail(storageNodeResult.Errors);
                 }
 
-                destinationStorageNode.StorageNodeId           = storageNodeResult.Value.Id;
+                destinationStorageNode.StorageNode             = storageNodeResult.Value;
                 destinationStorageNode.IsPrimaryDocTypeStorage = false;
                 if (storageNodeResult.Value.ServerHostId == _documentServerInformation.ServerHostInfo.ServerHostId)
                     destinationStorageNode.IsOnThisHost = true;
@@ -616,7 +620,10 @@ public class DocumentServerEngine
                                                                            documentType,
                                                                            file);
                 if (resultStore.IsFailed)
+                {
+                    _logger.LogError("Failed to store document on local node:  " + resultStore.ToString());
                     return resultStore;
+                }
             }
             else
             {
@@ -639,8 +646,11 @@ public class DocumentServerEngine
                         return resultStore2;
                 }
                 else
-                    throw new NotImplementedException("No code to save the document to the secondary location");
-
+                {
+                    Result aliveResult = await _nodeHttpClient.AskIfAlive(destinationStorageNode2.StorageNode.ServerHost.FQDN + ":" + _documentServerInformation.RemoteNodePort);
+                    if (aliveResult.IsFailed)
+                        throw new ApplicationException("Error IfAlive  --> " + aliveResult.ToString());
+                }
 
                 // TODO Add Code
                 // If size < 1MB store it as well..
@@ -658,9 +668,8 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Stores a file on the local host that was requested from a remote host.  This bypasses 95% of all logic for
-    /// storing a document.  Leaving it for the remote node to complete that task. This literally calculates the entire
-    /// document storage path, stores it and returns result.
+    /// Stores a file on the local node that was requested from a remote node.  The remote node is the one responsible for all database and document
+    /// information.  This method, literally calculates the entire document storage path, stores it and returns result.
     /// </summary>
     /// <param name="storageNodeId">The Node ID that is being requested to store the document on</param>
     /// <param name="path">The Document specific part of the path to the document.</param>
@@ -719,7 +728,7 @@ public class DocumentServerEngine
         // Store the document on the storage media
         Result<string> storeResult = await StoreFileOnStorageMediaAsync(storedDocument,
                                                                         documentType,
-                                                                        destinationStorageNode.StorageNodeId,
+                                                                        destinationStorageNode.StorageNode.Id,
                                                                         file);
         if (storeResult.IsFailed)
             return Result.Fail(storeResult.Errors);
@@ -728,7 +737,7 @@ public class DocumentServerEngine
         destinationStorageNode.FullFileNameAsStored = storeResult.Value;
 
         if (destinationStorageNode.IsPrimaryDocTypeStorage)
-            storedDocument.PrimaryStorageNodeId = destinationStorageNode.StorageNodeId;
+            storedDocument.PrimaryStorageNodeId = destinationStorageNode.StorageNode.Id;
         return Result.Ok();
     }
 
@@ -812,7 +821,7 @@ public class DocumentServerEngine
         try
         {
             // TODO Missing Storage Node path...
-            _fileSystem.Directory.CreateDirectory(fullFileName);
+            //_fileSystem.Directory.CreateDirectory(fullFileName);
 
             using (Stream fs = _fileSystem.File.Create(fullFileName))
                 await file.CopyToAsync(fs);
@@ -953,6 +962,36 @@ public class DocumentServerEngine
     {
         try
         {
+            // Retrieve Storage Node
+            Result<StorageNode> storageNodeResult = _documentServerInformation.GetCachedStorageNode(storageNodeId);
+            if (storageNodeResult.IsFailed)
+            {
+                _logger.LogError("Failed to locate a storage node Id [ " + storageNodeId + " ] in the StorageNode Cache.  Cannot compute Storage Folder Location");
+                return Result.Fail(storageNodeResult.Errors);
+            }
+
+            StorageNode storageNode = storageNodeResult.Value;
+            if (storageNode == null)
+            {
+                string nodeMsg = string.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
+                return Result.Fail(new Error(nodeMsg));
+            }
+
+            if (storageNode.ServerHost == null)
+            {
+                string nodeMsg = string.Format("{0} had a server host that was null.  It must exist.", documentType.ErrorMessage);
+                return Result.Fail(new Error(nodeMsg));
+            }
+
+
+            // Get letter for Mode.
+            Result<string> modeResult = GetModeLetter(documentType.StorageMode);
+            if (modeResult.IsFailed)
+                return Result.Fail(new Error("Failed to get Mode for StorageMode").CausedBy(modeResult.Errors));
+
+            string modePath = modeResult.Value;
+
+
             DateTime folderDatetime = DateTime.UtcNow;
 
             // For most of the documents we store them in a folder based upon the date we write them.
@@ -982,36 +1021,6 @@ public class DocumentServerEngine
 
             string year  = folderDatetime.ToString("yyyy");
             string month = folderDatetime.ToString("MM");
-
-
-            // Retrieve Storage Node
-            Result<StorageNode> storageNodeResult = _documentServerInformation.GetCachedStorageNode(storageNodeId);
-            if (storageNodeResult.IsFailed)
-            {
-                _logger.LogError("Failed to locate a storage node Id [ " + storageNodeId + " ] in the StorageNode Cache.  Cannot compute Storage Folder Location");
-                return Result.Fail(storageNodeResult.Errors);
-            }
-
-            StorageNode storageNode = storageNodeResult.Value;
-            if (storageNode == null)
-            {
-                string nodeMsg = string.Format("{0} had a storage node [ {1} ] that could not be found.", documentType.ErrorMessage, storageNodeId);
-                return Result.Fail(new Error(nodeMsg));
-            }
-
-            if (storageNode.ServerHost == null)
-            {
-                string nodeMsg = string.Format("{0} had a server host that was null.  It must exist.", documentType.ErrorMessage);
-                return Result.Fail(new Error(nodeMsg));
-            }
-
-
-            // Get letter for Mode.
-            Result<string> modeResult = GetModeLetter(documentType.StorageMode);
-            if (modeResult.IsFailed)
-                return Result.Fail(new Error("Failed to get Mode for StorageMode").CausedBy(modeResult.Errors));
-
-            string modePath = modeResult.Value;
 
 
             // TODO DONE!  Need to remove storagenode from the StoredDocumentPath

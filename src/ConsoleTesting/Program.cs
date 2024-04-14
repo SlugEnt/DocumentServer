@@ -91,8 +91,13 @@ public class Program
                                                           .AddTransient<DocumentServerEngine>()
                                                           .AddSingleton<DocumentServerInformation>(dsi =>
                                                           {
-                                                              IConfiguration x = dsi.GetService<IConfiguration>();
-                                                              return DocumentServerInformation.Create(x);
+                                                              DocumentServerInformationBuilder dsiBuilder =
+                                                                  new DocumentServerInformationBuilder(_logger).UseConfiguration(configuration);
+                                                              return dsiBuilder.Build();
+                                                              /*
+                                                          IConfiguration x = dsi.GetService<IConfiguration>();
+                                                          return DocumentServerInformation.Create(x);
+                                                              */
                                                           })
                                                           .AddHttpClient<AccessDocumentServerHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
                                                           {

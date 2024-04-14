@@ -14,7 +14,11 @@ public class OneTime
 
 
     [OneTimeTearDown]
-    public void TearDown() { SecondAPI.StopSecondAPI(); }
+    public void TearDown()
+    {
+        if (SecondAPI.IsInitialized)
+            SecondAPI.StopSecondAPI();
+    }
 
 
     [OneTimeSetUp]

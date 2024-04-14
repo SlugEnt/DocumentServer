@@ -157,6 +157,39 @@ namespace SlugEnt.DocumentServer.EntityManager
 
 
 
+        /// <summary>
+        /// This is the preferred method of saving a ServerHost.  It ensures the VitalInfo record is updated which is critical to informating the
+        /// API's and services that key information has changed.
+        /// </summary>
+        /// <param name="serverHost"></param>
+        /// <returns></returns>
+        public async Task<Result> SaveStorageNodeAsync(ServerHost serverHost)
+        {
+            try
+            {
+                if (serverHost.Id > 0) { }
+                else
+                {
+                    await _db.AddAsync(serverHost);
+                }
+
+                VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
+                vitalInfo.LastUpdateUtc = DateTime.UtcNow;
+
+                int rowsUpdated = await _db.SaveChangesAsync();
+                if (rowsUpdated > 0)
+                    return Result.Ok();
+
+                return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
+            }
+            catch (Exception exception)
+            {
+                return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
+            }
+        }
+
+
+
     #region "RootObject Code"
 
         /// <summary>

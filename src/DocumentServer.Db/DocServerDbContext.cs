@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Runtime.InteropServices;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -88,22 +89,23 @@ public class DocServerDbContext : DbContext
     public static string DatabaseReferenceName() => "DocumentServerDB";
 
 
-
+    /*
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-        /*
+
         //Console.WriteLine("Database:  Configuring DB Context Options");
         if (!dbContextOptionsBuilder.IsConfigured)
         {
             IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
                                                                       .AddJsonFile("AppSettings.json", true, true)
+
                 ;
             _Configuration = builder.Build();
             string connectionString = _Configuration.GetConnectionString(DatabaseReferenceName());
             dbContextOptionsBuilder.UseSqlServer(connectionString);
         }
-        */
     }
+    */
 
 
 

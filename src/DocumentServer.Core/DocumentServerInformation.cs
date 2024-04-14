@@ -22,10 +22,11 @@ namespace SlugEnt.DocumentServer.Core
     /// </summary>
     public class DocumentServerInformation
     {
-        private IConfiguration  _configuration;
-        private Serilog.ILogger _logger;
+        public const long            CACHE_TTL = 60000;
+        private      IConfiguration  _configuration;
+        private      Serilog.ILogger _logger = null;
 
-
+/*
         /// <summary>
         /// Creates a DocumentServerInformation object
         /// </summary>
@@ -39,7 +40,10 @@ namespace SlugEnt.DocumentServer.Core
                                                        DocServerDbContext docServerDbContext = null,
                                                        Serilog.ILogger logger = null,
                                                        string overrideDNSName = "",
-                                                       string overrideDBConnection = "")
+                                                       string overrideDBConnection = "",
+                                                       long cacheExpirationTTLMs = CACHE_TTL,
+                                                       string nodeKey = "",
+                                                       int nodePort = 0)
         {
             try
             {
@@ -58,20 +62,24 @@ namespace SlugEnt.DocumentServer.Core
                 }
 
                 // Get Node Key from configuration
-                string nodeKey = configuration.GetValue<string>("DocumentServer:NodeKey");
-                if (!string.IsNullOrWhiteSpace(nodeKey))
-                    logger.Warning("DocumentServerInformation:  Found NodeKey!");
-                else
+                if (nodeKey == string.Empty)
                 {
-                    string msg = "Failed to find NodeKey in the configuration.  This is a required property.";
-                    logger.Error(msg);
-                    throw new ApplicationException(msg);
+                    nodeKey = configuration.GetValue<string>("DocumentServer:NodeKey");
+                    if (!string.IsNullOrWhiteSpace(nodeKey))
+                        logger.Warning("DocumentServerInformation:  Found NodeKey!");
+                    else
+                    {
+                        string msg = "Failed to find NodeKey in the configuration.  This is a required property.";
+                        logger.Error(msg);
+                        throw new ApplicationException(msg);
+                    }
                 }
 
                 return new DocumentServerInformation(docServerDbContext,
                                                      nodeKey,
                                                      logger,
-                                                     overrideDNSName);
+                                                     overrideDNSName,
+                                                     nodePort);
             }
             catch (Exception ex)
             {
@@ -80,7 +88,10 @@ namespace SlugEnt.DocumentServer.Core
             }
         }
 
+        */
 
+
+/*
         /// <summary>
         /// Creates a DocumentServerInformation object
         /// </summary>
@@ -90,29 +101,52 @@ namespace SlugEnt.DocumentServer.Core
         /// <param name="overrideDNSName">Should only ever be used during unit testing.  Forces the code to use the passed in value
         ///   for the fully qualified name instead of using the medhod Dns.GetHostName.  This allows the unit testing code to start
         ///   a second instance of the API up so it can test API<-->API communication.</param>
+        /// <param name="nodePort">Should only be used for unit testing.  It overrides the Remote ports</param>
         public DocumentServerInformation(DocServerDbContext docServerDbContext,
                                          string nodeKey,
                                          Serilog.ILogger logger = null,
-                                         string overrideDNSName = "")
+                                         string overrideDNSName = "",
+                                         long cacheExpirationTTLMs = CACHE_TTL,
+                                         int nodePort = 0)
         {
-            ServerHostInfo = new ServerHostInfo();
-            _logger        = logger;
-            Initialize     = SetupAsync(docServerDbContext, nodeKey, overrideDNSName);
+            ServerHostInfo     = new ServerHostInfo();
+            _logger            = logger;
+            CacheExpirationTTL = cacheExpirationTTLMs;
+            Initialize         = SetupAsync(docServerDbContext, nodeKey, overrideDNSName);
+            if (nodePort != 0)
+                RemoteNodePort = nodePort;
+        }
+*/
+
+
+        /// <summary>
+        /// Used by the DocumentServerInformationBuilder
+        /// </summary>
+        /// <remarks>This needs to be remain an empty constructor.</remarks>
+        internal DocumentServerInformation() { }
+
+
+        internal Serilog.ILogger SeriLogger
+        {
+            get { return _logger; }
+            set { _logger = value; }
         }
 
-
-        public string Id { get; private set; }
 
         /// <summary>
         /// Task used to perform setup during object creation.
         /// </summary>
-        public Task Initialize { get; }
+        /// <remarks>Can be set internally so the DocumentServerInformationBuilder can call it.</remarks>
+        public Task Initialize { get; internal set; }
 
 
         /// <summary>
         /// Returns true if initialization has completed.
         /// </summary>
         public bool IsInitialized { get; private set; } = false;
+
+
+        public long CacheExpirationTTL { get; set; }
 
 
         /// <summary>
@@ -130,9 +164,9 @@ namespace SlugEnt.DocumentServer.Core
         ///   for the fully qualified name instead of using the medhod Dns.GetHostName.  This allows the unit testing code to start
         ///   a second instance of the API up so it can test API<-->API communication.</param>
         /// <exception cref="ApplicationException"></exception>
-        private async Task SetupAsync(DocServerDbContext db,
-                                      string nodeKey,
-                                      string overrideDNSName = "")
+        internal async Task SetupAsync(DocServerDbContext db,
+                                       string nodeKey,
+                                       string overrideDNSName = "")
         {
             try
             {
@@ -147,11 +181,6 @@ namespace SlugEnt.DocumentServer.Core
                 // OverrideDNSName should only be used by unit test code and never in production.
                 if (!string.IsNullOrWhiteSpace(overrideDNSName))
                     localHost = overrideDNSName;
-
-
-                // Generate a Unique ID for this host...
-                // TODO IS this needed anymore...
-                //Id = Guid.NewGuid().ToString("N");
 
 
                 ServerHost? host = db.ServerHosts.SingleOrDefault(sh => sh.NameDNS == localHost);
@@ -196,6 +225,20 @@ namespace SlugEnt.DocumentServer.Core
         }
 
 
+        /// <summary>
+        /// Forces a cache refresh.
+        /// </summary>
+        /// <param name="db"></param>
+        /// <returns></returns>
+        public Result ForceCacheRefresh(DocServerDbContext db)
+        {
+            // Reset the 2 check times to min value to force cache to be expired.
+            //KeyObjectTTLExpirationUtc = DateTime.MaxValue;
+            KeyObjectTTLExpirationUtc = LastUpdateToKeyEntities = DateTime.MinValue;
+            return CheckForExpiredCacheObjects(db);
+        }
+
+
 
         /// <summary>
         /// Checks to see if the Cache of Key Objects has exceeded its TTL time.  If so it calls method to check for any updates.
@@ -204,20 +247,15 @@ namespace SlugEnt.DocumentServer.Core
         /// <returns></returns>
         public Result CheckForExpiredCacheObjects(DocServerDbContext db)
         {
-            // TODO Really need to log and not return Results!!!!
-
-
             // Nothing to do if the TTL is not expired.
-            if (KeyObjectTTLExpirationUtc < DateTime.UtcNow)
+            if (KeyObjectTTLExpirationUtc > DateTime.UtcNow)
                 return Result.Ok();
 
             Result<bool> result = CheckIfKeyEntitiesUpdated(db);
             if (result.IsSuccess)
             {
                 if (result.Value)
-
-                    // TODO Change this to Configuration item
-                    KeyObjectTTLExpirationUtc = DateTime.UtcNow.AddSeconds(10);
+                    KeyObjectTTLExpirationUtc = DateTime.UtcNow.AddMilliseconds(CacheExpirationTTL);
                 return Result.Ok();
             }
 
@@ -232,13 +270,16 @@ namespace SlugEnt.DocumentServer.Core
         /// <param name="db"></param>
         /// <param name="initialLoad">If true, then this is an initial load and failures to load will throw errors, otherwise it enters a retry loop</param>
         /// <returns>Result with True Value = Means the KeyObjectTTLExpirationUtc needs to be set.  With false value means everything is okay, but do not set the TTL.</returns>
+        /// <param name="forceReload">If true, then the cache will be reloaded no matter what.</param>
         /// <exception cref="ApplicationException"></exception>
         public Result<bool> CheckIfKeyEntitiesUpdated(DocServerDbContext db,
                                                       bool initialLoad = false)
         {
             // If TTL is still good nothing to do.
-            //if (KeyObjectTTLExpirationUtc > DateTime.UtcNow)
-            //  return Result.Ok();
+            //    if (KeyObjectTTLExpirationUtc > DateTime.UtcNow)
+            //        return Result.Ok();
+
+            // NOTE:  IF we can't acquire a lock then forceReload is ignord!
 
             // If we already have a Write lock then some other thread is updating.  We return and use the current cache as is.
             if (CheckKeyEntitiesLock.IsWriteLockHeld)
@@ -251,7 +292,6 @@ namespace SlugEnt.DocumentServer.Core
             {
                 bool NeedToLoad = false;
 
-
                 // Check the Vitals table to see if any key objects have been created or updated.  If so we need to reload.
                 VitalInfo vitalInfo = db.VitalInfos.SingleOrDefault(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
                 if (vitalInfo == null)
@@ -261,6 +301,7 @@ namespace SlugEnt.DocumentServer.Core
 
                 if (!NeedToLoad)
                     return Result.Ok(true);
+
 
 //                Console.WriteLine("CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
 //                                  CachedLock.IsUpgradeableReadLockHeld);
@@ -341,10 +382,11 @@ namespace SlugEnt.DocumentServer.Core
                     cachedApplicationTokenLookup.Add(cachedApplication.Value.Token, cachedApplication.Value);
 
                 // Load Other Entities
-                Dictionary<int, StorageNode>  cachedStorageNodes  = db.StorageNodes.Where(sn => sn.IsActive == true).ToDictionary(sn => sn.Id);
-                Dictionary<int, DocumentType> cachedDocumentTypes = db.DocumentTypes.Where(dt => dt.IsActive == true).ToDictionary(dt => dt.Id);
-                Dictionary<int, RootObject>   cachedRootObjects   = db.RootObjects.Where(ro => ro.IsActive == true).ToDictionary(ro => ro.Id);
 
+                Dictionary<int, DocumentType> cachedDocumentTypes = db.DocumentTypes.Where(dt => dt.IsActive == true).IgnoreAutoIncludes().ToDictionary(dt => dt.Id);
+                Dictionary<int, StorageNode>  cachedStorageNodes  = db.StorageNodes.Where(sn => sn.IsActive == true).ToDictionary(sn => sn.Id);
+                Dictionary<int, RootObject>   cachedRootObjects   = db.RootObjects.Where(ro => ro.IsActive == true).ToDictionary(ro => ro.Id);
+                Dictionary<short, ServerHost> cachedServerHosts   = db.ServerHosts.Where(sh => sh.IsActive == true).ToDictionary(sh => sh.Id);
 
                 // TODO Now we need to Lock the caches while we replace/
                 //Console.WriteLine("B  |  CacheLock = ReadHeld: " + CachedLock.IsReadLockHeld + "  |  WriteHeld: " + CachedLock.IsWriteLockHeld + "  |  Upgradeable Held: " +
@@ -365,6 +407,7 @@ namespace SlugEnt.DocumentServer.Core
                     CachedRootObjects            = cachedRootObjects;
                     CachedDocumentTypes          = cachedDocumentTypes;
                     CachedStorageNodes           = cachedStorageNodes;
+                    CachedServerHosts            = CachedServerHosts;
                     _logger.Information("Cached Objects were successfully updated");
                     cachedObjectsUpdated = true;
                     return Result.Ok();
@@ -413,6 +456,8 @@ namespace SlugEnt.DocumentServer.Core
         public Dictionary<int, RootObject> CachedRootObjects { get; private set; } = new();
         public Dictionary<int, DocumentType> CachedDocumentTypes { get; private set; } = new();
         public Dictionary<int, StorageNode> CachedStorageNodes { get; private set; } = new();
+        public Dictionary<short, ServerHost> CachedServerHosts { get; private set; } = new();
+
 
         /// <summary>
         /// Lock used to syncrhonize access to the Caches during
@@ -528,7 +573,7 @@ namespace SlugEnt.DocumentServer.Core
         /// <summary>
         /// Information about the host
         /// </summary>
-        public ServerHostInfo ServerHostInfo { get; set; }
+        public ServerHostInfo ServerHostInfo { get; private set; } = new();
     }
 
 

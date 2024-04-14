@@ -5,6 +5,8 @@ using System.Drawing.Text;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+using SlugEnt.FluentResults;
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -24,18 +26,38 @@ public static class SecondAPI
 
     public static bool IsInitialized { get; private set; }
 
+    public static string Hostname { get; private set; }
+    public static int Port { get; private set; } = 9898;
+    public static string ConnectionString { get; private set; }
+    public static string NodeKey { get; private set; }
 
-    // Starts up an instance of Vault for development and testing purposes.
-    public static void StartAPI(string hostname,
-                                string connectionString)
+
+    /// <summary>
+    /// Number of times we have retried the start logic.
+    /// </summary>
+    public static int RetryCounter { get; private set; } = 0;
+
+
+    // Starts up an instance of the DocumentServer API for development and testing purposes.
+    public static Result StartAPI(string hostname,
+                                  string connectionString,
+                                  string nodeKey)
     {
         if (IsInitialized)
-            return;
+        {
+            StartUpResult = Result.Ok();
+            return StartUpResult;
+        }
 
-        string apiArgs = " --override-hostname " + hostname + " --port " + 9898 + " --db \"" + connectionString + "\"";
+        Hostname         = hostname;
+        ConnectionString = connectionString;
+        NodeKey          = nodeKey;
 
 
-        string apiBin  = "SlugEnt.DocumentServer.API.exe";
+        string apiArgs = " --nodekey " + NodeKey + " --override-hostname " + Hostname + " --port " + Port + " --db \"" + ConnectionString + "\"";
+
+        string apiName = "SlugEnt.DocumentServer.API";
+        string apiBin  = apiName + ".exe";
         string apiPath = @"D:\A_Dev\SlugEnt\DocumentServer\src\DocumentServer.API\bin\Debug\net8.0";
 
         var startInfo = new ProcessStartInfo(apiBin)
@@ -83,18 +105,48 @@ public static class SecondAPI
             }
 
 
+            // If the process has exited then something went wrong.
             if (_process.HasExited)
             {
-                throw new Exception($"Process could not be started: {_process.StandardError}");
+                // Lets see if a process from a previous run is still running.  If so, kill it.
+                Process[] allApis = Process.GetProcessesByName(apiName);
+                if (allApis.Length == 0)
+                    throw new Exception($"Process could not be started for unknown reason: {_process.StandardError}");
+
+                foreach (Process app in allApis)
+                {
+                    app.Kill(true);
+                }
+
+                // Recheck to make sure they all were killed
+                allApis = Process.GetProcessesByName(apiName);
+                if (allApis.Length > 0)
+                {
+                    string[] processes    = new string[allApis.Length];
+                    string   processesAll = String.Join(", ", processes);
+                    throw new ApplicationException("There are " + apiName + " 's running from prior runs.  Attemped to kill them to no avail.  There process id's are: " +
+                                                   processesAll);
+                }
+                else
+                {
+                    RetryCounter++;
+                    return StartAPI(hostname, connectionString, nodeKey);
+                }
             }
 
             IsInitialized = true;
+            StartUpResult = Result.Ok();
+            return StartUpResult;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error starting SecondAPI: {0}", ex.ToString());
+            StartUpResult = Result.Fail(new Error("StartApi Failed: " + ex.ToString()));
+            return StartUpResult;
         }
     }
+
+
+    public static Result StartUpResult { get; private set; }
 
 
     /// <summary>

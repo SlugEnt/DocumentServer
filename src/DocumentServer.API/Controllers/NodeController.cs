@@ -8,7 +8,7 @@ using SlugEnt.FluentResults;
 
 namespace SlugEnt.DocumentServer.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/[controller]/[action]")]
 [ApiController]
 public class NodeController : ControllerBase
 {
@@ -20,6 +20,15 @@ public class NodeController : ControllerBase
     /// </summary>
     /// <param name="db"></param>
     public NodeController(DocumentServerEngine documentServerEngine) { _docEngine = documentServerEngine; }
+
+
+
+    [HttpGet]
+    public async Task<ActionResult> Alive() { return Ok(); }
+
+
+    [HttpGet]
+    public IActionResult Alive2() { return Ok(); }
 
 
 

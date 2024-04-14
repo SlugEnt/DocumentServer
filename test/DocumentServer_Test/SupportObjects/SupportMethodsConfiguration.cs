@@ -33,4 +33,14 @@ public class SupportMethodsConfiguration
     /// This starts a second API instance.  Used only for testing node-to-node communication
     /// </summary>
     public bool StartSecondAPIInstance { get; set; } = false;
+
+    /// <summary>
+    /// The time in Ms that documents are kept in the DocumentServer Cache before it needs to be rechecked
+    /// </summary>
+    public long DocumentEngineCacheTTL { get; set; }
+
+    /// <summary>
+    /// The Node to Node communication key
+    /// </summary>
+    public string NodeKey { get; set; }
 }
