@@ -67,6 +67,7 @@ namespace SlugEnt.DocumentServer.Core
         public DocumentServerInformationBuilder TestUseDatabase(string connectionString)
         {
             _testDB = connectionString;
+            _logger.Warning("Overrode Database Connection to:  [ " + connectionString + " ]");
             return this;
         }
 
@@ -81,24 +82,6 @@ namespace SlugEnt.DocumentServer.Core
             _nodeKey = nodeKey;
             return this;
         }
-
-
-        /*
-        /// <summary>
-        /// Sets the Serilogger to be used for logging
-        /// </summary>
-        /// <param name="logger"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public DocumentServerInformationBuilder UseSeriLog(Serilog.ILogger logger)
-        {
-            if (logger == null)
-                throw new ArgumentNullException("A Valid Serilogger must be specified.");
-
-            _dsi.SeriLogger = logger;
-            return this;
-        }
-        */
 
 
         /// <summary>
@@ -121,6 +104,7 @@ namespace SlugEnt.DocumentServer.Core
         public DocumentServerInformationBuilder TestRemoteNodePort(int port)
         {
             _dsi.RemoteNodePort = port;
+            _logger.Warning("Setting override Listening port to:  [ " + port + " ]");
             return this;
         }
 
@@ -133,6 +117,7 @@ namespace SlugEnt.DocumentServer.Core
         public DocumentServerInformationBuilder TestOverrideServerDNSName(string overrideServerDNSName)
         {
             _overrideDNSName = overrideServerDNSName;
+            _logger.Warning("Overrode API DNS Name to:  [ " + overrideServerDNSName + " ]");
             return this;
         }
 

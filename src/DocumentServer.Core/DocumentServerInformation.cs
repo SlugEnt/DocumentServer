@@ -407,7 +407,7 @@ namespace SlugEnt.DocumentServer.Core
                     CachedRootObjects            = cachedRootObjects;
                     CachedDocumentTypes          = cachedDocumentTypes;
                     CachedStorageNodes           = cachedStorageNodes;
-                    CachedServerHosts            = CachedServerHosts;
+                    CachedServerHosts            = cachedServerHosts;
                     _logger.Information("Cached Objects were successfully updated");
                     cachedObjectsUpdated = true;
                     return Result.Ok();
@@ -500,6 +500,46 @@ namespace SlugEnt.DocumentServer.Core
             catch (Exception ex)
             {
                 string msg = "Error looking for Application with Id [ " + id + " ] in the Application Cache.";
+                _logger.Error(msg + "  |  " + ex.ToString());
+                return Result.Fail(new Error(msg).CausedBy(ex));
+            }
+            finally
+            {
+                CachedLock.ExitReadLock();
+            }
+        }
+
+
+        /// <summary>
+        /// Returns a ServerHost from the CachedServerHosts cache
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public Result<ServerHost> GetCachedServerHost(short id)
+        {
+            if (!CachedLock.TryEnterReadLock(2000))
+            {
+                string msg = "Failed to acquire a lock to enter Read mode for the CachedServerHosts.  Cannot locate a ServerHost.";
+                _logger.Error(msg);
+                return Result.Fail(new Error(msg));
+            }
+
+
+            try
+            {
+                ServerHost serverHost;
+                if (!CachedServerHosts.TryGetValue(id, out serverHost))
+                {
+                    string msg = "No Active ServerHost with Id [ " + id + " ] exists in the cache.";
+                    _logger.Error(msg);
+                    return Result.Fail(msg);
+                }
+
+                return Result.Ok(serverHost);
+            }
+            catch (Exception ex)
+            {
+                string msg = "Error looking for ServerHost with Id [ " + id + " ] in the ServerHost Cache.";
                 _logger.Error(msg + "  |  " + ex.ToString());
                 return Result.Fail(new Error(msg).CausedBy(ex));
             }

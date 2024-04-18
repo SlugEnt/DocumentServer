@@ -19,11 +19,16 @@ public class NodeController : ControllerBase
     ///     Public constructor
     /// </summary>
     /// <param name="db"></param>
-    public NodeController(DocumentServerEngine documentServerEngine) { _docEngine = documentServerEngine; }
+    public NodeController(DocumentServerEngine documentServerEngine)
+    {
+        _docEngine = documentServerEngine;
+        Console.WriteLine("Started NodeController");
+    }
 
 
 
     [HttpGet]
+    [Authorize(Policy = "NodeKeyPolicy")]
     public async Task<ActionResult> Alive() { return Ok(); }
 
 
@@ -47,10 +52,6 @@ public class NodeController : ControllerBase
     /// <summary>
     ///     Stores a copy of the document on this node
     /// </summary>
-    /// <param name="transferDocumentDto">
-    ///     The TransferDocumentDto that contains a document and the documents information to be
-    ///     stored.
-    /// </param>
     /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
     [HttpPost(Name = "StoreDocument")]
     [Authorize(Policy = "NodeKeyPolicy")]
@@ -62,10 +63,12 @@ public class NodeController : ControllerBase
             if (result.IsSuccess)
                 return Ok();
 
+            Console.WriteLine("Error in StoreDocument:  " + result.ToString());
             return Problem(result.ToString());
         }
         catch (Exception ex)
         {
+            Console.WriteLine("Error in StoreDocument:  " + ex.ToString());
             return BadRequest(ex.Message);
         }
     }

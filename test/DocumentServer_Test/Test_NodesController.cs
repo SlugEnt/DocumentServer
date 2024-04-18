@@ -32,12 +32,11 @@ public class Test_NodesController
         //***  A) Initialize
         SupportMethods sm = new(EnumFolderCreation.Test, _useDatabaseTransactions);
         await sm.Initialize;
-        DocumentServerEngine dse = sm.DocumentServerEngine;
-
+        DocumentServerEngine dse      = sm.DocumentServerEngine;
+        string               fileName = "something.txt";
         string storagePath = Path.Join("remote",
                                        "month",
-                                       "day",
-                                       "somefile.txt");
+                                       "day");
         StorageNode    storageNode = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_A");
         NodeController controller  = new NodeController(dse);
 
@@ -53,9 +52,10 @@ public class Test_NodesController
         Assert.That(genFileResult.IsSuccess, Is.EqualTo(true), "A10:");
         RemoteDocumentStorageDto remoteDocumentStorageDto = new()
         {
-            File                   = genFileResult.Value.File,
-            StorageNodeId          = storageNode.Id,
-            StoragePathAndFileName = storagePath,
+            File          = genFileResult.Value.File,
+            StorageNodeId = storageNode.Id,
+            StoragePath   = storagePath,
+            FileName      = fileName,
         };
 
 
@@ -64,7 +64,10 @@ public class Test_NodesController
         OkResult ok           = actionResult as OkResult;
 
         //*** Y) Final Prep
-        string completePath = Path.Join(sm.DocumentServerInformation.ServerHostInfo.Path, storageNode.NodePath, storagePath);
+        string completePath = Path.Join(sm.DocumentServerInformation.ServerHostInfo.Path,
+                                        storageNode.NodePath,
+                                        storagePath,
+                                        fileName);
 
 
         //*** Z) Validate

@@ -138,7 +138,7 @@ public static class DatabaseSetup_Test
             IsActive = true,
             NameDNS  = localHost,
             FQDN     = localHost + ".abc.local",
-            Path     = "hostA",
+            Path     = @"C:\hostA",
         };
         db.Add(hostA);
 
@@ -148,7 +148,7 @@ public static class DatabaseSetup_Test
             IsActive = true,
             NameDNS  = "otherHost",
             FQDN     = "localhost",
-            Path     = "hostB",
+            Path     = @"t:\programmingTest\OtherHost\hostB",
         };
         db.Add(hostB);
         db.SaveChanges();

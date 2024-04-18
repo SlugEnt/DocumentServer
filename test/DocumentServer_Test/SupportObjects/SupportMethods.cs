@@ -147,19 +147,10 @@ public class SupportMethods
                 dsiBuilder.TestOverrideServerDNSName(overrideHost.NameDNS);
             }
 
-/*
-            DocumentServerInformation = new DocumentServerInformation(DB,
-                                                                      NodeKey,
-                                                                      serilog,
-                                                                      overrideHostName,
-                                                                      DocumentServerInformation.CACHE_TTL,
-                                                                      SecondAPI.Port);
-            await DocumentServerInformation.Initialize;
-*/
+
             DocumentServerInformation = await dsiBuilder.BuildAndAwaitInitialization();
 
 
-            NodeHttpClient = new(new HttpClient());
             DocumentServerEngine = new DocumentServerEngine(_logger,
                                                             DB,
                                                             DocumentServerInformation,
@@ -181,7 +172,7 @@ public class SupportMethods
     }
 
 
-    public static NodeToNodeHttpClient NodeHttpClient { get; private set; }
+    public static NodeToNodeHttpClient NodeHttpClient { get; private set; } = new NodeToNodeHttpClient(new HttpClient());
 
 
     /// <summary>

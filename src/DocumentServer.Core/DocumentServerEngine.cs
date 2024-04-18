@@ -47,6 +47,7 @@ public class DocumentServerEngine
         _db                        = dbContext;
         _documentServerInformation = documentServerInformation;
         _nodeHttpClient            = nodeHttpClient;
+        _nodeHttpClient.NodeKey    = _documentServerInformation.ServerHostInfo.NodeKey;
 
         if (fileSystem != null)
             _fileSystem = fileSystem;
@@ -647,9 +648,25 @@ public class DocumentServerEngine
                 }
                 else
                 {
+                    // Testing only
                     Result aliveResult = await _nodeHttpClient.AskIfAlive(destinationStorageNode2.StorageNode.ServerHost.FQDN + ":" + _documentServerInformation.RemoteNodePort);
                     if (aliveResult.IsFailed)
                         throw new ApplicationException("Error IfAlive  --> " + aliveResult.ToString());
+
+                    _logger.LogWarning("Second Node is Alive");
+
+
+                    // Real code
+                    RemoteDocumentStorageDto remoteDocumentStorageDto = new()
+                    {
+                        File          = file,
+                        StorageNodeId = destinationStorageNode2.StorageNode.Id,
+                        FileName      = storedDocument.FileName,
+                        StoragePath   = storedDocument.StorageFolder,
+                    };
+
+                    string url          = destinationStorageNode2.StorageNode.ServerHost.FQDN + ":" + _documentServerInformation.RemoteNodePort;
+                    Result remoteResult = await _nodeHttpClient.SendDocument(url, remoteDocumentStorageDto);
                 }
 
                 // TODO Add Code
@@ -679,6 +696,10 @@ public class DocumentServerEngine
     {
         try
         {
+            // Ensure file has been sent
+            if (remoteDto.File == null)
+                return Result.Fail(new Error("File was null."));
+
             // Retrieve Storage Node
             Result<StorageNode> storageNodeResult = _documentServerInformation.GetCachedStorageNode(remoteDto.StorageNodeId);
             if (storageNodeResult.IsFailed)
@@ -691,7 +712,7 @@ public class DocumentServerEngine
 
 
             // Determine the Entire Physical storage path
-            Result<string> result = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, remoteDto.StoragePathAndFileName);
+            Result<string> result = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, remoteDto.StoragePath);
             if (result.IsFailed)
             {
                 _logger.LogWarning("StoreFileFromRemoteNode:  Failed to compute path: " + result.ToString());
@@ -699,7 +720,11 @@ public class DocumentServerEngine
             }
 
 
-            string fullFileName    = result.Value;
+            // We need to make sure directory exits.
+            if (!_fileSystem.Directory.Exists(result.Value))
+                _fileSystem.Directory.CreateDirectory(result.Value);
+
+            string fullFileName    = Path.Join(result.Value, remoteDto.FileName);
             Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, remoteDto.File);
             return storeFileResult;
         }
@@ -810,27 +835,33 @@ public class DocumentServerEngine
 
 
     /// <summary>
-    /// Stores the file on the filesystem of the node this is running from.
+    /// Stores the file on the filesystem of the node this is running from.  Filename can either be supplied as part of the storagePath or separately in the fileName property.
     /// </summary>
-    /// <param name="fullFileName"></param>
+    /// <param name="storagePath">The complete physical path on the storage device to store the file at.  It can optionally include the filename.  If it does then the fileName
+    /// parameter should be left at default value.</param>
     /// <param name="file"></param>
+    /// <param name="fileName">[Optional] The filename of the file.  If left as default then it is assumed it is part of the storagePath</param>
     /// <returns>Result indicating success or failure</returns>
-    internal async Task<Result> StoreFileOnStorageMediaAsync(string fullFileName,
-                                                             IFormFile file)
+    internal async Task<Result> StoreFileOnStorageMediaAsync(string storagePath,
+                                                             IFormFile file,
+                                                             string fileName = "")
     {
         try
         {
+            if (fileName != string.Empty)
+                storagePath = Path.Join(storagePath, fileName);
+
             // TODO Missing Storage Node path...
             //_fileSystem.Directory.CreateDirectory(fullFileName);
 
-            using (Stream fs = _fileSystem.File.Create(fullFileName))
+            using (Stream fs = _fileSystem.File.Create(storagePath))
                 await file.CopyToAsync(fs);
 
             return Result.Ok();
         }
         catch (Exception ex)
         {
-            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + fullFileName + " ] ").CausedBy(ex));
+            return Result.Fail(new Error("Failed to save file on permanent media. FullFileName [ " + storagePath + " ] ").CausedBy(ex));
         }
     }
 
@@ -1069,19 +1100,32 @@ public class DocumentServerEngine
     /// <param name="serverHost"></param>
     /// <param name="documentPath"></param>
     /// <returns>The entire complete path to the file on the file system</returns>
-    internal Result<string> ComputePhysicalStoragePath(int serverHostId,
+    internal Result<string> ComputePhysicalStoragePath(short serverHostId,
                                                        StorageNode node,
-                                                       string documentPath)
+                                                       string documentPath,
+                                                       bool serverCheck = true)
     {
-        if (_documentServerInformation.ServerHostInfo.ServerHostId != serverHostId)
+        if (serverCheck)
         {
-            string msg = String.Format("This host is not the host that can write for this StorageNode.  Host: [ " + _documentServerInformation.ServerHostInfo.ServerHostName +
-                                       " ]  Requested StorageNode [ " + node.Name + " - " + node.Id + " ]");
-            _logger.LogCritical(msg);
-            return Result.Fail(msg);
+            if (_documentServerInformation.ServerHostInfo.ServerHostId != serverHostId)
+            {
+                string msg = String.Format("This host is not the host that can write for this StorageNode.  Host: [ " + _documentServerInformation.ServerHostInfo.ServerHostName +
+                                           " ]  Requested StorageNode [ " + node.Name + " - " + node.Id + " ]");
+                _logger.LogCritical(msg);
+                return Result.Fail(msg);
+            }
+
+            return Result.Ok(Path.Join(_documentServerInformation.ServerHostInfo.Path, node.NodePath, documentPath));
         }
 
-        return Result.Ok(Path.Join(_documentServerInformation.ServerHostInfo.Path, node.NodePath, documentPath));
+        // Lookup Host ID 
+        Result<ServerHost> hostResult = _documentServerInformation.GetCachedServerHost(serverHostId);
+        if (hostResult.IsFailed)
+        {
+            return Result.Fail(new Error("Unable to find a ServerHost with an id of [ " + serverHostId + " ] in the ServerHost Cache"));
+        }
+
+        return Result.Ok(Path.Join(hostResult.Value.Path, node.NodePath, documentPath));
     }
 
 

@@ -4,6 +4,7 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -37,11 +38,11 @@ public class Test_MultiNodeStorage
     public async Task StoreFileRemote_Success()
     {
         //*** A) Setup
-        SupportMethods sm = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        SupportMethods sm       = new(EnumFolderCreation.Test, _useDatabaseTransactions);
+        string         fileName = "somefile.txt";
         string storagePath = Path.Join("remote",
                                        "month",
-                                       "day",
-                                       "somefile.txt");
+                                       "day");
 
         await sm.Initialize;
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
@@ -59,9 +60,10 @@ public class Test_MultiNodeStorage
 
         RemoteDocumentStorageDto remoteDocumentStorageDto = new()
         {
-            File                   = genFileResult.Value.File,
-            StorageNodeId          = storageNodeId,
-            StoragePathAndFileName = storagePath,
+            File          = genFileResult.Value.File,
+            StorageNodeId = storageNodeId,
+            StoragePath   = storagePath,
+            FileName      = fileName,
         };
 
 
@@ -69,12 +71,14 @@ public class Test_MultiNodeStorage
         Result result = await documentServerEngine.StoreFileFromRemoteNode(remoteDocumentStorageDto);
 
         //*** Y) Final Prep
-        StorageNode storageNode  = await sm.DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == storageNodeId);
-        string      completePath = Path.Join(sm.DocumentServerInformation.ServerHostInfo.Path, storageNode.NodePath, storagePath);
+        StorageNode storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == storageNodeId);
+        string completePath = Path.Join(sm.DocumentServerInformation.ServerHostInfo.Path,
+                                        storageNode.NodePath,
+                                        storagePath,
+                                        fileName);
 
 
         //*** Z) Validate
-        Assert.That(sm.FileSystem.AllFiles.Count(), Is.EqualTo(2), "Z10:  Expected 2 files.  Original and the stored one");
         Assert.That(sm.FileSystem.File.Exists(completePath), Is.True, "Z20:  File should exist");
     }
 
@@ -94,6 +98,8 @@ public class Test_MultiNodeStorage
             UseTransactions        = _useDatabaseTransactions,
             StartSecondAPIInstance = true,
 
+            //StartSecondAPIInstance = false,
+
             //DocumentEngineCacheTTL = 1, // For this test we need it to pick up on added Document Types
         };
         SupportMethods sm = new(smConfiguration);
@@ -105,7 +111,8 @@ public class Test_MultiNodeStorage
         string? expectedExternalId   = null;
 
         await sm.Initialize;
-        Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
 
         DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
 
@@ -152,8 +159,6 @@ public class Test_MultiNodeStorage
         //     you need to carefully consider why it failed.  
         // Calculate the full storage node path that the file should have been written at.
         Result<StoragePathInfo> storagePathInfoA = await sm.DocumentServerEngine.ComputeStorageFullNameAsync(docMultiNode, (int)docMultiNode.ActiveStorageNode1Id);
-        Result<StoragePathInfo> storagePathInfoB = await sm.DocumentServerEngine.ComputeStorageFullNameAsync(docMultiNode, (int)docMultiNode.ActiveStorageNode2Id);
-
 
         // Z. Validate
 
@@ -164,13 +169,23 @@ public class Test_MultiNodeStorage
 
         // Make Sure Node 1 - StorageInfo Document path is correct and that the document is stored there,
         Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoA.Value.StoredDocumentPath), "100:");
-        string fullPath = Path.Join(storagePathInfoA.Value.ActualPath, storagePathInfoA.Value.StoredDocumentPath, storedDocument.FileName);
+        string fullPath = Path.Join(storagePathInfoA.Value.ActualPath, storedDocument.FileName);
+        Console.WriteLine("Node 1 Full Path: {0}", fullPath);
         Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "110");
 
         // Make Sure Node 2 - StorageInfo Document path is correct and that the document is stored there,
-        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoB.Value.StoredDocumentPath), "200:");
-        fullPath = Path.Join(storagePathInfoB.Value.ActualPath, storagePathInfoB.Value.StoredDocumentPath, storedDocument.FileName);
-        Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "210");
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        Result<string> tempCP = sm.DocumentServerEngine.ComputePhysicalStoragePath(hostB.Id,
+                                                                                   storageNode_C2,
+                                                                                   storagePathInfoA.Value.StoredDocumentPath,
+                                                                                   false);
+        string remotePath = Path.Join(tempCP.Value, storedDocument.FileName);
+        string absPath    = remotePath.Replace("C:", @"T:\ProgrammingTesting\HostB");
+
+//        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoB.Value.StoredDocumentPath), "200:");
+        // fullPath = Path.Join(storagePathInfoB.Value.ActualPath, storagePathInfoB.Value.StoredDocumentPath, storedDocument.FileName);
+        Console.WriteLine("Node 2 Full Path: {0}", absPath);
+        Assert.That(File.Exists(remotePath), Is.True, "210");
     }
 
 

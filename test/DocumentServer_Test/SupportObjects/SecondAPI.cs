@@ -54,7 +54,7 @@ public static class SecondAPI
         NodeKey          = nodeKey;
 
 
-        string apiArgs = " --nodekey " + NodeKey + " --override-hostname " + Hostname + " --port " + Port + " --db \"" + ConnectionString + "\"";
+        string apiArgs = " --nodekey " + NodeKey + " --override-hostname " + Hostname + " --port " + Port + " --db \"" + ConnectionString + "\"" + " --logtofile";
 
         string apiName = "SlugEnt.DocumentServer.API";
         string apiBin  = apiName + ".exe";

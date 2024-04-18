@@ -13,7 +13,9 @@ using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
 using System.Reflection;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Serilog.Sinks.File;
 using ILogger = Serilog.ILogger;
+using Microsoft.CodeAnalysis.Elfie.Serialization;
 
 namespace SlugEnt.DocumentServer.Api;
 
@@ -47,15 +49,26 @@ public class Program
     public static void Main(string overrideHostname = "",
                             int port = 0,
                             string db = "",
-                            string nodekey = "")
+                            string nodekey = "",
+                            bool logtofile = false)
     {
         Console.WriteLine("API Starting Up");
 
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
         // 10 - Logging Setup
-        ILogger logger = new LoggerConfiguration().WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
-        _logger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
+        LoggerConfiguration logconfig = new LoggerConfiguration().WriteTo.Logger(lc => lc.WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext());
+
+        //ILogger logger = new LoggerConfiguration().WriteTo.Logger(lc => lc .WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext())
+        //                                        .WriteTo.Logger(lc => lc .WriteTo.File(@"t:\temp\dsapi.log")).CreateLogger();
+        if (logtofile)
+        {
+            logconfig.WriteTo.Logger(lc => lc.WriteTo.File(@"t:\temp\dsapi.log"));
+        }
+
+        _logger = logconfig.CreateLogger();
+
+        _logger = _logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog(_logger);
         builder.Host.UseSerilog(_logger);
@@ -115,16 +128,6 @@ public class Program
 
         //*********************************************************************
 
-        // Add Node2Node Http Client
-        builder.Services.AddHttpClient<NodeToNodeHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
-               {
-                   return new SocketsHttpHandler
-                   {
-                       PooledConnectionLifetime = TimeSpan.FromMinutes(2)
-                   };
-               })
-               .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
-
 
         // 30 - Add Services to the container.
         builder.Services.AddTransient<DocumentServerEngine>();
@@ -140,38 +143,58 @@ public class Program
 
 
         // Build DocumentServerInformation Object
-        ILogger                          dsiLogger  = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
+        ILogger                          dsiLogger  = _logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
         DocumentServerInformationBuilder dsiBuilder = new(dsiLogger);
         dsiBuilder.UseConfiguration(builder.Configuration);
         if (overrideHostname != string.Empty)
             dsiBuilder.TestOverrideServerDNSName(overrideHostname);
         if (db != string.Empty)
             dsiBuilder.TestUseDatabase(db);
+        if (nodekey != string.Empty)
+            dsiBuilder.UseNodeKey(nodekey);
         DocumentServerInformation dsi = dsiBuilder.Build();
         builder.Services.AddSingleton<DocumentServerInformation>(dsi);
 
-        /*
-        builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
-        {
-            IConfiguration x         = dsi.GetService<IConfiguration>();
-            ILogger        dsiLogger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.DocumentServerInformation");
-            return DocumentServerInformation.Create(x,
-                                                    null,
-                                                    dsiLogger,
-                                                    overrideHostname,
-                                                    db);
-        });
-        */
+
+        // Add Node2Node Http Client
+        builder.Services.AddHttpClient<NodeToNodeHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
+               {
+                   return new SocketsHttpHandler
+                   {
+                       PooledConnectionLifetime = TimeSpan.FromMinutes(2)
+                   };
+               })
+               .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+
+
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
         builder.Services.AddTransient<INodeKeyValidation, NodeKeyValidation>();
         builder.Services.AddControllers();
         builder.Services.AddProblemDetails();
+        builder.Services.AddHttpLogging(options => { });
 
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 #if SWAGGER
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+/*        builder.Services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition("NodeKey",
+                                          new ApiKeyScheme
+                                          {
+                                              Name = "Authorization",
+                                              In   = "Header"
+                                          });
+            options.AddSecurityRequirement(new Dictionary<string, IEnumerable<string>>
+            {
+                {
+                    "NodeKey", new string[]
+                        { }
+                }
+            });
+        });
+*/
 #endif
 
 
@@ -213,6 +236,7 @@ public class Program
             {
                 options.Limits.MaxRequestBodySize = 1024 * 1024 * 100;
                 options.Listen(address, port);
+                options.ConfigureEndpointDefaults(listenOptions => { listenOptions.UseConnectionLogging(); });
             });
         }
 #else
@@ -240,7 +264,7 @@ public class Program
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseSerilogRequestLogging();
-
+        app.UseHttpLogging();
         app.UseHttpsRedirection();
 
         app.UseAuthorization();
@@ -256,8 +280,12 @@ public class Program
         });
 
 
+        // Build a NodeKeyValidation object so we can set its Static NodeKey.
+        INodeKeyValidation? nodeKeyValidation = app.Services.GetService<INodeKeyValidation>();
+
         // Wait for The DocumentServerInformation object to finish initializing
         dsiBuilder.AwaitInitialization();
+
         /*DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
         if (dsi.IsInitialized == false)
         {
