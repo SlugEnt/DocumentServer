@@ -88,6 +88,7 @@ public class Test_MultiNodeStorage
     /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
     /// </summary>
     /// <returns></returns>
+    /*
     [Test]
     public async Task SendingToSecondNode_Success()
     {
@@ -157,7 +158,7 @@ public class Test_MultiNodeStorage
 
 
         // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
-        //     you need to carefully consider why it failed.  
+        //     you need to carefully consider why it failed.
         // Calculate the full storage node path that the file should have been written at.
         Result<StoragePathInfo> storagePathInfoA = await sm.DocumentServerEngine.ComputeStorageFullNameAsync(docMultiNode, (int)docMultiNode.ActiveStorageNode1Id);
 
@@ -188,10 +189,13 @@ public class Test_MultiNodeStorage
         Console.WriteLine("Node 2 Full Path: {0}", absPath);
         Assert.That(File.Exists(remotePath), Is.True, "210");
     }
+    */
 
 
     /// <summary>
     /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
+    ///  1. One Node is local to this host
+    ///  2. 2nd Node is remote.
     /// </summary>
     /// <returns></returns>
     [Test]
@@ -211,8 +215,109 @@ public class Test_MultiNodeStorage
         if (smConfiguration.StartSecondAPIInstance)
             Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
 
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 1;
 
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
+
+
+        // Make Sure Node 2 has file stored
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C2,
+                                 hostB,
+                                 sm);
+    }
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
+    ///  Scenario:
+    ///   Two nodes defined, one primary and one secondary
+    ///   One of the nodes is local and one remote
+    ///   File Size is large
+    ///  The local node should store the file.  The remote will be queued for later.
+    ///  In this test the local node is actually indicated as Secondary on the DocumentType
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task LargeFileWith2NodesDefinedPrimaryIsRemote_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 1;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode2Id, sm);
+
+
+        // Make Sure Node 2 has file stored
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C1,
+                                 hostB,
+                                 sm);
+    }
+
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
+    ///  Scenario:
+    ///   Two nodes defined, one primary and one secondary
+    ///   One of the nodes is local and one remote
+    ///   File Size is large
+    ///  The local node should store the file.  The remote will be queued for later
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task LargeFileWith2NodesDefined_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
 
         StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
         StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
@@ -225,55 +330,270 @@ public class Test_MultiNodeStorage
                                                                                   fileSize);
         Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
 
-        StoredDocument     storedDocument     = testResult.Value.StoredDocument;
+
         BuildAndTestResult buildAndTestResult = testResult.Value;
-
-        //***  B: Create Document Type
-
-
-        //***  T. Test
-
         await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
 
-        // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
-        //     you need to carefully consider why it failed.  
-        // Calculate the full storage node path that the file should have been written at.
-        /*        Result<StoragePathInfo> storagePathInfoA =
-                    await sm.DocumentServerEngine.ComputeStorageFullNameAsync(buildAndTestResult.DocumentType, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id);
 
-                // Z. Validate
-
-                //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
-
-                // Make Sure Node 1 - StorageInfo Document path is correct and that the document is stored there,
-                Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoA.Value.StoredDocumentPath), "100:");
-                string fullPath = Path.Join(storagePathInfoA.Value.ActualPath, storedDocument.FileName);
-                Console.WriteLine("Node 1 Full Path: {0}", fullPath);
-                Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "110");
-        */
-        // Make Sure Node 2 - StorageInfo Document path is correct and that the document is stored there,
+        // Make Sure Node 2 has file stored
         ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
         ValidateRemoteFileStored(buildAndTestResult,
                                  storageNode_C2,
                                  hostB,
                                  sm);
-        /*
-        //  This needs to be moved to function
-        //ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-        Result<string> tempCP = sm.DocumentServerEngine.ComputePhysicalStoragePath(hostB.Id,
-                                                                                   storageNode_C2,
-                                                                                   storagePathInfoA.Value.StoredDocumentPath,
-                                                                                   false);
-        string remotePath = Path.Join(tempCP.Value, storedDocument.FileName);
-        string absPath    = remotePath.Replace("C:", @"T:\ProgrammingTesting\HostB");
-
-        //        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoB.Value.StoredDocumentPath), "200:");
-        // fullPath = Path.Join(storagePathInfoB.Value.ActualPath, storagePathInfoB.Value.StoredDocumentPath, storedDocument.FileName);
-        Console.WriteLine("Node 2 Full Path: {0}", absPath);
-        Assert.That(File.Exists(remotePath), Is.True, "210");
-        */
     }
 
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 1 storage node location defined.
+    ///  Scenario:
+    ///   Only one node defined.  Is defined as primary.
+    ///   Node is remote
+    ///   File Size is large, thus not stored on 1st pass
+    ///  
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task LargeFileOnlyRemoteNodeStoresFileRemotely_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C2 = null;
+
+        // Note, this is the remote node
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 4000;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        // If we only have 1 node to store on, then it will always be primary
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        Assert.That(buildAndTestResult.StoredDocument.PrimaryStorageNodeId, Is.EqualTo(storageNode_C1.Id), "Z100:");
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C1,
+                                 hostB,
+                                 sm);
+    }
+
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 1 storage node location defined.
+    ///  Scenario:
+    ///   Only one node defined.  Is defined as secondary.
+    ///   Node is remote
+    ///   File Size is large, thus not stored on first try.
+    ///   This should still store the file on the remote node and sets its Node1 value to the remote node.
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task LargeFileOnlyRemoteNodeStoresFileRemotelyNode2_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C1 = null;
+
+        // Note, this is the remote node
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 4000;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        // If we only have 1 node to store on, then it will always be primary
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        Assert.That(buildAndTestResult.StoredDocument.PrimaryStorageNodeId, Is.EqualTo(storageNode_C2.Id), "Z100:");
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C2,
+                                 hostB,
+                                 sm);
+    }
+
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 2 storage node location defined.
+    ///  Scenario:
+    ///   Two nodes.
+    ///   First is local, 2nd is remote.
+    ///   File Size is large (Outside of limit to store to 2nd node on initial save.)
+    /// Expected Result:
+    ///   Local file stored.  Remote file is not stored, but queued for later replication
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task LargeFileDoesNotImmediatelyStoreOnNode2_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 4000;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
+
+
+        // Make Sure Node 2 has file stored
+        Assert.That(testResult.Value.StoredDocument.SecondaryStorageNodeId, Is.Null, "Z100:  There should be no value for secondary node.");
+
+        // TODO validate it has an entry in replication table.
+    }
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 1 storage node location defined.
+    ///  Scenario:
+    ///   Only one node defined.  Is defined as primary.
+    ///   Node is local.
+    ///   File Size is small (within limit to store to 2nd node on initial save.
+    ///  1. One Node is local to this host.  It is set as primary
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task SmallDocumentOneNodePrimary_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
+        StorageNode storageNode_C2 = null;
+
+        int fileSize = 1;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  null,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
+
+        // Make Sure Node 2 has no file stored
+        Assert.That(testResult.Value.StoredDocument.SecondaryStorageNodeId, Is.Null, "Z100:  There should be no value for secondary node.");
+    }
+
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 1 storage node location defined.
+    ///  Scenario:
+    ///   Only one node defined.  Is defined as secondary
+    ///   Node is remote.
+    ///   File Size is small (within limit to store to 2nd node on initial save.
+    ///   
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task SmallDocumentOneNodeSecondary_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C1 = null;
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+
+        int fileSize = 1;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+
+
+        // Make Sure Node 2 has file stored
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C2,
+                                 hostB,
+                                 sm);
+    }
 
 
     [Test]
@@ -335,16 +655,19 @@ public class Test_MultiNodeStorage
         Application application = (Application)sm.IDLookupDictionary.GetValueOrDefault("App_A");
         RootObject  rootObject  = (RootObject)sm.IDLookupDictionary.GetValueOrDefault("Root_A");
 
+        int? primaryNodeId   = primaryNode == null ? null : primaryNode.Id;
+        int? secondaryNodeId = secondaryNode == null ? null : secondaryNode.Id;
+
         DocumentType docMultiNode = new()
         {
             Name                 = "MultiNode - " + sm.Faker.Random.String2(2),
-            Description          = "Multinode on node: " + primaryNode.Name + " 2node: " + secondaryNode.Name,
+            Description          = "Multinode on node: ",
             ApplicationId        = application.Id,
             RootObjectId         = rootObject.Id,
             StorageFolderName    = "MultiNode",
             StorageMode          = EnumStorageMode.WriteOnceReadMany,
-            ActiveStorageNode1Id = primaryNode.Id,
-            ActiveStorageNode2Id = secondaryNode.Id,
+            ActiveStorageNode1Id = primaryNodeId,
+            ActiveStorageNode2Id = secondaryNodeId,
             IsActive             = true
         };
         EntityRules entityRules   = new(sm.DB);
@@ -395,12 +718,14 @@ public class Test_MultiNodeStorage
         string assertPrefix = "ValidateLocalFileStored:  ";
 
         // Calculate the full storage node path that the file should have been written at.
-        Result<StoragePathInfo> storagePathInfoA =
-            await sm.DocumentServerEngine.ComputeStorageFullNameAsync(buildAndTestResult.DocumentType, localStorageNodeId);
+        Result<string> storageFolderResult = sm.DocumentServerEngine.ComputeStoredDocumentStoragePath(buildAndTestResult.DocumentType);
+        Assert.That(storageFolderResult.IsSuccess, Is.True, "A100: " + storageFolderResult);
+        Result<string> actualPathResult =
+            await sm.DocumentServerEngine.ComputeStorageFullNameAsync(buildAndTestResult.DocumentType, localStorageNodeId, storageFolderResult.Value);
 
         StoredDocument storedDocument = buildAndTestResult.StoredDocument;
-        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoA.Value.StoredDocumentPath), assertPrefix + "100:");
-        string fullPath = Path.Join(storagePathInfoA.Value.ActualPath, storedDocument.FileName);
+        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storageFolderResult.Value), assertPrefix + "100:");
+        string fullPath = Path.Join(actualPathResult.Value, storedDocument.FileName);
 
         Console.WriteLine("Node 1 Full Path: {0}", fullPath);
         Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, assertPrefix + "200");

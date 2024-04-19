@@ -22,9 +22,6 @@ public class DocumentType : AbstractKeyEntity
 
     // Storage Nodes 
     public StorageNode? ActiveStorageNode1 { get; set; }
-
-
-    //public int ApplicationId { get; set; }
     public int? ActiveStorageNode1Id { get; set; }
     public StorageNode? ActiveStorageNode2 { get; set; }
     public int? ActiveStorageNode2Id { get; set; }

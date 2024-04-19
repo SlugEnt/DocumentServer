@@ -229,16 +229,15 @@ public class Program
 
 
 #if DEBUG
-        if (port > 0)
+        IPAddress address = IPAddress.Parse("127.0.0.1");
+        builder.WebHost.ConfigureKestrel(options =>
         {
-            IPAddress address = IPAddress.Parse("127.0.0.1");
-            builder.WebHost.ConfigureKestrel(options =>
-            {
-                options.Limits.MaxRequestBodySize = 1024 * 1024 * 100;
+            options.Limits.MaxRequestBodySize = 1024 * 1024 * 100;
+            if (port > 0)
                 options.Listen(address, port);
-                options.ConfigureEndpointDefaults(listenOptions => { listenOptions.UseConnectionLogging(); });
-            });
-        }
+
+            //options.ConfigureEndpointDefaults(listenOptions => { listenOptions.UseConnectionLogging(); });
+        });
 #else
     builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
 #endif

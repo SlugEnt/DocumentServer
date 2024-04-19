@@ -551,9 +551,16 @@ public class DocumentServerEngine
 
         try
         {
+            // Retrieve the StoragePath Folder for the StoredDocument
+            Result<string> storagePathResult = ComputeStoredDocumentStoragePath(documentType);
+            if (storagePathResult.IsFailed)
+                return Result.Fail(new Error("Failed to compute the StorageFolder path for the StoredDocument.").CausedBy(storagePathResult.Errors));
+
+            storedDocument.StorageFolder = storagePathResult.Value;
+
             // Check to see if the primary storage node is on this host (The host this code is running on now)
             Result<DestinationStorageNode> destinationNodeResult = ComputeDestinationStorageNode(documentType.ActiveStorageNode1Id, destinationStorageNodes, true);
-            destinationNodeResult = ComputeDestinationStorageNode(documentType.ActiveStorageNode2Id, destinationStorageNodes, true);
+            destinationNodeResult = ComputeDestinationStorageNode(documentType.ActiveStorageNode2Id, destinationStorageNodes, false);
 
             // At this point we should have AT least one node if not 2 for storage.  They will be listed by if they are on this host first, then other hosts 2nd.
             // If the first one is not on this host then neither is the 2nd.
@@ -773,8 +780,8 @@ public class DocumentServerEngine
         // Save the file name in case we need to delete it due to errors following this code.
         destinationStorageNode.FullFileNameAsStored = storeResult.Value;
 
-        if (destinationStorageNode.IsPrimaryDocTypeStorage)
-            storedDocument.PrimaryStorageNodeId = destinationStorageNode.StorageNode.Id;
+        //if (destinationStorageNode.IsPrimaryDocTypeStorage)
+        //    storedDocument.PrimaryStorageNodeId = destinationStorageNode.StorageNode.Id;
         return Result.Ok();
     }
 
@@ -818,12 +825,12 @@ public class DocumentServerEngine
 
         try
         {
-            Result<StoragePathInfo> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId);
+            Result<string> resultB = await ComputeStorageFullNameAsync(documentType, storageNodeId, storedDocument.StorageFolder);
             if (resultB.IsFailed)
                 return Result.Fail(new Error("Failed to compute Where the document should be stored.").CausedBy(resultB.Errors));
 
             // Store the path and make sure all the paths exist.
-            string storeAtPath = resultB.Value.ActualPath;
+            string storeAtPath = resultB.Value;
             _fileSystem.Directory.CreateDirectory(storeAtPath);
 
 
@@ -835,7 +842,7 @@ public class DocumentServerEngine
 
             // Save the path in the StoredDocument.  But here we do not save the host prefix part of the path, we only need the unique path to the document.
             // TODO DO NOT store the drive, host path or nodepath part of the path.
-            storedDocument.StorageFolder = resultB.Value.StoredDocumentPath;
+            //storedDocument.StorageFolder = resultB.Value.StoredDocumentPath;
             return Result.Ok(fullFileName);
         }
         catch (Exception ex)
@@ -989,8 +996,56 @@ public class DocumentServerEngine
     */
 
 
-
 #region "Support Functions"
+
+    internal Result<string> ComputeStoredDocumentStoragePath(DocumentType documentType)
+    {
+        // Get letter for Mode.
+        Result<string> modeResult = GetModeLetter(documentType.StorageMode);
+        if (modeResult.IsFailed)
+            return Result.Fail(new Error("Failed to get Mode for StorageMode").CausedBy(modeResult.Errors));
+
+        string modePath = modeResult.Value;
+
+
+        DateTime folderDatetime = DateTime.UtcNow;
+
+        // For most of the documents we store them in a folder based upon the date we write them.
+        // But for Temporary we write based upon the date they expire.
+        if (documentType.StorageMode == EnumStorageMode.Temporary)
+            folderDatetime = documentType.InActiveLifeTime switch
+            {
+                EnumDocumentLifetimes.HoursOne    => folderDatetime.AddHours(1),
+                EnumDocumentLifetimes.HoursFour   => folderDatetime.AddHours(4),
+                EnumDocumentLifetimes.HoursTwelve => folderDatetime.AddHours(12),
+                EnumDocumentLifetimes.DayOne      => folderDatetime.AddDays(1),
+                EnumDocumentLifetimes.MonthOne    => folderDatetime.AddMonths(1),
+                EnumDocumentLifetimes.MonthsThree => folderDatetime.AddMonths(3),
+                EnumDocumentLifetimes.MonthsSix   => folderDatetime.AddMonths(6),
+                EnumDocumentLifetimes.Months18    => folderDatetime.AddMonths(18),
+                EnumDocumentLifetimes.WeekOne     => folderDatetime.AddDays(7),
+                EnumDocumentLifetimes.YearOne     => folderDatetime.AddYears(1),
+                EnumDocumentLifetimes.YearsTwo    => folderDatetime.AddYears(2),
+                EnumDocumentLifetimes.YearsThree  => folderDatetime.AddYears(3),
+                EnumDocumentLifetimes.YearsFour   => folderDatetime.AddYears(4),
+                EnumDocumentLifetimes.YearsFive   => folderDatetime.AddYears(5),
+                EnumDocumentLifetimes.YearsSeven  => folderDatetime.AddYears(7),
+                EnumDocumentLifetimes.YearsTen    => folderDatetime.AddYears(10),
+                EnumDocumentLifetimes.Never       => DateTime.MaxValue,
+                _                                 => throw new Exception("Unknown DocumentLifetime value of [ " + documentType.InActiveLifeTime + " ]")
+            };
+
+        string year  = folderDatetime.ToString("yyyy");
+        string month = folderDatetime.ToString("MM");
+
+
+        string storageFolderPath = Path.Combine(modePath,
+                                                documentType.StorageFolderName,
+                                                year,
+                                                month);
+        return Result.Ok(storageFolderPath);
+    }
+
 
     /// <summary>
     ///     Computes the complete path including the actual file name.  Note.  Does not include the HostName or Storage Node Path parts.
@@ -1000,8 +1055,9 @@ public class DocumentServerEngine
     /// <param name="documentType">The DocumentType</param>
     /// <param name="storageNodeId">The StorageNode Id to store on</param>
     /// <returns>Result</returns>
-    internal async Task<Result<StoragePathInfo>> ComputeStorageFullNameAsync(DocumentType documentType,
-                                                                             int storageNodeId)
+    internal async Task<Result<string>> ComputeStorageFullNameAsync(DocumentType documentType,
+                                                                    int storageNodeId,
+                                                                    string storageFolderPath)
     {
         try
         {
@@ -1026,7 +1082,7 @@ public class DocumentServerEngine
                 return Result.Fail(new Error(nodeMsg));
             }
 
-
+            /*
             // Get letter for Mode.
             Result<string> modeResult = GetModeLetter(documentType.StorageMode);
             if (modeResult.IsFailed)
@@ -1072,14 +1128,13 @@ public class DocumentServerEngine
                                                               documentType.StorageFolderName,
                                                               year,
                                                               month);
+            */
 
-
-            Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, storagePathInfo.StoredDocumentPath);
+            Result<string> resultCP = ComputePhysicalStoragePath(storageNode.ServerHostId, storageNode, storageFolderPath);
             if (resultCP.IsFailed)
                 return Result.Fail(new Error("Failed to determine host path").CausedBy(resultCP.Errors));
 
-            storagePathInfo.ActualPath = resultCP.Value;
-            return Result.Ok(storagePathInfo);
+            return Result.Ok(resultCP.Value);
         }
         catch (InvalidOperationException ex)
         {

@@ -78,9 +78,10 @@ public class Test_DocumentServerEngine
         await sm.DB.SaveChangesAsync();
 
 
-        string                  fileName = uniqueKeys.GetKey();
-        DocumentType            docType  = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == sm.DocumentType_Test_Edit_C);
-        Result<StoragePathInfo> result   = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID);
+        string       fileName = uniqueKeys.GetKey();
+        DocumentType docType  = await sm.DB.DocumentTypes.SingleAsync(d => d.Id == sm.DocumentType_Test_Edit_C);
+
+        Result<string> result = await dse.ComputeStorageFullNameAsync(docType, invalid_storageNode_ID, "somepath");
 
         Assert.That(result.IsFailed, Is.True, "Z10:");
     }
@@ -154,11 +155,13 @@ public class Test_DocumentServerEngine
 
 
         // B.
-        string                  fileName = sm.Faker.Random.Word();
-        DocumentType            docType  = randomDocType;
-        Result<StoragePathInfo> result   = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id);
+        string         fileName = sm.Faker.Random.Word();
+        DocumentType   docType  = randomDocType;
+        Result<string> result2  = dse.ComputeStoredDocumentStoragePath(docType);
+        Assert.That(result2.IsSuccess, Is.True, "B100:  " + result2);
 
-        Assert.That(result.IsSuccess, Is.True, "B10: " + result);
+        Result<string> result = await dse.ComputeStorageFullNameAsync(docType, (int)docType.ActiveStorageNode1Id, result2.Value);
+        Assert.That(result.IsSuccess, Is.True, "B200: " + result);
 
 
         // Z. Validate - Now verify string is correct.
@@ -180,8 +183,8 @@ public class Test_DocumentServerEngine
                                                     ymdPath);
         string expectedWithHostPath = Path.Combine(serverHost.Path, storageNode.NodePath, expectedStoredDocPath);
 
-        Assert.That(result.Value.ActualPath, Is.EqualTo(expectedWithHostPath), "Z10: The path should start with Host Path");
-        Assert.That(result.Value.StoredDocumentPath, Is.EqualTo(expectedStoredDocPath), "Z20: The Stored Document Path should not include the host path");
+        Assert.That(result.Value, Is.EqualTo(expectedWithHostPath), "Z10: The path should start with Host Path");
+        Assert.That(result2.Value, Is.EqualTo(expectedStoredDocPath), "Z20: The Stored Document Path should not include the host path");
     }
 
 

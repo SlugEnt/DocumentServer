@@ -124,13 +124,14 @@ public sealed class NodeToNodeHttpClient : IDisposable
 
             using (HttpResponseMessage httpResponse = await _httpClient.PostAsync(query, form))
             {
+                responseContent = await httpResponse.Content.ReadAsStringAsync();
                 httpResponse.EnsureSuccessStatusCode();
                 return Result.Ok();
             }
         }
         catch (Exception e)
         {
-            string msg = "NodeController:  SendDocument -->  Error sending douxment to remote server.";
+            string msg = "NodeController:  SendDocument -->  Error sending douxment to remote server.  Server Returned [ " + responseContent + " ]";
             if (_logger != null)
                 _logger.LogError(msg + e.ToString());
 
