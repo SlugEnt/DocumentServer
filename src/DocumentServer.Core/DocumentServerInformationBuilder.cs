@@ -135,6 +135,8 @@ namespace SlugEnt.DocumentServer.Core
             if (_dsi.SeriLogger == null)
                 throw new ArgumentNullException("You did not specify a SeriLogger during configuration of DocumentServerInformation.  This is required.");
 
+            BuildRemoteSizeThreshold();
+
             _dsi.Initialize = _dsi.SetupAsync(_dbContext, _nodeKey, _overrideDNSName);
             return _dsi;
         }
@@ -220,6 +222,24 @@ namespace SlugEnt.DocumentServer.Core
                 string msg = "Failed to find NodeKey in the configuration.  This is a required property.";
                 _logger.Error(msg);
                 throw new ApplicationException(msg);
+            }
+        }
+
+
+        /// <summary>
+        /// Builds the RemoteSizeThreshold.
+        /// </summary>
+        internal void BuildRemoteSizeThreshold()
+        {
+            // TODO preferabbly we will want to move this from configuration to DB settings table...
+            if (_configuration == null)
+            {
+                _logger.Warning("Using default RemoteSizeThreshold value of [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold + " ]");
+            }
+            else
+            {
+                _dsi.RuntimeSettings.RemoteDocumentSizeThreshold = _configuration.GetValue<int>("DocumentServer:RemoteSizeThreshold");
+                _logger.Warning("Using RemoteSizeThreshold from configuration [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold + " ]");
             }
         }
     }

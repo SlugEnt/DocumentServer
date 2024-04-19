@@ -23,4 +23,10 @@ internal class DestinationStorageNode
     public bool IsPrimaryDocTypeStorage { get; set; }
 
     public string FullFileNameAsStored { get; set; }
+
+
+    /// <summary>
+    /// If true, the document has successfully been saved on media.
+    /// </summary>
+    public bool WasSaved { get; set; }
 }

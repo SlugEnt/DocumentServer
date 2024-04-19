@@ -400,7 +400,6 @@ public class SupportMethods
                                                               int sizeInKB = 3)
     {
         // A10. Create A Document
-
         string fileName = sm.WriteRandomFile(sm.FileSystem,
                                              sm.Folder_Test,
                                              expectedExtension,
@@ -414,7 +413,7 @@ public class SupportMethods
         FormFile formFile = GetFormFile(fullPath);
         Assert.That(formFile.Length, Is.Not.EqualTo(0), "TFX_GenerateUploadFile Formfile is zero length");
 
-        // B.  Now Store it in the DocumentServer
+        // B.  Now Store the file information 
         TransferDocumentDto upload = new()
         {
             Description       = expectedDescription,
@@ -430,7 +429,32 @@ public class SupportMethods
 
 
     /// <summary>
-    ///     Writes a random file out with a random filename
+    /// Shorter version of the TFX_GenerateUploadFile
+    /// </summary>
+    /// <param name="expectedDocTypeId"></param>
+    /// <param name="expectedRootObjectId"></param>
+    /// <param name="expectedDocExtKey"></param>
+    /// <param name="sizeInKB"></param>
+    /// <returns></returns>
+    public Result<TransferDocumentDto> TFX_GenerateUploadFile(int expectedDocTypeId,
+                                                              string expectedRootObjectId,
+                                                              string? expectedDocExtKey,
+                                                              int sizeInKB = 3)
+    {
+        string description = this.Faker.Random.String2(10, 30);
+        string extension   = this.Faker.Random.String2(3);
+        return TFX_GenerateUploadFile(this,
+                                      description,
+                                      extension,
+                                      expectedDocTypeId,
+                                      expectedRootObjectId,
+                                      expectedDocExtKey,
+                                      sizeInKB);
+    }
+
+
+    /// <summary>
+    ///     Writes a random file with the given parameters and returns the filename
     /// </summary>
     /// <param name="fileSystem"></param>
     /// <param name="path"></param>
