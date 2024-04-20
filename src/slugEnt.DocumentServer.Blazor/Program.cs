@@ -58,7 +58,8 @@ public class Program
         DisplayAppSettingStatus(appSettingFile);
 
         // Load the Sensitive AppSettings.JSON file.
-        string sensitiveFileName = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        //string sensitiveFileName = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        string sensitiveFileName = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
         appSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
         builder.Configuration.AddJsonFile(appSettingFile, true);
         DisplayAppSettingStatus(appSettingFile);

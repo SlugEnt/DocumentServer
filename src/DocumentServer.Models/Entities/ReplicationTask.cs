@@ -10,7 +10,7 @@ namespace SlugEnt.DocumentServer.Models.Entities
     /// <summary>
     /// Keeps track of StoredDocuments that need to be replicated to another server.
     /// </summary>
-    public class ReplicationTask
+    public class ReplicationTask : AbstractBaseEntity
     {
         [Key] public long Id { get; set; }
 
@@ -24,7 +24,5 @@ namespace SlugEnt.DocumentServer.Models.Entities
 
         [Required] public int ReplicateFromStorageNodeId { get; set; }
         public StorageNode ReplicateFromStorageNode { get; set; }
-
-        [Required] public DateTime CreatedAtUTC { get; set; }
     }
 }

@@ -451,6 +451,8 @@ public class DocumentServerEngine
                                                 transferDocumentDto.DocumentTypeId);
             SetMediaType(transferDocumentDto.MediaType, transferDocumentDto.FileExtension, storedDocument);
 
+            // Start DB transaction - So we can capture the ReplicateTask
+            transaction = _db.Database.BeginTransaction();
 
             // TODO Determine if we are Primary or Secondary Node and fix this code
 
@@ -461,7 +463,6 @@ public class DocumentServerEngine
                                                                                transferDocumentDto.File,
                                                                                true);
 
-
             destinationNodes = storeResult.Value;
 
             //fullFileName       = storeResult.Value;
@@ -469,10 +470,7 @@ public class DocumentServerEngine
 
 
             // Save StoredDocument
-            transaction = _db.Database.BeginTransaction();
             _db.StoredDocuments.Add(storedDocument);
-
-            // TODO PreSaveEdits should return a Result
             Result preSaveResult = await PreSaveEdits(docType, storedDocument);
             if (preSaveResult.IsFailed)
                 return preSaveResult;
@@ -634,6 +632,7 @@ public class DocumentServerEngine
                 loopPass++;
                 if (loopPass > 2 && nodesStoredOn == 0)
                 {
+                    // TODO this does not have the source errors attached.
                     Result failedResult =
                         Result.Fail(new
                                         Error("Exhausted number of attempts to try and save file on at least one of the preferred nodes.  All attempts failed.  See errors attached to this."));
@@ -644,12 +643,39 @@ public class DocumentServerEngine
 
             // If stored on all nodes then we are done.
             if (nodesStoredOn == destinationStorageNodes.Count)
+            {
                 _logger.LogInformation("Document was stored on all nodes!");
+                return Result.Ok(destinationStorageNodes);
+            }
 
             if (storedLocally)
                 _logger.LogInformation("Document was stored on local node only");
             if (storedRemotely)
                 _logger.LogInformation("Document was stored on remote node only");
+
+
+            // We need to insert a Replication Task into the DB to determine the from node and to node.
+            // Since we are here, the primary node is the From node.  The Secondary should be null and we need to determine
+            int? toNode;
+            if (documentType.ActiveStorageNode1Id == storedDocument.Id)
+                toNode = documentType.ActiveStorageNode2Id != null ? documentType.ActiveStorageNode2Id : null;
+            else
+                toNode = documentType.ActiveStorageNode1Id != null ? documentType.ActiveStorageNode1Id : null;
+
+            if (toNode == null)
+                return Result.Ok();
+
+
+            // Insert Replication Entry into DB.
+            ReplicationTask replicationTask = new ReplicationTask()
+            {
+                StoredDocumentId           = storedDocument.Id,
+                IsActive                   = true,
+                ReplicateFromStorageNodeId = (int)storedDocument.PrimaryStorageNodeId,
+                ReplicateToStorageNodeId   = (int)toNode,
+            };
+            _db.Add(replicationTask);
+
             return Result.Ok(destinationStorageNodes);
         }
         catch (Exception exception)

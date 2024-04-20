@@ -29,6 +29,7 @@ public class DocServerDbContext : DbContext
                                                 0,
                                                 0,
                                                 5));
+        Console.WriteLine("In DB Constructor");
     }
 
 
@@ -86,26 +87,23 @@ public class DocServerDbContext : DbContext
     ///     Returns the value the database is referenced by in AppSettings and other locations.
     /// </summary>
     /// <returns></returns>
-    public static string DatabaseReferenceName() => "DocumentServerDB";
+    public static string DatabaseReferenceName() { return "DocumentServerDB"; }
 
 
-    /*
+
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-
         //Console.WriteLine("Database:  Configuring DB Context Options");
         if (!dbContextOptionsBuilder.IsConfigured)
         {
             IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
                                                                       .AddJsonFile("AppSettings.json", true, true)
-
                 ;
             _Configuration = builder.Build();
             string connectionString = _Configuration.GetConnectionString(DatabaseReferenceName());
             dbContextOptionsBuilder.UseSqlServer(connectionString);
         }
     }
-    */
 
 
 

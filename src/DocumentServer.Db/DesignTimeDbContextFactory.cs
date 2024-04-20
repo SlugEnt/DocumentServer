@@ -36,7 +36,8 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DocServerD
 
 
         // Load the Sensitive AppSettings.JSON file.
-        string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        //string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        string sensitiveFileName    = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
         string sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
 
 
@@ -46,9 +47,14 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<DocServerD
                                                                      .AddJsonFile(sensitiveSettingFile, true, true).Build();
 
         // *** END - Copy From BundleBuilderSimple
+        Console.WriteLine("DocServerDbContext Design Time Tools:  AppSettingEnv File:       " + appSettingEnvFile);
+        Console.WriteLine("DocServerDbContext Design Time Tools:  AppSettingNormalEnv File: " + appSettingNormalEnvFile);
+        Console.WriteLine("DocServerDbContext Design Time Tools:  Sensitive File:           " + sensitiveSettingFile);
 
         DbContextOptionsBuilder<DocServerDbContext> builder          = new DbContextOptionsBuilder<DocServerDbContext>();
         string?                                     connectionString = configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName());
+        Console.WriteLine("Connection String Found was: " + connectionString);
+
         builder.UseSqlServer(connectionString);
         return new DocServerDbContext(builder.Options);
     }

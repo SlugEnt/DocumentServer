@@ -121,7 +121,7 @@ public class Program
 #else
         builder.Services.AddDbContextPool<DocServerDbContext>(options =>
         {
-            options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()))
+            options.UseSqlServer(builder.Configuration.GetConnectionString(DocServerDbContext.DatabaseReferenceName()));
         });
 
 #endif
@@ -239,7 +239,7 @@ public class Program
             //options.ConfigureEndpointDefaults(listenOptions => { listenOptions.UseConnectionLogging(); });
         });
 #else
-    builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
+        builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
 #endif
         WebApplication app = builder.Build();
 
@@ -402,8 +402,10 @@ public class Program
         // Finally Check the AppSettingSensitive folder
         // Get Sensitive Appsettings.json file location
         string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
-        string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
-        string path                 = Path.Join(sensitiveAppSettings, sensitiveFileName);
+
+        //string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        string sensitiveFileName = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
+        string path              = Path.Join(sensitiveAppSettings, sensitiveFileName);
 
         builder.Configuration.AddJsonFile(path, true);
         DisplayAppSettingStatus(path);
