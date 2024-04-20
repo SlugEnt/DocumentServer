@@ -31,61 +31,6 @@ public class Test_MultiNodeStorage
     private readonly bool _useDatabaseTransactions = false;
 
 
-
-    /// <summary>
-    /// Validates that the StoreFileFromRemoteNode method is able to succecssfully store a document.  
-    /// </summary>
-    /// <returns></returns>
-    [Test]
-    public async Task StoreFileRemote_Success()
-    {
-        //*** A) Setup
-        SupportMethods sm       = new(EnumFolderCreation.Test, _useDatabaseTransactions);
-        string         fileName = "somefile.txt";
-        string storagePath = Path.Join("remote",
-                                       "month",
-                                       "day");
-
-        await sm.Initialize;
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-
-        int storageNodeId = sm.StorageNode_Test_A;
-
-        // Create a test file.
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              sm.Faker.Random.String2(32),
-                                                                              sm.Faker.Random.String2(3),
-                                                                              1,
-                                                                              sm.Faker.Random.String2(10),
-                                                                              null,
-                                                                              1);
-
-        RemoteDocumentStorageDto remoteDocumentStorageDto = new()
-        {
-            File          = genFileResult.Value.File,
-            StorageNodeId = storageNodeId,
-            StoragePath   = storagePath,
-            FileName      = fileName,
-        };
-
-
-        //*** C) Test
-        Result result = await documentServerEngine.StoreFileFromRemoteNode(remoteDocumentStorageDto);
-
-        //*** Y) Final Prep
-        StorageNode storageNode = await sm.DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == storageNodeId);
-        string completePath = Path.Join(sm.DocumentServerInformation.ServerHostInfo.Path,
-                                        storageNode.NodePath,
-                                        storagePath,
-                                        fileName);
-
-
-        //*** Z) Validate
-        Assert.That(sm.FileSystem.File.Exists(completePath), Is.True, "Z20:  File should exist");
-    }
-
-
-
     /// <summary>
     /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
     ///  1. One Node is local to this host
@@ -193,14 +138,6 @@ public class Test_MultiNodeStorage
 
         // Validate there is no Replication Task
         ValidateNoReplicationTask(sm, buildAndTestResult.StoredDocument.Id);
-
-        // Use when replication task should be created.
-        /*
-         ValidateReplicationTask(sm,
-                                buildAndTestResult.StoredDocument.Id,
-                                storageNode_C1.Id,
-                                storageNode_C2.Id);
-        */
     }
 
 

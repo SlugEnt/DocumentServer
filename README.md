@@ -101,6 +101,14 @@ For these special cases where you need to debug a specific unit test, you can tu
 
   Just #undef it to to turn off the database reset.
 
+  # Building Migration Bundler
+  The migration bundler takes migrations and puts them into an executable that can be run against a database and it will automatically apply the migrations that are needed for that database.
+
+  To build the bundle.  Go to the Package Manager Console, ensure the DocumentServer.Db is set as defaultProject.
+  Then run this command
+  
+  dotnet ef migrations bundle -p BundleBuilderSimple --output t:\temp\SlugEnt.DocumentServer.MigrationBundle.exe --self-contained -r linux-x64
+
 
   # Some Statistics
   Each of these tests comprises a continuous run of sessions with a 750ms pause between sessions.  A session varies by the test, but there was a Console Program running each test simultaneously with the others.  

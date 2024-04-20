@@ -20,14 +20,17 @@ public class Program
     private static ILogger _logger;
 
 
-    public static async Task Main(string[] args)
+    public static async Task Main(string sourceFolder = @"T:\ProgrammingTesting\ConsoleTest",
+                                  string applicationToken = "abc",
+                                  string apiKey = "",
+                                  string outputFolder = @"T:\")
     {
 #if DEBUG
         Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
                                               .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
 #else
-			Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
-			                                      .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
+                                              .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
 #endif
                                               .Enrich.FromLogContext()
                                               .WriteTo.Console()
@@ -65,7 +68,7 @@ public class Program
                                                                      .AddJsonFile(sensitiveSettingFile, true, true).Build();
 
 
-        using IHost host = Host.CreateDefaultBuilder(args)
+        using IHost host = Host.CreateDefaultBuilder()
 
                                // Add our custom config from above to the default configuration
                                .ConfigureAppConfiguration(config => { config.AddConfiguration(configuration); })
@@ -84,9 +87,8 @@ public class Program
 #if (DEBUG || SWAGGER)
                                                                   .LogTo(Console.WriteLine)
                                                                   .EnableDetailedErrors();
-
 #endif
-                                                              ;
+                                                                  ;
                                                           })
                                                           .AddTransient<MainMenu>()
                                                           .AddTransient<DocumentServerEngine>()
@@ -116,6 +118,10 @@ public class Program
 #pragma warning disable CS4014
         host.RunAsync();
         MainMenu mainMenu = host.Services.GetRequiredService<MainMenu>();
+        mainMenu.BaseFolder       = sourceFolder;
+        mainMenu.ApplicationToken = applicationToken;
+        mainMenu.ApiKey           = apiKey;
+        mainMenu.DownloadFolder   = Path.Join(sourceFolder, "downloaded", outputFolder);
         await mainMenu.Start();
         Log.CloseAndFlush();
 #pragma warning restore
