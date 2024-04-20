@@ -657,7 +657,7 @@ public class DocumentServerEngine
             // We need to insert a Replication Task into the DB to determine the from node and to node.
             // Since we are here, the primary node is the From node.  The Secondary should be null and we need to determine
             int? toNode;
-            if (documentType.ActiveStorageNode1Id == storedDocument.Id)
+            if (documentType.ActiveStorageNode1Id == storedDocument.PrimaryStorageNodeId)
                 toNode = documentType.ActiveStorageNode2Id != null ? documentType.ActiveStorageNode2Id : null;
             else
                 toNode = documentType.ActiveStorageNode1Id != null ? documentType.ActiveStorageNode1Id : null;
@@ -669,7 +669,7 @@ public class DocumentServerEngine
             // Insert Replication Entry into DB.
             ReplicationTask replicationTask = new ReplicationTask()
             {
-                StoredDocumentId           = storedDocument.Id,
+                StoredDocument             = storedDocument,
                 IsActive                   = true,
                 ReplicateFromStorageNodeId = (int)storedDocument.PrimaryStorageNodeId,
                 ReplicateToStorageNodeId   = (int)toNode,

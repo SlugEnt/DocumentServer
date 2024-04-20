@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using SlugEnt.DocumentServer.EntityManager;
 using Test_DocumentServer.SupportObjects;
 using SlugEnt.DocumentServer.Models.Enums;
+using static Test_DocumentServer.Test_MultiNodeStorage;
 
 namespace Test_DocumentServer;
 
@@ -84,113 +85,6 @@ public class Test_MultiNodeStorage
     }
 
 
-    /// <summary>
-    /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
-    /// </summary>
-    /// <returns></returns>
-    /*
-    [Test]
-    public async Task SendingToSecondNode_Success()
-    {
-        //***  A. Setup
-        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
-        {
-            FolderCreationSetting  = EnumFolderCreation.Test,
-            UseDatabase            = true,
-            UseTransactions        = _useDatabaseTransactions,
-            StartSecondAPIInstance = true,
-
-            //StartSecondAPIInstance = false,
-
-            //DocumentEngineCacheTTL = 1, // For this test we need it to pick up on added Document Types
-        };
-        SupportMethods sm = new(smConfiguration);
-
-        int     expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string  expectedExtension    = sm.Faker.Random.String2(3);
-        string  expectedDescription  = sm.Faker.Random.String2(32);
-        string  expectedRootObjectId = sm.Faker.Random.String2(10);
-        string? expectedExternalId   = null;
-
-        await sm.Initialize;
-        if (smConfiguration.StartSecondAPIInstance)
-            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
-
-        DocumentServerEngine documentServerEngine = sm.DocumentServerEngine;
-
-
-        //***  B: Create Document Type
-        Application application    = (Application)sm.IDLookupDictionary.GetValueOrDefault("App_A");
-        RootObject  rootObject     = (RootObject)sm.IDLookupDictionary.GetValueOrDefault("Root_A");
-        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
-        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
-
-        DocumentType docMultiNode = new()
-        {
-            Name                 = "MultiNode",
-            Description          = "Multinode Node C1, C2 WORM",
-            ApplicationId        = application.Id,
-            RootObjectId         = rootObject.Id,
-            StorageFolderName    = "MultiNode",
-            StorageMode          = EnumStorageMode.WriteOnceReadMany,
-            ActiveStorageNode1Id = storageNode_C1.Id,
-            ActiveStorageNode2Id = storageNode_C2.Id,
-            IsActive             = true
-        };
-        EntityRules entityRules   = new(sm.DB);
-        Result      saveDocResult = await entityRules.SaveDocumentTypeAsync(docMultiNode);
-        Assert.That(saveDocResult.IsSuccess, Is.True, "B10: Save Document Should succeed.  Error Was: " + saveDocResult.ToStringWithLineFeeds());
-
-
-        //***  C. Generate file to upload
-        // Force Cache Reset so new Document Type gets loaded
-        sm.DocumentServerInformation.ForceCacheRefresh(sm.DB);
-        Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
-                                                                              expectedDescription,
-                                                                              expectedExtension,
-                                                                              docMultiNode.Id,
-                                                                              expectedRootObjectId,
-                                                                              expectedExternalId);
-
-        //***  T. Test
-        Result<StoredDocument> result         = await documentServerEngine.StoreDocumentNew(genFileResult.Value, TestConstants.APPA_TOKEN);
-        StoredDocument         storedDocument = result.Value;
-
-
-        // Y.  CRITICAL ITEM:  Storage Path - This should be considered a critical test.  If this fails after initial deployment to production
-        //     you need to carefully consider why it failed.
-        // Calculate the full storage node path that the file should have been written at.
-        Result<StoragePathInfo> storagePathInfoA = await sm.DocumentServerEngine.ComputeStorageFullNameAsync(docMultiNode, (int)docMultiNode.ActiveStorageNode1Id);
-
-        // Z. Validate
-
-        //Assert.That(storedDocument.FileExtension, Is.EqualTo(expectedExtension), "Z10: File Extensions do not match");
-        Assert.That(storedDocument.FileName, Does.EndWith(expectedExtension), "Z10: File Extensions do not match");
-        Assert.That(storedDocument.DocumentType.Id, Is.EqualTo(docMultiNode.Id), "Z20:");
-        Assert.That(storedDocument.Description, Is.EqualTo(expectedDescription), "Z30");
-
-        // Make Sure Node 1 - StorageInfo Document path is correct and that the document is stored there,
-        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoA.Value.StoredDocumentPath), "100:");
-        string fullPath = Path.Join(storagePathInfoA.Value.ActualPath, storedDocument.FileName);
-        Console.WriteLine("Node 1 Full Path: {0}", fullPath);
-        Assert.That(sm.FileSystem.FileExists(fullPath), Is.True, "110");
-
-        // Make Sure Node 2 - StorageInfo Document path is correct and that the document is stored there,
-        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-        Result<string> tempCP = sm.DocumentServerEngine.ComputePhysicalStoragePath(hostB.Id,
-                                                                                   storageNode_C2,
-                                                                                   storagePathInfoA.Value.StoredDocumentPath,
-                                                                                   false);
-        string remotePath = Path.Join(tempCP.Value, storedDocument.FileName);
-        string absPath    = remotePath.Replace("C:", @"T:\ProgrammingTesting\HostB");
-
-//        Assert.That(storedDocument.StorageFolder, Is.EqualTo(storagePathInfoB.Value.StoredDocumentPath), "200:");
-        // fullPath = Path.Join(storagePathInfoB.Value.ActualPath, storagePathInfoB.Value.StoredDocumentPath, storedDocument.FileName);
-        Console.WriteLine("Node 2 Full Path: {0}", absPath);
-        Assert.That(File.Exists(remotePath), Is.True, "210");
-    }
-    */
-
 
     /// <summary>
     /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
@@ -199,7 +93,7 @@ public class Test_MultiNodeStorage
     /// </summary>
     /// <returns></returns>
     [Test]
-    public async Task SendingToSecondNode_COPY_Success()
+    public async Task SmallFile2Nodes_COPY_Success()
     {
         //***  A. Setup
         SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
@@ -237,7 +131,78 @@ public class Test_MultiNodeStorage
                                  storageNode_C2,
                                  hostB,
                                  sm);
+
+        // Validate there is no Replication Task
+        ValidateNoReplicationTask(sm, buildAndTestResult.StoredDocument.Id);
+
+        // Use when replication task should be created.
+        /*
+         ValidateReplicationTask(sm,
+                                buildAndTestResult.StoredDocument.Id,
+                                storageNode_C1.Id,
+                                storageNode_C2.Id);
+        */
     }
+
+
+    /// <summary>
+    /// This test actually runs the entire cycle for storing a document that has 2 storage node locations defined.
+    ///  1. One Node is local to this host
+    ///  2. 2nd Node is remote.
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task SmallFile2Nodes_Success()
+    {
+        //***  A. Setup
+        SupportMethodsConfiguration smConfiguration = new SupportMethodsConfiguration()
+        {
+            FolderCreationSetting  = EnumFolderCreation.Test,
+            UseDatabase            = true,
+            UseTransactions        = _useDatabaseTransactions,
+            StartSecondAPIInstance = true,
+        };
+        SupportMethods sm = new(smConfiguration);
+
+        await sm.Initialize;
+        if (smConfiguration.StartSecondAPIInstance)
+            Assert.That(SecondAPI.StartUpResult.IsSuccess, Is.True, "A100: the startup of the SecondApi failed with | " + SecondAPI.StartUpResult.ToString());
+
+        StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
+        StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
+        int         fileSize       = 1;
+
+        // Test
+        Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
+                                                                                  storageNode_C1,
+                                                                                  storageNode_C2,
+                                                                                  fileSize);
+        Assert.That(testResult.IsSuccess, Is.True, "T100:  Build and Test Failed.  " + testResult.ToString());
+
+
+        BuildAndTestResult buildAndTestResult = testResult.Value;
+        await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
+
+
+        // Make Sure Node 2 has file stored
+        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+        ValidateRemoteFileStored(buildAndTestResult,
+                                 storageNode_C2,
+                                 hostB,
+                                 sm);
+
+        // Validate there is no Replication Task
+        ValidateNoReplicationTask(sm, buildAndTestResult.StoredDocument.Id);
+
+        // Use when replication task should be created.
+        /*
+         ValidateReplicationTask(sm,
+                                buildAndTestResult.StoredDocument.Id,
+                                storageNode_C1.Id,
+                                storageNode_C2.Id);
+        */
+    }
+
 
 
     /// <summary>
@@ -269,7 +234,7 @@ public class Test_MultiNodeStorage
 
         StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
         StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
-        int         fileSize       = 1;
+        int         fileSize       = 4000;
 
         // Test
         Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
@@ -283,12 +248,11 @@ public class Test_MultiNodeStorage
         await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode2Id, sm);
 
 
-        // Make Sure Node 2 has file stored
-        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-        ValidateRemoteFileStored(buildAndTestResult,
-                                 storageNode_C1,
-                                 hostB,
-                                 sm);
+        // Validate the Replication Task is correct.
+        ValidateReplicationTask(sm,
+                                buildAndTestResult.StoredDocument.Id,
+                                storageNode_C2.Id,
+                                storageNode_C1.Id);
     }
 
 
@@ -321,7 +285,7 @@ public class Test_MultiNodeStorage
 
         StorageNode storageNode_C1 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C1");
         StorageNode storageNode_C2 = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_C2");
-        int         fileSize       = 1;
+        int         fileSize       = 4000;
 
         // Test
         Result<BuildAndTestResult> testResult = await BuildTestDocumentAndStoreIt(sm,
@@ -335,12 +299,11 @@ public class Test_MultiNodeStorage
         await ValidateLocalFileStored(buildAndTestResult, (int)buildAndTestResult.DocumentType.ActiveStorageNode1Id, sm);
 
 
-        // Make Sure Node 2 has file stored
-        ServerHost hostB = (ServerHost)sm.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
-        ValidateRemoteFileStored(buildAndTestResult,
-                                 storageNode_C2,
-                                 hostB,
-                                 sm);
+        // Validate the Replication Task is correct.
+        ValidateReplicationTask(sm,
+                                buildAndTestResult.StoredDocument.Id,
+                                storageNode_C1.Id,
+                                storageNode_C2.Id);
     }
 
 
@@ -392,6 +355,10 @@ public class Test_MultiNodeStorage
                                  storageNode_C1,
                                  hostB,
                                  sm);
+
+        // Should be no validation task as only one node defined
+        ValidateNoReplicationTask(sm,
+                                  buildAndTestResult.StoredDocument.Id);
     }
 
 
@@ -444,6 +411,10 @@ public class Test_MultiNodeStorage
                                  storageNode_C2,
                                  hostB,
                                  sm);
+
+        // Validate the Replication Task is correct.
+        ValidateNoReplicationTask(sm,
+                                  buildAndTestResult.StoredDocument.Id);
     }
 
 
@@ -494,7 +465,12 @@ public class Test_MultiNodeStorage
         // Make Sure Node 2 has file stored
         Assert.That(testResult.Value.StoredDocument.SecondaryStorageNodeId, Is.Null, "Z100:  There should be no value for secondary node.");
 
-        // TODO validate it has an entry in replication table.
+
+        // Validate the Replication Task is correct.
+        ValidateReplicationTask(sm,
+                                buildAndTestResult.StoredDocument.Id,
+                                storageNode_C1.Id,
+                                storageNode_C2.Id);
     }
 
 
@@ -542,6 +518,8 @@ public class Test_MultiNodeStorage
 
         // Make Sure Node 2 has no file stored
         Assert.That(testResult.Value.StoredDocument.SecondaryStorageNodeId, Is.Null, "Z100:  There should be no value for secondary node.");
+
+        ValidateNoReplicationTask(sm, buildAndTestResult.StoredDocument.Id);
     }
 
 
@@ -593,6 +571,8 @@ public class Test_MultiNodeStorage
                                  storageNode_C2,
                                  hostB,
                                  sm);
+
+        ValidateNoReplicationTask(sm, buildAndTestResult.StoredDocument.Id);
     }
 
 
@@ -758,6 +738,48 @@ public class Test_MultiNodeStorage
         Assert.That(File.Exists(remotePath), Is.True, assertPrefix + "100");
     }
 
+
+    /// <summary>
+    /// Validates that no Replication Task was created
+    /// </summary>
+    /// <param name="sm"></param>
+    /// <param name="storedDocumentId"></param>
+    internal void ValidateNoReplicationTask(SupportMethods sm,
+                                            long storedDocumentId)
+    {
+        string assertPrefix = "ValidateReplicationTask:  ";
+
+        // Validate the Replication Task is correct.
+        sm.DB.ChangeTracker.Clear();
+        List<ReplicationTask> replicationTasks = sm.DB.ReplicationTasks.Where(rt => rt.StoredDocumentId == storedDocumentId).ToList();
+        Assert.That(replicationTasks.Count, Is.EqualTo(0), assertPrefix + "100:  There should be no replication tasks for this storeddocument");
+        ;
+    }
+
+
+
+    /// <summary>
+    /// Validates that a ReplicationTask was inserted into the database for the StoredDocument
+    /// </summary>
+    /// <param name="sm"></param>
+    /// <param name="storedDocumentId"></param>
+    /// <param name="replicationFromNode"></param>
+    /// <param name="replicateToNode"></param>
+    internal void ValidateReplicationTask(SupportMethods sm,
+                                          long storedDocumentId,
+                                          int replicationFromNode,
+                                          int replicateToNode)
+    {
+        string assertPrefix = "ValidateReplicationTask:  ";
+
+        // Validate the Replication Task is correct.
+        sm.DB.ChangeTracker.Clear();
+        List<ReplicationTask> replicationTasks = sm.DB.ReplicationTasks.Where(rt => rt.StoredDocumentId == storedDocumentId).ToList();
+        Assert.That(replicationTasks.Count, Is.EqualTo(1), assertPrefix + " 300: Should only be 1 Replication Task for this Stored Document");
+        ReplicationTask replicationTask = replicationTasks.First();
+        Assert.That(replicationTask.ReplicateFromStorageNodeId, Is.EqualTo(replicationFromNode), assertPrefix + " 301:");
+        Assert.That(replicationTask.ReplicateToStorageNodeId, Is.EqualTo(replicateToNode), assertPrefix + " 302:");
+    }
 
 
     /// <summary>
