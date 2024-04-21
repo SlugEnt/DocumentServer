@@ -6,7 +6,7 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 /// <summary>
 ///     An Application that needs to store documents
 /// </summary>
-public class Application : AbstractBaseEntity
+public class Application : AbstractKeyEntity
 {
     // Relationships
 

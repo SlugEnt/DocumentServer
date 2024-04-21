@@ -14,7 +14,11 @@ using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.FluentResults;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SlugEnt.DocumentServer.ClientLibrary;
+using ILogger = Serilog.ILogger;
+using Serilog;
+using Microsoft.EntityFrameworkCore;
 
 namespace Test_DocumentServer.SupportObjects;
 
@@ -27,27 +31,65 @@ namespace Test_DocumentServer.SupportObjects;
 /// </summary>
 public class SupportMethods
 {
-    private static   Faker                            _faker;
-    private readonly MockLogger<DocumentServerEngine> _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
-    private readonly UniqueKeys                       _uniqueKeys = new("");
+    private static   Faker                                 _faker;
+    private readonly MockLogger<DocumentServerEngine>      _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
+    private readonly UniqueKeys                            _uniqueKeys = new("");
+    private readonly MockLogger<DocumentServerInformation> _logDSI     = Substitute.For<MockLogger<DocumentServerInformation>>();
+    private static   ILogger                               serilog;
+    private readonly SupportMethodsConfiguration           _smConfiguration;
+
+
+    /// <summary>
+    /// The Preferred Constructor...
+    /// </summary>
+    /// <param name="smConfiguration"></param>
+    public SupportMethods(SupportMethodsConfiguration smConfiguration)
+    {
+        _smConfiguration = smConfiguration;
+        SetupStage1();
+    }
 
 
     /// <summary>
     ///     Constructore.  Builds Mock Filesystem, Mock Logger, and the DocServerEngine
     /// </summary>
-    /// <param name="databaseSetupTest"></param>
+    /// <param name="createFolders">What Folder Creation Mode to use.  None is the default, which creates none of the Fake File System folders.</param>
+    /// <param name="useTransactions">If using the database, this determines if the system should use transactions or not.  Some of the tests use
+    /// code that cannot have a nested transaction so it needs to be false.</param>
+    /// <param name="useDatabase">If true, the database will be setup and utilized.  If false, it will not.</param>
+    /// <param name="overrideDNSName">If set this will override the DNS Host name for the DocumentServerInformation Object on creation using the HostB in the database.</param>
     public SupportMethods(EnumFolderCreation createFolders = EnumFolderCreation.None,
                           bool useTransactions = true,
-                          bool useDatabase = true)
+                          bool useDatabase = true,
+                          bool overrideDNSName = false)
     {
+        _smConfiguration = new()
+        {
+            FolderCreationSetting = createFolders,
+            UseDatabase           = useDatabase,
+            UseTransactions       = useTransactions,
+            OverrideDNSName       = overrideDNSName,
+        };
+        SetupStage1();
+    }
+
+
+
+    /// <summary>
+    /// Performs initial setup of the SupportMethods object.  Then starts the SetupStage2Async 
+    /// </summary>
+    private void SetupStage1()
+    {
+        serilog = new LoggerConfiguration().WriteTo.Console().Enrich.FromLogContext().CreateLogger();
+
         if (_faker == null)
             _faker = new Faker();
 
         FileSystem = new MockFileSystem();
 
-        Initialize = SetupAsync(useTransactions, useDatabase);
+        Initialize = SetupStage2Async();
 
-        switch (createFolders)
+        switch (_smConfiguration.FolderCreationSetting)
         {
             case EnumFolderCreation.Test:
                 CreateTestFolders();
@@ -68,11 +110,10 @@ public class SupportMethods
     /// caller must call await Initialize to ensure these operations have completed.
     /// </summary>
     /// <returns></returns>
-    private async Task SetupAsync(bool useTransactions,
-                                  bool useDatabase)
+    private async Task SetupStage2Async()
     {
         // Create a Context specific to this object.  Everything will be run in an uncommitted transaction
-        if (useDatabase)
+        if (_smConfiguration.UseDatabase)
         {
             DB = DatabaseSetup_Test.CreateContext();
             LoadDatabaseInfo();
@@ -80,7 +121,7 @@ public class SupportMethods
 
 
             ConsoleColor color = ConsoleColor.Green;
-            if (useTransactions)
+            if (_smConfiguration.UseTransactions)
             {
                 DB.Database.BeginTransaction();
                 tmsg =
@@ -89,27 +130,55 @@ public class SupportMethods
             }
 
             Console.ForegroundColor = color;
-            Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", useTransactions.ToString());
+            Console.WriteLine("*************$$$$$$$$$$$$$$$$$$$$   Using Transactions: {0}   $$$$$$$$$$$$$$$$$$$$*************", _smConfiguration.UseTransactions.ToString());
             Console.WriteLine(tmsg);
             Console.ForegroundColor = ConsoleColor.White;
 
 
-            // Setup DocumentServer Engine
-            DocumentServerInformation dsi = new DocumentServerInformation(DB);
-            await dsi.Initialize;
+            // Setup DocumentServerInformation Engine Configuration
+            DocumentServerInformationBuilder dsiBuilder = new DocumentServerInformationBuilder(serilog).UseNodeKey(NodeKey).UseDatabase(DB)
+                                                                                                       .SetCacheExpiration(DocumentServerInformation.CACHE_TTL)
+                                                                                                       .TestRemoteNodePort(SecondAPI.Port);
+
+            // Use OverrideHost name if specified
+            if (_smConfiguration.OverrideDNSName)
+            {
+                ServerHost overrideHost = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+                dsiBuilder.TestOverrideServerDNSName(overrideHost.NameDNS);
+            }
+
+
+            DocumentServerInformation = await dsiBuilder.BuildAndAwaitInitialization();
 
 
             DocumentServerEngine = new DocumentServerEngine(_logger,
                                                             DB,
-                                                            dsi,
+                                                            DocumentServerInformation,
+                                                            NodeHttpClient,
                                                             FileSystem);
+        }
+
+        // If start Second API Instance - Get it going...
+        if (_smConfiguration.StartSecondAPIInstance && SecondAPI.IsInitialized == false)
+        {
+            //SecondAPI  = new SecondAPI();
+            ServerHost secondHost      = (ServerHost)this.IDLookupDictionary.GetValueOrDefault("ServerHost_B");
+            Result     secondAPIResult = SecondAPI.StartAPI(secondHost.NameDNS, DB.Database.GetConnectionString(), NodeKey);
+            IsInitialized = false;
+            return;
         }
 
         IsInitialized = true;
     }
 
 
-    public Task Initialize { get; }
+    public static NodeToNodeHttpClient NodeHttpClient { get; private set; } = new NodeToNodeHttpClient(new HttpClient());
+
+
+    /// <summary>
+    /// This is the Initialize Task.  Must be called to finalize setup of key objects
+    /// </summary>
+    public Task Initialize { get; private set; }
 
     /// <summary>
     ///     Returns the DB Context
@@ -118,14 +187,39 @@ public class SupportMethods
 
 
     /// <summary>
+    /// The Node key for this host when Unit Testing.
+    /// </summary>
+    public string NodeKey
+    {
+        get { return "UT_KEY"; }
+    }
+
+    /// <summary>
     /// Returns True if all initialization is completed.
     /// </summary>
     public bool IsInitialized { get; private set; }
+
+
+    public void Shutdown()
+    {
+        if (!IsInitialized)
+            return;
+
+        SecondAPI.StopSecondAPI();
+        IsInitialized = false;
+    }
+
 
     /// <summary>
     ///     Return the DocumentServerEngine
     /// </summary>
     public DocumentServerEngine DocumentServerEngine { get; private set; }
+
+    /// <summary>
+    ///    Returns the DocumentServerInformation object
+    /// </summary>
+    public DocumentServerInformation DocumentServerInformation { get; private set; }
+
 
     /// <summary>
     ///     Returns the Document Type for a Replaceable document
@@ -171,9 +265,17 @@ public class SupportMethods
 
 
     /// <summary>
+    /// Stores key database objects for quicker access and retrieval
+    /// </summary>
+    public Dictionary<string, object> IDLookupDictionary
+    {
+        get { return DatabaseSetup_Test.IdLookupDictionary; }
+    }
+
+    /// <summary>
     ///     Returns the Mocked File System
     /// </summary>
-    public MockFileSystem FileSystem { get; }
+    public MockFileSystem FileSystem { get; private set; }
 
     public string Folder_Prod => TestConstants.FOLDER_PROD;
     public string Folder_Prod_Primary => TestConstants.FOLDER_PROD_PRIMARY;
@@ -261,6 +363,15 @@ public class SupportMethods
 
 
     /// <summary>
+    /// Returns the Actual Serilog logger
+    /// </summary>
+    public ILogger Logger
+    {
+        get { return serilog; }
+    }
+
+
+    /// <summary>
     ///     Resets the DB Context, by creating a new one, which means it is completely empty.
     /// </summary>
     /// <returns></returns>
@@ -289,7 +400,6 @@ public class SupportMethods
                                                               int sizeInKB = 3)
     {
         // A10. Create A Document
-
         string fileName = sm.WriteRandomFile(sm.FileSystem,
                                              sm.Folder_Test,
                                              expectedExtension,
@@ -303,7 +413,7 @@ public class SupportMethods
         FormFile formFile = GetFormFile(fullPath);
         Assert.That(formFile.Length, Is.Not.EqualTo(0), "TFX_GenerateUploadFile Formfile is zero length");
 
-        // B.  Now Store it in the DocumentServer
+        // B.  Now Store the file information 
         TransferDocumentDto upload = new()
         {
             Description       = expectedDescription,
@@ -319,7 +429,32 @@ public class SupportMethods
 
 
     /// <summary>
-    ///     Writes a random file out with a random filename
+    /// Shorter version of the TFX_GenerateUploadFile
+    /// </summary>
+    /// <param name="expectedDocTypeId"></param>
+    /// <param name="expectedRootObjectId"></param>
+    /// <param name="expectedDocExtKey"></param>
+    /// <param name="sizeInKB"></param>
+    /// <returns></returns>
+    public Result<TransferDocumentDto> TFX_GenerateUploadFile(int expectedDocTypeId,
+                                                              string expectedRootObjectId,
+                                                              string? expectedDocExtKey,
+                                                              int sizeInKB = 3)
+    {
+        string description = this.Faker.Random.String2(10, 30);
+        string extension   = this.Faker.Random.String2(3);
+        return TFX_GenerateUploadFile(this,
+                                      description,
+                                      extension,
+                                      expectedDocTypeId,
+                                      expectedRootObjectId,
+                                      expectedDocExtKey,
+                                      sizeInKB);
+    }
+
+
+    /// <summary>
+    ///     Writes a random file with the given parameters and returns the filename
     /// </summary>
     /// <param name="fileSystem"></param>
     /// <param name="path"></param>

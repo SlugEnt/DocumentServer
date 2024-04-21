@@ -89,7 +89,8 @@ public class Test_DocumentType
                                                                          EnumStorageMode.WriteOnceReadMany,
                                                                          1,
                                                                          1,
-                                                                         1);
+                                                                         1,
+                                                                         markDocumentTypeActive);
         Assert.That(docResult.IsSuccess, Is.True, "B10");
         Assert.That(docResult.Value, Is.Not.Null, "B20:");
         DocumentType documentType = docResult.Value;
@@ -97,7 +98,7 @@ public class Test_DocumentType
         documentType.IsActive = markDocumentTypeActive;
         Assert.That(documentType.IsActive, Is.EqualTo(markDocumentTypeActive), "B20:");
         sm.DB.DocumentTypes.Add(documentType);
-        Console.WriteLine("Saving Step 1..." + DateTime.Now);
+
 #if DEBUG
         Console.WriteLine("DB Context ID is {0}", sm.DB.ContextId);
 
@@ -108,6 +109,12 @@ public class Test_DocumentType
 #endif
         await sm.DB.SaveChangesAsync();
         Console.WriteLine("Saved Step 1!");
+
+
+        //***  B)  We need to force load the cache since we are bypassing the normal methods
+        Result cacheResult = sm.DocumentServerInformation.LoadCachedObjects(sm.DB);
+        Assert.That(cacheResult.IsSuccess, Is.True, "B10: The cache failed to load.");
+
 
         //***  C. Create a document
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
@@ -171,12 +178,13 @@ public class Test_DocumentType
                                                                          EnumStorageMode.WriteOnceReadMany,
                                                                          1,
                                                                          1,
-                                                                         1);
+                                                                         1,
+                                                                         false);
         Assert.That(docResult.IsSuccess, Is.True, "B10");
         Assert.That(docResult.Value, Is.Not.Null, "B20:");
         DocumentType documentType = docResult.Value;
 
-        Assert.That(documentType.IsActive, Is.False, "B10:  Document Type ActiveStatus should always be False upon creation");
+        Assert.That(documentType.IsActive, Is.False, "B10:  ");
         sm.DB.Add(documentType);
         await sm.DB.SaveChangesAsync();
 
@@ -228,7 +236,7 @@ public class Test_DocumentType
 
 
         //***  Z.  Validate
-        Assert.That(documentType.IsActive, Is.False, "Z10:  Document Type ActiveStatus should always be False upon creation");
+        Assert.That(documentType.IsActive, Is.True, "Z10:  Document Type ActiveStatus should always be True upon creation");
         Assert.That(documentType.ActiveStorageNode2Id, Is.Null, "Z20:");
         Assert.That(documentType.ArchivalStorageNode1Id, Is.Null, "Z20:");
         Assert.That(documentType.ArchivalStorageNode2Id, Is.Null, "Z30:");

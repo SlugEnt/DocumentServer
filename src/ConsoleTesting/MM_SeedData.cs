@@ -147,9 +147,9 @@ public partial class MainMenu
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                @"T:\ProgrammingTesting\absmgt_primary1");
+                                @"T:\ProgrammingTesting\absmgt_primary1",
+                                true);
         snode.ServerHostId = 1;
-        snode.IsActive     = true;
         _db.Add(snode);
 
         snode = new StorageNode("AbsenceMgt Secondary",
@@ -157,9 +157,9 @@ public partial class MainMenu
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                @"T:\ProgrammingTesting\absmgt_secondary1");
+                                @"T:\ProgrammingTesting\absmgt_secondary1",
+                                true);
         snode.ServerHostId = 1;
-        snode.IsActive     = true;
         _db.Add(snode);
     }
 }

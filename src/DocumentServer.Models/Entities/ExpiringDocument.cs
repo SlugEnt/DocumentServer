@@ -23,6 +23,8 @@ public class ExpiringDocument
     public long StoredDocumentId { get; set; }
 
 
+#region "Non Fields"
+
     /// <summary>
     ///     Constructor - Date is automatically calculated.  For ParentDefined Lifetime the 2nd parameter is expected
     /// </summary>
@@ -67,4 +69,6 @@ public class ExpiringDocument
 
         return Result.Ok(expiringDocument);
     }
+
+#endregion
 }

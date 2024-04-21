@@ -33,6 +33,9 @@ public class DocumentsController : ControllerBase
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
+    [HttpGet("/IsAlive")]
+    public async Task<ActionResult> IsAlive() { return Ok(); }
+
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/stream")]
@@ -151,18 +154,9 @@ public class DocumentsController : ControllerBase
     {
         try
         {
-            /*TransferDocumentContainer txfDocumentContainer = new()
-            {
-                TransferDocument = documentContainer.Info,
-                FileInFormFile   = documentContainer.File,
-            };
-
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer, appToken);
-            */
             Result<StoredDocument> result = await _docEngine.StoreDocumentNew(docDTO, appToken);
             if (result.IsSuccess)
                 return Ok(result.Value.Id);
-
 
             return Problem(result.ToString());
         }

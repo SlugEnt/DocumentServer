@@ -11,7 +11,11 @@ namespace SlugEnt.DocumentServer.Core
     /// </summary>
     public class DocumentServerFromAppSettings
     {
-        public string DataFolder { get; set; } = string.Empty;
-        public string ServerName { get; set; } = string.Empty;
+        public string NodeKey { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The size in KB that is the initial limit for sending a document to a remote node on the initial save
+        /// </summary>
+        public int RemoteSizeThreshold { get; set; }
     }
 }

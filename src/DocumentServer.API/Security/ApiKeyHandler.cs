@@ -21,7 +21,7 @@ public class ApiKeyHandler : AuthorizationHandler<ApiKeyRequirement>
         AuthorizationHandlerContext context,
         ApiKeyRequirement requirement)
     {
-        string apiKey = _httpContextAccessor?.HttpContext?.Request.Headers[ApiKeyConstants.ApiKeyHeaderName].ToString();
+        string apiKey = _httpContextAccessor?.HttpContext?.Request.Headers[ApiConstants.ApiKeyHeaderName].ToString();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             context.Fail();

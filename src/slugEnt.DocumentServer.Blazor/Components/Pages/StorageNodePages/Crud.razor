@@ -5,12 +5,14 @@
 @using SlugEnt.DocumentServer.Core
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.EntityManager
 @using SlugEnt.DocumentServer.Models.Enums
+@using SlugEnt.FluentResults
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+@inject EntityRules _entityRules
 
 
 <h1>@_pageTitle</h1>
@@ -104,9 +106,9 @@
 
 
 @code {
-    private readonly StorageNode             _storageNode = new();
+    private StorageNode             _storageNode = new();
     private          IEnumerable<ServerHost> _serverHosts = new List<ServerHost>();
-
+    private          StorageNode            _original    = new();
 
     // Constructor
     public Crud() : base("Storage Node", "storagenodes") { }
@@ -144,12 +146,21 @@
     {
         bool retrieveRecord = _storageNode == null || _storageNode.Id != recordId ? true : false;
 
-        if (!retrieveRecord)
-            return;
+        if (retrieveRecord)
+        {
+            StorageNode existingEntity = DB.StorageNodes.SingleOrDefault(sn => sn.Id == recordId);
 
-        StorageNode? ro = await DB.StorageNodes.SingleOrDefaultAsync(sn => sn.Id == recordId);
-        if (ro == null)
-            _errMsg = "Unable to locate the StorageNode with Id of [ " + recordId + " ].  Unable to continue";
+            if (existingEntity == null)
+            {
+                _errMsg = "Unable to locate the StorageNode with Id of [ " + recordId + " ].  Unable to continue";
+                return;
+            }
+
+            _original     = existingEntity;
+            _storageNode = _original.Copy();
+        }
+
+
     }
 
 
@@ -160,9 +171,12 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        DB.StorageNodes.Add(_storageNode);
-        await DB.SaveChangesAsync();
-        ReturnToList();
+        EntityRules    entityRules = new(DB);
+        Result<string> saveResult  = await entityRules.SaveStorageNodeAsync(_storageNode);
+        if (saveResult.IsSuccess)
+            ReturnToList();
+        else
+            _errMsg = saveResult.ToString();
     }
 
 
@@ -184,7 +198,9 @@
     /// <returns></returns>
     public async Task DeleteEntity()
     {
-        bool result = await docEngine.RootObjectDeleteAsync(_storageNode.Id);
+        // TODO this is wrong object!!!
+        bool result = true;
+        //bool result = await _entityRules.RootObjectDeleteAsync(_storageNode.Id);
         if (result)
         {
             _successMsg = string.Format("StorageNode {0} [ {1} ] was successfully inactivated.", _storageNode.Name, _storageNode.Id);

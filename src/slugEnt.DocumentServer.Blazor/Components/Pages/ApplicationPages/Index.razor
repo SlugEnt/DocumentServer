@@ -47,6 +47,7 @@
     protected IEnumerable<Application> _applications = Enumerable.Empty<Application>();
     protected IList<Application>?      _selectedApplications;
     protected bool                     _showInActive;
+    private   string                   _pageReferenceName = "applications";
 
     protected bool SetIsActive
     {
@@ -82,8 +83,9 @@
     }
 
 
-    protected void AddNew() { NavigationManager.NavigateTo("applications/crud/C"); }
+    protected void AddNew() { NavigationManager.NavigateTo(_pageReferenceName + "/crud/C"); }
 
-    protected void OnEdit(int Id) { }
+
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo("applications/CRUD/E/" + Id); }
     protected void OnDetails(int Id) { }
 }

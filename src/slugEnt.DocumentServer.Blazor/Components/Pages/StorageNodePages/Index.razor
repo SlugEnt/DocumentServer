@@ -43,7 +43,7 @@
         </RadzenDataGridColumn>         
         <RadzenDataGridColumn TItem="StorageNode" Property="StorageSpeed" Title="Speed" Frozen="true" Width="14px" />
 
-        <RadzenDataGridColumn Width="100px" TItem="DocumentType" Property="ID" Title="Document Actions">
+        <RadzenDataGridColumn Width="100px" TItem="StorageNode" Property="ID" Title="Storage Node Actions">
             <Template Context="data">
                 <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => OnDetails(data.Id)) Text="Details" />
                 <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => OnEdit(data.Id)) Text="Edit" />
@@ -58,6 +58,7 @@
     protected IEnumerable<StorageNode> _storageNodes = Enumerable.Empty<StorageNode>();
     protected IList<StorageNode>       _selectedNodes;
     protected bool                     _showInActive;
+    private   string                   _pageReferenceName = "storagenodes";
 
     protected bool SetIsActive
     {
@@ -106,6 +107,6 @@
 
     protected void AddNew() { NavigationManager.NavigateTo("storagenodes/crud/C"); }
 
-    protected void OnEdit(int Id) {}
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo(_pageReferenceName + "/CRUD/E/" + Id); }
     protected void OnDetails(int Id) {}
 }

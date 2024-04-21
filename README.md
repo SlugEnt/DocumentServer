@@ -75,7 +75,9 @@ WORM Cannot be replaced, Cannot be deleted
 Temporary - Can be replaced, can be deleted.
 Replacable - Can be replaced, cannot be deleted
 
-
+## Internals
+This section describes some of the internal Logic.
+The DocumentServerEngine is a transient object.  However, it needs to keep track of a lot of information between instances.  To do this it uses the DocumentServerInformation ojbect.  This is a singleton object and contains inital Engine setup values as well as cached values that the Engine needs to run efficiently.
 
 ## Unit Testing
 ### ENABLE_TRANSACTIONS
@@ -98,6 +100,14 @@ For these special cases where you need to debug a specific unit test, you can tu
   DocumentServer_Test\SupportObjects\DatabaseSetup_Test.cs file.  
 
   Just #undef it to to turn off the database reset.
+
+  # Building Migration Bundler
+  The migration bundler takes migrations and puts them into an executable that can be run against a database and it will automatically apply the migrations that are needed for that database.
+
+  To build the bundle.  Go to the Package Manager Console, ensure the DocumentServer.Db is set as defaultProject.
+  Then run this command
+  
+  dotnet ef migrations bundle -p BundleBuilderSimple --output t:\temp\SlugEnt.DocumentServer.MigrationBundle.exe --self-contained -r linux-x64
 
 
   # Some Statistics

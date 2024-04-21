@@ -19,21 +19,34 @@
 
 
 <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
-                Data="@_serverHosts"  TItem="ServerHost" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedHosts">
+                Data="@_serverHosts"  TItem="ServerHost" ColumnWidth="60px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@_selectedHosts">
     <Columns>
-        <RadzenDataGridColumn TItem="ServerHost" Property="NameDNS" Title="DNS Name" Filterable="false" Frozen="true" Width="55px" TextAlign="TextAlign.Left" />
-        <RadzenDataGridColumn TItem="ServerHost" Property="FQDN" Title="Fully Qualified Domain Name" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left"/>
-        <RadzenDataGridColumn TItem="ServerHost" Property="Path" Title="Folder Path on Server" Frozen="true" Sortable="false" Filterable="false" Width="55px" TextAlign="TextAlign.Left" />
-        <RadzenDataGridColumn TItem="ServerHost" Property="IsActive" Title="Active" Frozen="true" Width="18px">
+
+        <RadzenDataGridColumn Width="120px" TItem="ServerHost" Property="ID" Title="Actions">
+            <Template Context="data">
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info"  Click=@(() => OnDetails(data.Id)) Text="Details"/>
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit"  Click=@(() => OnEdit(data.Id)) Text="Edit"/>
+
+                <RadzenIcon Icon="info" IconColor="@Colors.Info" class="m-1" Click=@(() => OnDetails(data.Id)) Text="Details"/>
+                <RadzenIcon Icon="edit" IconColor="@Colors.Danger" class="m-1" Click=@(() => OnEdit(data.Id)) Text="Edit"/>
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Width="200px" TItem="ServerHost" Property="NameDNS" Title="DNS Name" Filterable="false" Frozen="true" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn Width="250px" TItem="ServerHost" Property="FQDN" Title="Fully Qualified Domain Name" Frozen="true" Sortable="false" Filterable="false" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn Width="250px" TItem="ServerHost" Property="Path" Title="Folder Path on Server" Frozen="true" Sortable="false" Filterable="false" TextAlign="TextAlign.Left"/>
+        <RadzenDataGridColumn Width="75px" TItem="ServerHost" Property="IsActive" Title="Active" Frozen="true">
             <Template>
                 <RadzenCheckBox @bind-Value=@context.IsActive ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true" Width="18px">
+        <RadzenDataGridColumn Width="75px" TItem="StorageNode" Property="IsTestNode" Title="Is Test" Frozen="true">
             <Template>
                 <RadzenCheckBox @bind-Value=@context.IsTestNode ReadOnly="true"></RadzenCheckBox>
             </Template>
         </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Width="150px" TItem="ServerHost"></RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
 
@@ -43,6 +56,7 @@
     protected IEnumerable<ServerHost> _serverHosts = Enumerable.Empty<ServerHost>();
     protected IList<ServerHost>?      _selectedHosts;
     protected bool                    _showInActive;
+    private   string                  _pageReferenceName = "serverhosts";
 
     protected bool SetIsActive
     {
@@ -80,6 +94,6 @@
 
     protected void AddNew() { NavigationManager.NavigateTo("serverhosts/crud/C"); }
 
-    protected void OnEdit(int Id) { }
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo(_pageReferenceName + "/CRUD/E/" + Id); }
     protected void OnDetails(int Id) { }
 }

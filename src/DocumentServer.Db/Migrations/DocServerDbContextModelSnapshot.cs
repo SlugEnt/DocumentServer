@@ -17,7 +17,7 @@ namespace SlugEnt.DocumentServer.Db.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.2")
+                .HasAnnotation("ProductVersion", "8.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -143,6 +143,43 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.ToTable("ExpiringDocuments");
                 });
 
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.ReplicationTask", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUTC")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAtUTC")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReplicateFromStorageNodeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReplicateToStorageNodeId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("StoredDocumentId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplicateFromStorageNodeId");
+
+                    b.HasIndex("ReplicateToStorageNodeId");
+
+                    b.HasIndex("StoredDocumentId");
+
+                    b.ToTable("ReplicationTasks");
+                });
+
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.RootObject", b =>
                 {
                     b.Property<int>("Id")
@@ -244,8 +281,8 @@ namespace SlugEnt.DocumentServer.Db.Migrations
 
                     b.Property<string>("NodePath")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<short>("ServerHostId")
                         .HasColumnType("smallint");
@@ -343,6 +380,42 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.ToTable("StoredDocuments");
                 });
 
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.VitalInfo", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("LastUpdateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("ValueLong")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ValueString")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VitalInfos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "LastKeyEntityUpdate",
+                            LastUpdateUtc = new DateTime(1, 1, 1, 0, 0, 0, 1, DateTimeKind.Unspecified),
+                            Name = "Last Update to Key Entities",
+                            ValueLong = 0L,
+                            ValueString = ""
+                        });
+                });
+
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.DocumentType", b =>
                 {
                     b.HasOne("SlugEnt.DocumentServer.Models.Entities.StorageNode", "ActiveStorageNode1")
@@ -384,6 +457,33 @@ namespace SlugEnt.DocumentServer.Db.Migrations
                     b.Navigation("ArchivalStorageNode2");
 
                     b.Navigation("RootObject");
+                });
+
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.ReplicationTask", b =>
+                {
+                    b.HasOne("SlugEnt.DocumentServer.Models.Entities.StorageNode", "ReplicateFromStorageNode")
+                        .WithMany("ReplicationTaskFromNodes")
+                        .HasForeignKey("ReplicateFromStorageNodeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlugEnt.DocumentServer.Models.Entities.StorageNode", "ReplicateToStorageNode")
+                        .WithMany("ReplicationTaskToNodes")
+                        .HasForeignKey("ReplicateToStorageNodeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SlugEnt.DocumentServer.Models.Entities.StoredDocument", "StoredDocument")
+                        .WithMany("StoredDocumentsNeedingReplication")
+                        .HasForeignKey("StoredDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReplicateFromStorageNode");
+
+                    b.Navigation("ReplicateToStorageNode");
+
+                    b.Navigation("StoredDocument");
                 });
 
             modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.RootObject", b =>
@@ -453,7 +553,16 @@ namespace SlugEnt.DocumentServer.Db.Migrations
 
                     b.Navigation("PrimaryNodeStoredDocuments");
 
+                    b.Navigation("ReplicationTaskFromNodes");
+
+                    b.Navigation("ReplicationTaskToNodes");
+
                     b.Navigation("SecondaryNodeStoredDocuments");
+                });
+
+            modelBuilder.Entity("SlugEnt.DocumentServer.Models.Entities.StoredDocument", b =>
+                {
+                    b.Navigation("StoredDocumentsNeedingReplication");
                 });
 #pragma warning restore 612, 618
         }

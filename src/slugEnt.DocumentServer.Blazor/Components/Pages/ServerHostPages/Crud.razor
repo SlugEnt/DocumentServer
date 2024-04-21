@@ -5,12 +5,12 @@
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
-@using SlugEnt.DocumentServer.Core
+<!--@using SlugEnt.DocumentServer.Core -->
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+
 
 
 <h1>@_pageTitle</h1>
@@ -40,7 +40,10 @@
             <RadzenFormField Text="Path to Data Folder on Server" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_serverHost.Path" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-
+            <RadzenFormField Text="Is Active" Variant="@radDisplay" style="width: 100%">
+                <RadzenCheckBox @bind-Value=@_serverHost.IsActive TriState="false" TValue="bool" ReadOnly="@_canEdit" />
+            </RadzenFormField>
+            
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
@@ -74,7 +77,7 @@
 
 @code {
     private          List<ApplicationSelectDto> _applicationsSelectDtos = new();
-    private readonly ServerHost                 _serverHost             = new();
+    private          ServerHost                 _serverHost             = new();
 
 
 
@@ -114,6 +117,7 @@
         ServerHost? ro = await DB.ServerHosts.SingleOrDefaultAsync(sh => sh.Id == recordId);
         if (ro == null)
             _errMsg = "Unable to locate the RootObject with Id of [ " + recordId + " ].  Unable to continue";
+        _serverHost = ro;
     }
 
 

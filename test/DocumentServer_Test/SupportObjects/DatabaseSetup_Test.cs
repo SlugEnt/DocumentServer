@@ -4,6 +4,7 @@
 
 using System.Net;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic.CompilerServices;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.DocumentServer.Models.Entities;
 using SlugEnt.DocumentServer.Models.Enums;
@@ -36,6 +37,7 @@ public static class DatabaseSetup_Test
                 DocServerDbContext context = CreateContext();
                 context.Database.EnsureDeleted();
                 context.Database.EnsureCreated();
+                ;
 
                 SeedData(context);
 
@@ -54,10 +56,11 @@ public static class DatabaseSetup_Test
     /// <returns></returns>
     public static DocServerDbContext CreateContext()
     {
-        DocServerDbContext = new DocServerDbContext(
-                                                    new DbContextOptionsBuilder<DocServerDbContext>()
-                                                        .UseSqlServer(ConnectionString)
-                                                        .Options);
+        DbContextOptionsBuilder<DocServerDbContext> optionsBuilder = new();
+        optionsBuilder.UseSqlServer(connectionString: ConnectionString);
+        optionsBuilder.EnableSensitiveDataLogging();
+
+        DocServerDbContext = new DocServerDbContext(optionsBuilder.Options);
         return DocServerDbContext;
     }
 
@@ -68,7 +71,7 @@ public static class DatabaseSetup_Test
     /// <summary>
     /// Used to stored Id's for objects used during testing.
     /// </summary>
-    public static Dictionary<string, int> IdLookupDictionary { get; private set; } = new Dictionary<string, int>();
+    public static Dictionary<string, object> IdLookupDictionary { get; private set; } = new Dictionary<string, object>();
 
 
     private static void SeedData(DocServerDbContext db)
@@ -89,8 +92,8 @@ public static class DatabaseSetup_Test
         db.Add(appA);
         db.Add(appB);
         db.SaveChanges();
-        IdLookupDictionary.Add(appA.Name, appA.Id);
-        IdLookupDictionary.Add(appB.Name, appB.Id);
+        IdLookupDictionary.Add(appA.Name, appA);
+        IdLookupDictionary.Add(appB.Name, appB);
 
 
         // Add a Root Object For each Application
@@ -98,44 +101,59 @@ public static class DatabaseSetup_Test
         {
             ApplicationId = appA.Id,
             Name          = "Claim #",
-            Description   = "Claim Number of Auto Policy"
+            Description   = "Claim Number of Auto Policy",
+            IsActive      = true,
         };
 
         RootObject rootB = new()
         {
             ApplicationId = appB.Id,
             Name          = "Movie #",
-            Description   = "The movie"
+            Description   = "The movie",
+            IsActive      = true,
         };
 
         RootObject rootC = new()
         {
             ApplicationId = appB.Id,
             Name          = "Actor",
-            Description   = "The actors professional screen writers Id"
+            Description   = "The actors professional screen writers Id",
+            IsActive      = true,
         };
 
         db.Add(rootA);
         db.Add(rootB);
         db.Add(rootC);
         db.SaveChanges();
-        IdLookupDictionary.Add("Root_A_App_A", rootA.Id);
-        IdLookupDictionary.Add("Root_B_App_B", rootB.Id);
-        IdLookupDictionary.Add("Root_C_App_B", rootC.Id);
+        IdLookupDictionary.Add("Root_A", rootA);
+        IdLookupDictionary.Add("Root_B", rootB);
+        IdLookupDictionary.Add("Root_C", rootC);
 
 
         //  Add ServerHost
+        //  - HostA must always be the localhost DNS name or unit tests will fail.
         string localHost = Dns.GetHostName();
         ServerHost hostA = new()
         {
             IsActive = true,
             NameDNS  = localHost,
             FQDN     = localHost + ".abc.local",
-            Path     = "hostA",
+            Path     = @"C:\hostA",
         };
         db.Add(hostA);
+
+        // HostB can be anything
+        ServerHost hostB = new()
+        {
+            IsActive = true,
+            NameDNS  = "otherHost",
+            FQDN     = "localhost",
+            Path     = @"t:\programmingTest\OtherHost\hostB",
+        };
+        db.Add(hostB);
         db.SaveChanges();
-        IdLookupDictionary.Add("ServerHost_A", hostA.Id);
+        IdLookupDictionary.Add("ServerHost_A", hostA);
+        IdLookupDictionary.Add("ServerHost_B", hostB);
 
 
         // Add Storage Nodes
@@ -144,7 +162,8 @@ public static class DatabaseSetup_Test
                                 true,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_TEST_PRIMARY);
+                                TestConstants.FOLDER_TEST_PRIMARY,
+                                true);
         testA.ServerHostId = hostA.Id;
 
         StorageNode testB = new(TestConstants.STORAGE_NODE_TEST_B,
@@ -152,7 +171,8 @@ public static class DatabaseSetup_Test
                                 true,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_TEST_SECONDARY);
+                                TestConstants.FOLDER_TEST_SECONDARY,
+                                true);
         testB.ServerHostId = hostA.Id;
 
         // True Production Nodes
@@ -161,7 +181,8 @@ public static class DatabaseSetup_Test
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_PROD_PRIMARY);
+                                TestConstants.FOLDER_PROD_PRIMARY,
+                                true);
         prodX.ServerHostId = hostA.Id;
 
         StorageNode prodY = new(TestConstants.STORAGE_NODE_PROD_Y,
@@ -169,14 +190,40 @@ public static class DatabaseSetup_Test
                                 false,
                                 EnumStorageNodeLocation.HostedSMB,
                                 EnumStorageNodeSpeed.Hot,
-                                TestConstants.FOLDER_PROD_SECONDARY);
+                                TestConstants.FOLDER_PROD_SECONDARY,
+                                true);
         prodY.ServerHostId = hostA.Id;
+
+        StorageNode testC1 = new("testC1",
+                                 "Test Node C1 - Main Host",
+                                 false,
+                                 EnumStorageNodeLocation.HostedSMB,
+                                 EnumStorageNodeSpeed.Hot,
+                                 TestConstants.FOLDER_TEST_PRIMARYC,
+                                 true);
+        testC1.ServerHostId = hostA.Id;
+
+        StorageNode testC2 = new("testC2",
+                                 "Test Node C2 - Other Host",
+                                 false,
+                                 EnumStorageNodeLocation.HostedSMB,
+                                 EnumStorageNodeSpeed.Hot,
+                                 TestConstants.FOLDER_TEST_SECONDARYC,
+                                 true);
+        testC2.ServerHostId = hostB.Id;
         db.AddRange(testA,
                     testB,
+                    testC1,
                     prodX,
-                    prodY);
+                    prodY,
+                    testC2);
         db.SaveChanges();
-
+        IdLookupDictionary.Add("StorageNode_A", testA);
+        IdLookupDictionary.Add("StorageNode_B", testB);
+        IdLookupDictionary.Add("StorageNode_C1", testC1);
+        IdLookupDictionary.Add("StorageNode_C2", testC2);
+        IdLookupDictionary.Add("StorageNode_X", prodX);
+        IdLookupDictionary.Add("StorageNode_Y", prodY);
 
         // Add Document Types
         DocumentType docA = new()
@@ -185,9 +232,10 @@ public static class DatabaseSetup_Test
             Description        = "Test Doc Type A - WORM",
             Application        = appA,
             RootObject         = rootA,
+            StorageFolderName  = "WormA",
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = testA,
-            ActiveStorageNode2 = testB,
+            ActiveStorageNode2 = null,
             IsActive           = true
         };
         DocumentType docB = new()
@@ -196,9 +244,10 @@ public static class DatabaseSetup_Test
             Description        = "Test Doc Type B - Temporary",
             Application        = appA,
             RootObject         = rootB,
+            StorageFolderName  = "TempB",
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = testA,
-            ActiveStorageNode2 = testB,
+            ActiveStorageNode2 = null,
             IsActive           = true
         };
         DocumentType docC = new()
@@ -207,9 +256,10 @@ public static class DatabaseSetup_Test
             Description        = "Test Doc Type C - Editable",
             Application        = appA,
             RootObject         = rootC,
+            StorageFolderName  = "EditC",
             StorageMode        = EnumStorageMode.Editable,
             ActiveStorageNode1 = testA,
-            ActiveStorageNode2 = testB,
+            ActiveStorageNode2 = null,
             IsActive           = true
         };
         DocumentType docX = new()
@@ -218,9 +268,10 @@ public static class DatabaseSetup_Test
             Description        = "Prod Doc Type X - WORM",
             Application        = appB,
             RootObject         = rootA,
+            StorageFolderName  = "PWormX",
             StorageMode        = EnumStorageMode.WriteOnceReadMany,
             ActiveStorageNode1 = prodX,
-            ActiveStorageNode2 = prodY,
+            ActiveStorageNode2 = null,
             IsActive           = true
         };
         DocumentType docY = new()
@@ -229,9 +280,10 @@ public static class DatabaseSetup_Test
             Description        = "Prod Doc Type Y - Temporary",
             Application        = appB,
             RootObject         = rootB,
+            StorageFolderName  = "PTempY",
             StorageMode        = EnumStorageMode.Temporary,
             ActiveStorageNode1 = prodX,
-            ActiveStorageNode2 = prodY,
+            ActiveStorageNode2 = null,
             IsActive           = true
         };
         DocumentType docRA = new()
@@ -240,11 +292,13 @@ public static class DatabaseSetup_Test
             Description        = "Prod Doc Type RA - Replaceable",
             Application        = appB,
             RootObject         = rootC,
+            StorageFolderName  = "PReplaceeRA",
             StorageMode        = EnumStorageMode.Replaceable,
             ActiveStorageNode1 = prodX,
             ActiveStorageNode2 = prodY,
             IsActive           = true
         };
+
         db.AddRange(docA,
                     docB,
                     docC,
@@ -252,11 +306,13 @@ public static class DatabaseSetup_Test
                     docY,
                     docRA);
         db.SaveChanges();
-        IdLookupDictionary.Add("DocType_A", docA.Id);
-        IdLookupDictionary.Add("DocType_B", docB.Id);
-        IdLookupDictionary.Add("DocType_C", docC.Id);
-        IdLookupDictionary.Add("DocType_X", docX.Id);
-        IdLookupDictionary.Add("DocType_Y", docY.Id);
-        IdLookupDictionary.Add("DocType_RA", docRA.Id);
+
+
+        IdLookupDictionary.Add("DocType_A", docA);
+        IdLookupDictionary.Add("DocType_B", docB);
+        IdLookupDictionary.Add("DocType_C", docC);
+        IdLookupDictionary.Add("DocType_X", docX);
+        IdLookupDictionary.Add("DocType_Y", docY);
+        IdLookupDictionary.Add("DocType_RA", docRA);
     }
 }

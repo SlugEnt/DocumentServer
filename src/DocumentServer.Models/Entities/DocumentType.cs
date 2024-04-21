@@ -15,16 +15,13 @@ namespace SlugEnt.DocumentServer.Models.Entities;
 ///     <para>2. How it is stored.  Temporary, permanent, editable</para>
 ///     <para>3. How long it is stored for</para>
 /// </summary>
-public class DocumentType : AbstractBaseEntity
+public class DocumentType : AbstractKeyEntity
 {
     private string _name;
     private string _storageFolderName = "";
 
     // Storage Nodes 
     public StorageNode? ActiveStorageNode1 { get; set; }
-
-
-    //public int ApplicationId { get; set; }
     public int? ActiveStorageNode1Id { get; set; }
     public StorageNode? ActiveStorageNode2 { get; set; }
     public int? ActiveStorageNode2Id { get; set; }
@@ -146,6 +143,7 @@ public class DocumentType : AbstractBaseEntity
                                                           int applicationId,
                                                           int rootObjectId,
                                                           int activeStorageNodeId,
+                                                          bool isActive = true,
                                                           EnumDocumentLifetimes lifeTime = EnumDocumentLifetimes.Never)
     {
         DocumentType x = new();
@@ -157,6 +155,7 @@ public class DocumentType : AbstractBaseEntity
         x.ApplicationId        = applicationId;
         x.ActiveStorageNode1Id = activeStorageNodeId;
         x.InActiveLifeTime     = lifeTime;
+        x.IsActive             = isActive;
 
         Result result = x.IsValid();
         if (result.IsSuccess)
@@ -167,8 +166,6 @@ public class DocumentType : AbstractBaseEntity
             sb.Append(Environment.NewLine + resultError);
 
         return Result.Fail(new Error(sb.ToString()));
-
-        throw new ArgumentException(sb.ToString());
     }
 
 #endregion

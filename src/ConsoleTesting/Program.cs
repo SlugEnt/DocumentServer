@@ -10,7 +10,7 @@ using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using ILogger = Serilog.ILogger;
-
+using System.Configuration;
 
 
 namespace SlugEnt.DocumentServer.ConsoleTesting;
@@ -20,18 +20,21 @@ public class Program
     private static ILogger _logger;
 
 
-    public static async Task Main(string[] args)
+    public static async Task Main(string sourceFolder = "",
+                                  string applicationToken = "abc",
+                                  string apiKey = "",
+                                  string outputFolder = @"T:\")
     {
 #if DEBUG
         Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
                                               .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
 #else
-			Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
-			                                      .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
+                                              .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
 #endif
                                               .Enrich.FromLogContext()
                                               .WriteTo.Console()
-                                              .CreateLogger();
+                                              .CreateLogger().ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
         _logger = Log.Logger;
         Log.Information("Starting {AppName}", Assembly.GetExecutingAssembly().GetName().Name);
 
@@ -54,17 +57,25 @@ public class Program
 
 
         // Load the Sensitive AppSettings.JSON file.
-        string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        //string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
+        string sensitiveFileName    = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
         string sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
         DisplayAppSettingStatus(sensitiveSettingFile);
+
+        // We also have the ConsoleTesting AppSensitive file
+        string sensitiveFileName2    = "SlugEnt.DocumentServer.ConsoleTesting_AppSettingsSensitive.json";
+        string sensitiveSettingFile2 = Path.Join(sensitiveAppSettings, sensitiveFileName2);
+        DisplayAppSettingStatus(sensitiveSettingFile2);
 
 
         // Add our custom AppSettings.JSON files
         IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(appSettingEnvFile, true, true)
-                                                                     .AddJsonFile(sensitiveSettingFile, true, true).Build();
+                                                                     .AddJsonFile(sensitiveSettingFile, true, true)
+                                                                     .AddJsonFile(sensitiveSettingFile2, true, true)
+                                                                     .Build();
 
 
-        using IHost host = Host.CreateDefaultBuilder(args)
+        using IHost host = Host.CreateDefaultBuilder()
 
                                // Add our custom config from above to the default configuration
                                .ConfigureAppConfiguration(config => { config.AddConfiguration(configuration); })
@@ -83,7 +94,6 @@ public class Program
 #if (DEBUG || SWAGGER)
                                                                   .LogTo(Console.WriteLine)
                                                                   .EnableDetailedErrors();
-
 #endif
                                                               ;
                                                           })
@@ -91,8 +101,9 @@ public class Program
                                                           .AddTransient<DocumentServerEngine>()
                                                           .AddSingleton<DocumentServerInformation>(dsi =>
                                                           {
-                                                              IConfiguration x = dsi.GetService<IConfiguration>();
-                                                              return DocumentServerInformation.Create(x);
+                                                              DocumentServerInformationBuilder dsiBuilder =
+                                                                  new DocumentServerInformationBuilder(_logger).UseConfiguration(configuration);
+                                                              return dsiBuilder.Build();
                                                           })
                                                           .AddHttpClient<AccessDocumentServerHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
                                                           {
@@ -110,6 +121,10 @@ public class Program
 #pragma warning disable CS4014
         host.RunAsync();
         MainMenu mainMenu = host.Services.GetRequiredService<MainMenu>();
+        mainMenu.BaseFolder       = sourceFolder;
+        mainMenu.ApplicationToken = applicationToken;
+        mainMenu.ApiKey           = apiKey;
+        mainMenu.DownloadFolder   = outputFolder;
         await mainMenu.Start();
         Log.CloseAndFlush();
 #pragma warning restore

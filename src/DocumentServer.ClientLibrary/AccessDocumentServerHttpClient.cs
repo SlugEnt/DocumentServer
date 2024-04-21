@@ -33,8 +33,6 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             PropertyNameCaseInsensitive = true,
         };
 
-//        _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
-
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
         _httpClient.Timeout = new TimeSpan(0, 0, 1000);
         _httpClient.DefaultRequestHeaders.Clear();
@@ -76,8 +74,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         {
             string qry = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.AppTokenHeaderName, appToken);
             using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(qry, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
@@ -114,8 +112,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         {
             string action = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.AppTokenHeaderName, appToken);
 
             ReturnedDocumentInfo? returnedDocumentInfo = await _httpClient.GetFromJsonAsync<ReturnedDocumentInfo>(action);
             return Result.Ok(returnedDocumentInfo);
@@ -206,8 +204,8 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             form.Add(new StringContent(transferDocumentDto.CurrentStoredDocumentId.ToString()), "CurrentStoredDocumentId");
 
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.ApiKeyHeaderName, _apiKey);
-            _httpClient.DefaultRequestHeaders.Add(ApiKeyConstants.AppTokenHeaderName, appToken);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.ApiKeyHeaderName, _apiKey);
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.AppTokenHeaderName, appToken);
             response = await _httpClient.PostAsync("documents", form);
 
             responseContent = await response.Content.ReadAsStringAsync();

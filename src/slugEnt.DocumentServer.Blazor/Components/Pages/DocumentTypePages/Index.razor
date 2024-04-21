@@ -26,14 +26,14 @@
         <RadzenDataGridColumn TItem="DocumentType" Property="Description" Title="Description"/>
         <RadzenDataGridColumn TItem="DocumentType" Property="StorageFolderName" Title="Storage Folder"/>
         
-        <!--
+        
         <RadzenDataGridColumn Width="160px" TItem="DocumentType" Property="ID" Title="Document Actions">
             <Template Context="data">
-                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => ProcessAction(data.Id, "Details")) Text="Details"/>
-                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => ProcessAction(data.Id, "Edit")) Text="Details"/>
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="info" class="m-1" Click=@(() => OnDetails(data.Id)) Text="Details"/>
+                <RadzenButton ButtonStyle="ButtonStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Icon="edit" class="m-1" Click=@(() => OnEdit(data.Id)) Text="Details"/>
             </Template>
         </RadzenDataGridColumn>
-        -->
+    
     </Columns>
 </RadzenDataGrid>
 
@@ -41,11 +41,11 @@
 @code
 {
     IEnumerable<DocumentType>? _documentTypes;
+    private string             _pageReferenceName = "documenttypes";
+    bool                       _isInitialized;
 
-    bool _isInitialized;
 
-
-    protected void AddNew() { NavigationManager.NavigateTo("documenttypes/crud/C"); }
+    protected void AddNew() { NavigationManager.NavigateTo( _pageReferenceName + "/crud/C"); }
 
 
     /// <summary>
@@ -106,4 +106,8 @@
         // Call the Dialog
         DialogService.Open<T>(title, parameters, dialogOptions);
     }
+
+
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo(_pageReferenceName + "/CRUD/E/" + Id); }
+    protected void OnDetails(int Id) { }
 }

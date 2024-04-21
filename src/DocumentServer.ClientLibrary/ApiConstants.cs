@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace SlugEnt.DocumentServer.Core;
 
-public static class ApiKeyConstants
+public static class ApiConstants
 {
     /// <summary>
     /// 
     /// </summary>
     public const string ApiKeyHeaderName = "X-API-Key";
+
+    public const string NodeKeyHeaderName = "X-Node-Key";
 
     public const string AppTokenHeaderName = "AppToken";
 }

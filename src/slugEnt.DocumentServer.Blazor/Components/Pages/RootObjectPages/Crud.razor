@@ -6,11 +6,13 @@
 @using SlugEnt.DocumentServer.Models.DTOS
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.EntityManager
+@using SlugEnt.FluentResults
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+@inject EntityRules _entityRules
 
 
 <h1>@_pageTitle</h1>
@@ -73,7 +75,7 @@
 
 @code {
     private          List<ApplicationSelectDto> _applicationsSelectDtos = new();
-    private readonly RootObject                 _rootObject             = new();
+    private          RootObject                 _rootObject             = new();
 
 
 
@@ -118,6 +120,7 @@
             return;
 
         RootObject? ro = await DB.RootObjects.SingleOrDefaultAsync(ro => ro.Id == recordId);
+        _rootObject = ro;
         if (ro == null)
             _errMsg = "Unable to locate the RootObject with Id of [ " + recordId + " ].  Unable to continue";
     }
@@ -130,9 +133,13 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        DB.RootObjects.Add(_rootObject);
-        await DB.SaveChangesAsync();
-        ReturnToList();
+        EntityRules    entityRules = new(DB);
+        Result<string> saveResult  = await entityRules.SaveRootObjectAsync(_rootObject);
+        if (saveResult.IsSuccess)
+            ReturnToList();
+        else
+            _errMsg = saveResult.ToString();
+
     }
 
 
@@ -154,7 +161,7 @@
     /// <returns></returns>
     public async Task DeleteEntity()
     {
-        bool result = await docEngine.RootObjectDeleteAsync(_rootObject.Id);
+        bool result = await _entityRules.RootObjectDeleteAsync(_rootObject.Id);
         if (result)
         {
             _successMsg   = string.Format("RootObject {0} [ {1} ] was successfully inactivated.", _rootObject.Name, _rootObject.Id);

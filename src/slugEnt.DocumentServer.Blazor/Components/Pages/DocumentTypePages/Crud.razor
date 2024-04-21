@@ -6,12 +6,14 @@
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Models.Enums
 @using SlugEnt.DocumentServer.Db
+@using SlugEnt.DocumentServer.EntityManager
+@using SlugEnt.FluentResults
 
 @inherits AbstractCRUDComponent
 
 
 @inject DocServerDbContext DB
-@inject DocumentServerEngine docEngine
+@inject EntityRules __EntityRules
 
 
 <h1>@_pageTitle</h1>
@@ -103,6 +105,7 @@
 
 
     private DocumentType             _documentType = new();
+    private DocumentType _original = new();
     private IEnumerable<Application> _applications;
     private IEnumerable<RootObject>  _rootObjects  = Enumerable.Empty<RootObject>();
     private IEnumerable<StorageNode> _storageNodes = Enumerable.Empty<StorageNode>();
@@ -149,10 +152,19 @@
 
             if (retrieveRecord)
             {
-                _documentType = DB.DocumentTypes.SingleOrDefault(dt => dt.Id == recordId);
-                DB.RootObjects.Where(ro => ro.Id == _documentType.RootObjectId);
-                DB.StorageNodes.Where(sn => sn.Id == _documentType.ActiveStorageNode1Id);
-                DB.Applications.Where(ap => ap.Id == _documentType.ApplicationId);
+                DocumentType existingEntity = DB.DocumentTypes.SingleOrDefault(dt => dt.Id == recordId);
+                DB.RootObjects.Where(ro => ro.Id == existingEntity.RootObjectId);
+                DB.StorageNodes.Where(sn => sn.Id == existingEntity.ActiveStorageNode1Id);
+                DB.Applications.Where(ap => ap.Id == existingEntity.ApplicationId);
+
+                if (existingEntity == null)
+                {
+                    _errMsg = "Unable to locate the DocumentType with Id of [ " + recordId + " ].  Unable to continue";
+                    return;
+                }
+
+                _original    = existingEntity;
+                _documentType = _original.Copy();
             }
         }
     }
@@ -167,9 +179,12 @@
     /// <returns></returns>
     public async Task AddEntity()
     {
-        await DB.DocumentTypes.AddAsync(_documentType);
-        await DB.SaveChangesAsync();
-        ReturnToList();
+        EntityRules    entityRules   = new(DB);
+        Result<string> saveResult = await entityRules.SaveDocumentTypeAsync(_documentType);
+        if (saveResult.IsSuccess)
+            ReturnToList();
+        else
+            _errMsg = saveResult.ToString();
     }
 
 

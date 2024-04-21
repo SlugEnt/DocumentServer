@@ -25,6 +25,7 @@
 
 @code
 {
+    private string _pageReferenceName = "rootobjects";
     protected void AddNew() { NavigationManager.NavigateTo("rootobjects/crud/C"); }
-
+    protected void OnEdit(int Id) { NavigationManager.NavigateTo(_pageReferenceName + "/CRUD/E/" + Id); }
 }

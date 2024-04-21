@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Runtime.InteropServices;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
 using SlugEnt.DocumentServer.Models.Entities;
@@ -28,6 +29,7 @@ public class DocServerDbContext : DbContext
                                                 0,
                                                 0,
                                                 5));
+        Console.WriteLine("In DB Constructor");
     }
 
 
@@ -35,8 +37,11 @@ public class DocServerDbContext : DbContext
     public DbSet<DocumentType> DocumentTypes { get; set; }
     public DbSet<ExpiringDocument> ExpiringDocuments { get; set; }
     public DbSet<RootObject> RootObjects { get; set; }
+    public DbSet<ReplicationTask> ReplicationTasks { get; set; }
     public DbSet<StorageNode> StorageNodes { get; set; }
     public DbSet<ServerHost> ServerHosts { get; set; }
+    public DbSet<VitalInfo> VitalInfos { get; set; }
+
 
     // Models 
     public DbSet<StoredDocument> StoredDocuments { get; set; }
@@ -82,7 +87,7 @@ public class DocServerDbContext : DbContext
     ///     Returns the value the database is referenced by in AppSettings and other locations.
     /// </summary>
     /// <returns></returns>
-    public static string DatabaseReferenceName() => "DocumentServerDB";
+    public static string DatabaseReferenceName() { return "DocumentServerDB"; }
 
 
 
@@ -147,6 +152,34 @@ public class DocServerDbContext : DbContext
                     .HasOne(x => x.SecondaryStorageNode)
                     .WithMany(x => x.SecondaryNodeStoredDocuments)
                     .HasForeignKey(x => x.SecondaryStorageNodeId);
+
+        // Replication Tasks have a To and From StorageNodes
+        modelBuilder.Entity<ReplicationTask>()
+                    .HasOne(x => x.ReplicateFromStorageNode)
+                    .WithMany(x => x.ReplicationTaskFromNodes)
+                    .HasForeignKey(x => x.ReplicateFromStorageNodeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ReplicationTask>()
+                    .HasOne(x => x.ReplicateToStorageNode)
+                    .WithMany(x => x.ReplicationTaskToNodes)
+                    .HasForeignKey(x => x.ReplicateToStorageNodeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+
+        // Seed Data.
+        modelBuilder.Entity<VitalInfo>(entity =>
+        {
+            entity.HasData(
+                           new VitalInfo
+                           {
+                               Id            = VitalInfo.VI_LASTKEYENTITY_UPDATED,
+                               LastUpdateUtc = DateTime.MinValue.AddMilliseconds(1),
+                               Name          = "Last Update to Key Entities",
+                               ValueLong     = 0,
+                               ValueString   = ""
+                           }
+                          );
+        });
     }
 
 
@@ -205,10 +238,10 @@ public class DocServerDbContext : DbContext
     ///     If the <see cref="T:System.Threading.CancellationToken" /> is
     ///     canceled.
     /// </exception>
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new())
     {
         CustomSaveChanges();
-        return base.SaveChangesAsync(cancellationToken);
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
 
