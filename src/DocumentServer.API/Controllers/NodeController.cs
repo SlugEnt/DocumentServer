@@ -12,15 +12,18 @@ namespace SlugEnt.DocumentServer.API.Controllers;
 [ApiController]
 public class NodeController : ControllerBase
 {
-    private readonly DocumentServerEngine _docEngine;
+    private readonly DocumentServerEngine    _docEngine;
+    private readonly ILogger<NodeController> _logger;
 
 
     /// <summary>
     ///     Public constructor
     /// </summary>
     /// <param name="db"></param>
-    public NodeController(DocumentServerEngine documentServerEngine)
+    public NodeController(DocumentServerEngine documentServerEngine,
+                          ILogger<NodeController> logger)
     {
+        _logger    = logger;
         _docEngine = documentServerEngine;
         Console.WriteLine("Started NodeController");
     }
@@ -59,16 +62,17 @@ public class NodeController : ControllerBase
     {
         try
         {
+            _logger.LogDebug("StoreDocument received request to store document - {FileName} on {Node}", remoteDocumentStorageDto.FileName, remoteDocumentStorageDto.StorageNodeId);
             Result<StoredDocument> result = await _docEngine.StoreFileFromRemoteNode(remoteDocumentStorageDto);
             if (result.IsSuccess)
                 return Ok();
 
-            Console.WriteLine("Error in StoreDocument:  " + result.ToString());
+            _logger.LogError("StoreDocument failed to store document due to errors: {Error}", result.ToString());
             return Problem(result.ToString());
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error in StoreDocument:  " + ex.ToString());
+            _logger.LogError("StoreDocument failed to store document due to errors: {Error}", ex.Message);
             return BadRequest(ex.Message);
         }
     }

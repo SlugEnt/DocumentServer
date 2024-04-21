@@ -12,6 +12,7 @@ using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Serilog.Sinks.File;
 using ILogger = Serilog.ILogger;
@@ -23,6 +24,7 @@ public class Program
 {
     private static ILogger _logger;
 
+    //private static ILogger _logContext;
 
 
     /// <summary>
@@ -32,7 +34,7 @@ public class Program
     private static void DisplayAppSettingStatus(string appSettingFileName)
     {
         if (File.Exists(appSettingFileName))
-            _logger.Information("AppSettings File was located.  {AppSettingsFile}", appSettingFileName);
+            _logger.Warning("AppSettings File was located.  {AppSettingsFile}", appSettingFileName);
         else
             _logger.Warning("AppSettings File was not found.  {AppSettingsFile}", appSettingFileName);
     }
@@ -54,26 +56,51 @@ public class Program
     {
         Console.WriteLine("API Starting Up");
 
+        // *******  This first section is very important as to the order of things.  Be very careful and test fully before moving anything around!
         WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
-        // 10 - Logging Setup
-        LoggerConfiguration logconfig = new LoggerConfiguration().WriteTo.Logger(lc => lc.WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext());
+        List<string> AppSettingFiles = new List<string>();
+        LoadAppSettings(builder, AppSettingFiles);
 
-        //ILogger logger = new LoggerConfiguration().WriteTo.Logger(lc => lc .WriteTo.Console().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext())
-        //                                        .WriteTo.Logger(lc => lc .WriteTo.File(@"t:\temp\dsapi.log")).CreateLogger();
+        // Logging Setup this is initial for logging during the build process! This is later replaced by the UseSerilog section later once the builder is built!
+        LoggerConfiguration logconfig = new LoggerConfiguration()
+                                        .ReadFrom.Configuration(builder.Configuration);
+
+
+        // This provides the context for this initial logger.  If not provided then there is no context!
+        Serilog.ILogger logger = logconfig.CreateLogger();
+        _logger = logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
+
+
         if (logtofile)
         {
             logconfig.WriteTo.Logger(lc => lc.WriteTo.File(@"t:\temp\dsapi.log"));
         }
 
-        _logger = logconfig.CreateLogger();
 
-        _logger = _logger.ForContext("SourceContext", "SlugEnt.DocumentServer.Api");
-        builder.Logging.ClearProviders();
-        builder.Logging.AddSerilog(_logger);
-        builder.Host.UseSerilog(_logger);
+        foreach (string appSettingFile in AppSettingFiles)
+        {
+            DisplayAppSettingStatus(appSettingFile);
+        }
 
-        LoadAppSettings(builder);
+
+        // This is the Serilog that will be used after build!
+        builder.Host.UseSerilog((hostContext,
+                                 AsyncServiceScope,
+                                 configuration) =>
+        {
+            configuration.ReadFrom.Configuration(hostContext.Configuration);
+        });
+
+        // ********   End of First Section!
+
+
+        _logger.Verbose("Verbose Message");
+        _logger.Debug("Debug Message");
+        _logger.Information("info message");
+        _logger.Warning("Warning Message");
+        _logger.Error("Error Message");
+        _logger.Fatal("Fatal error message");
 
 
         // 15 - Display Passed Command Line Arguments
@@ -178,23 +205,7 @@ public class Program
 #if SWAGGER
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-/*        builder.Services.AddSwaggerGen(options =>
-        {
-            options.AddSecurityDefinition("NodeKey",
-                                          new ApiKeyScheme
-                                          {
-                                              Name = "Authorization",
-                                              In   = "Header"
-                                          });
-            options.AddSecurityRequirement(new Dictionary<string, IEnumerable<string>>
-            {
-                {
-                    "NodeKey", new string[]
-                        { }
-                }
-            });
-        });
-*/
+
 #endif
 
 
@@ -285,25 +296,6 @@ public class Program
         // Wait for The DocumentServerInformation object to finish initializing
         dsiBuilder.AwaitInitialization();
 
-        /*DocumentServerInformation dsi = app.Services.GetService<DocumentServerInformation>();
-        if (dsi.IsInitialized == false)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                if (dsi.Initialize.IsFaulted)
-                    throw new ApplicationException("Error 9863:  Error in DocumentServerInformation object.  Cannot run without this object!");
-
-                if (dsi.IsInitialized == true)
-                    break;
-
-                Thread.Sleep(500);
-            }
-
-            if (!dsi.IsInitialized)
-                throw new ApplicationException("Error 9844: Failed to succesfully initialize DocumentServerInformation object.  Cannot run without this object initialized.");
-        }
-        */
-
         // We start it because we need to acquire the port it is listening on, we do not have it until after the app starts!
         app.Start();
         Console.WriteLine("API Successfully Started");
@@ -311,6 +303,9 @@ public class Program
 
         GetListeningPorts(dsi, app.Urls);
 
+        // Test Code - Delete 
+
+        // End test code
         app.WaitForShutdown();
 
         Log.CloseAndFlush();
@@ -330,7 +325,7 @@ public class Program
         {
             _logger.Information("Listening on: " + appUrl);
 
-            int i = appUrl.IndexOf(":", 6);
+            int i = appUrl.LastIndexOf(":");
             if (i > 0)
             {
                 string portStr = appUrl.Substring(i + 1);
@@ -363,51 +358,54 @@ public class Program
     }
 
 
-    private static void LoadAppSettings(WebApplicationBuilder builder)
+    //private static void DisplayAppSettings()
+
+
+    /// <summary>
+    ///   Adds the parent directory appsettings.[Env].json file and a sensitive appsettings.json file
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <remarks>Because this is from a WebApplicationBuilder there is no way to influence the initial set of appsettings files.
+    /// The initial order provided by WebApplicationBuilder is Appsettings.json then AppSettings.[Env].Json which overrides appsettings.json
+    /// These come from the base directory.
+    /// see:  https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/?view=aspnetcore-8.0
+    /// </remarks>
+    private static void LoadAppSettings(WebApplicationBuilder builder,
+                                        List<string> appSettingsFiles)
     {
-        string        versionPath          = Directory.GetCurrentDirectory();
-        DirectoryInfo appRootDirectoryInfo = Directory.GetParent(versionPath);
-        string        appRoot              = appRootDirectoryInfo.FullName;
+        string        versionPath = Directory.GetCurrentDirectory();
+        DirectoryInfo parentPath  = Directory.GetParent(versionPath);
+        string        appRoot     = parentPath.FullName;
 
-        List<string> appSettingsDirectories = new()
-        {
-            versionPath,
-            appRoot,
-        };
 
-        string? environmentName    = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-        string  appSettingFileName = "appsettings." + environmentName + ".json";
-        string  appSettingsBase    = "appsettings.json";
-        List<string> appSettingsFiles = new()
-        {
-            appSettingsBase,
-            appSettingFileName,
-        };
-
+        string? environmentName   = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        string  appSettingEnvFile = "appsettings." + environmentName + ".json";
 
         Console.WriteLine("Running from Directory:  " + appRoot);
 
 
-        // Now load the appsettings
-        foreach (string filename in appSettingsFiles)
-        {
-            foreach (string directory in appSettingsDirectories)
-            {
-                string appSettingFile = Path.Join(directory, filename);
-                builder.Configuration.AddJsonFile(appSettingFile, true);
-                DisplayAppSettingStatus(appSettingFile);
-            }
-        }
+        // The 2 initial appsettings provided by WebAppBuilder we just need to display if they exist.
+        string settingFile = "appsettings.json";
+        string path        = Path.Join(appRoot, settingFile);
+        appSettingsFiles.Add(path);
 
-        // Finally Check the AppSettingSensitive folder
-        // Get Sensitive Appsettings.json file location
+        settingFile = "appsettings." + environmentName + ".json";
+        path        = Path.Join(appRoot, settingFile);
+        appSettingsFiles.Add(path);
+
+        // Now load the environment specific one from the parent directory
+        settingFile = "appsettings." + environmentName + ".json";
+        path        = Path.Join(appRoot, settingFile);
+        builder.Configuration.AddJsonFile(path, true);
+        appSettingsFiles.Add(path);
+
+
+        // Finally load the Sensitive file one, looking in runtime folder
         string sensitiveAppSettings = Environment.GetEnvironmentVariable("AppSettingSensitiveFolder");
-
-        //string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
-        string sensitiveFileName = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
-        string path              = Path.Join(sensitiveAppSettings, sensitiveFileName);
+        string sensitiveFileName    = "SlugEnt.DocumentServer_AppSettingsSensitive.json";
+        path = Path.Join(sensitiveAppSettings, sensitiveFileName);
 
         builder.Configuration.AddJsonFile(path, true);
-        DisplayAppSettingStatus(path);
+        appSettingsFiles.Add(path);
     }
 }

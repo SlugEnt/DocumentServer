@@ -33,8 +33,6 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
             PropertyNameCaseInsensitive = true,
         };
 
-//        _apiKey = configuration.GetValue<string>("DocumentServer:ApiKey");
-
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("dotnet-docs");
         _httpClient.Timeout = new TimeSpan(0, 0, 1000);
         _httpClient.DefaultRequestHeaders.Clear();

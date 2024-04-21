@@ -82,8 +82,8 @@ namespace SlugEnt.DocumentServer.Core
                 string localHost = Dns.GetHostName();
                 string origHost  = localHost;
 
-                _logger.Information("Database Connection Status: " + db.Database.CanConnect());
-                _logger.Information(("Connection String: " + db.Database.GetConnectionString()));
+                _logger.Information("Initial Database Connection Status: " + db.Database.CanConnect());
+                _logger.Debug(("Connection String: " + db.Database.GetConnectionString()));
 
                 // If overrideDNSName is set then we will use that.
                 // OverrideDNSName should only be used by unit test code and never in production.
@@ -159,11 +159,16 @@ namespace SlugEnt.DocumentServer.Core
             if (KeyObjectTTLExpirationUtc > DateTime.UtcNow)
                 return Result.Ok();
 
+            _logger.Information("Caches TTL has expired.");
             Result<bool> result = CheckIfKeyEntitiesUpdated(db);
             if (result.IsSuccess)
             {
                 if (result.Value)
+                {
                     KeyObjectTTLExpirationUtc = DateTime.UtcNow.AddMilliseconds(CacheExpirationTTL);
+                    _logger.Information("Cache has been updated and TTL set [ " + CacheExpirationTTL + " ]");
+                }
+
                 return Result.Ok();
             }
 
@@ -201,7 +206,10 @@ namespace SlugEnt.DocumentServer.Core
                 if (vitalInfo == null)
                     throw new ApplicationException("Unable to locate a VitalInfo record with the Id=" + VitalInfo.VI_LASTKEYENTITY_UPDATED);
                 else if (vitalInfo.LastUpdateUtc > LastUpdateToKeyEntities)
+                {
+                    _logger.Debug("Detected changes in VitalInfo.  Caches need to be reloaded");
                     NeedToLoad = true;
+                }
 
                 if (!NeedToLoad)
                     return Result.Ok(true);
@@ -218,7 +226,6 @@ namespace SlugEnt.DocumentServer.Core
                         throw new ApplicationException("Loading of cached objects failed.  " + result.ToString());
                     else
                     {
-                        // TODO we should at least log this or something.
                         KeyObjectTTLExpirationUtc = DateTime.UtcNow.AddSeconds(10);
                         string msg = "Failed to load updated Cached Entities.  Setting recheck interval for 10 seconds";
                         _logger.Warning(msg);
@@ -524,33 +531,23 @@ namespace SlugEnt.DocumentServer.Core
         /// The settings being used by the engine during running
         /// </summary>
         public RuntimeSettings RuntimeSettings { get; private set; } = new();
+
+
+        public void DisplayToLogInitialSettings()
+        {
+            if (ServerHostInfo.NodeKey != string.Empty)
+                _logger.Information("Node Key Provided (First 3 chars): [ " + ServerHostInfo.NodeKey.Substring(0, 3) + "... ]");
+            _logger.Information("Remote Node Initial Send Threshold [ " + RuntimeSettings.RemoteDocumentSizeThreshold / 1024 + " KB ]");
+            _logger.Information("Cache Expiration TTL [ " + CacheExpirationTTL + " ms ]");
+            _logger.Information("Server Host Id [ " + ServerHostInfo.ServerHostId + " ]");
+            _logger.Information("Server Host Name [ " + ServerHostInfo.ServerHostName + " ]");
+            _logger.Information("Server Host FQDN [ " + ServerHostInfo.ServerFQDN + " ]");
+            _logger.Information("Server Host Storage Path [ " + ServerHostInfo.Path + " ]");
+
+            _logger.Information("Cached Applications [ " + CachedApplications.Count + " ]");
+            _logger.Information("Cached Document Types [ " + CachedDocumentTypes.Count + " ]");
+            _logger.Information("Cached Storage Nodes [ " + CachedStorageNodes.Count + " ]");
+            _logger.Information("Cached Server Hosts [ " + CachedServerHosts.Count + " ]");
+        }
     }
-
-
-    /*
-    /// <summary>
-    /// Information about this host.
-    /// </summary>
-    public class ServerHostInfo
-    {
-        /// <summary>
-        /// The Host ID of this physical server we are running on
-        /// </summary>
-        public short ServerHostId { get; set; }
-
-        public string ServerHostName { get; set; }
-
-        public string ServerFQDN { get; set; }
-
-        /// <summary>
-        /// Path to the data files on this host.
-        /// </summary>
-        public string Path { get; set; }
-
-        /// <summary>
-        /// Unique Value that all nodes must agree on to talk to each other.
-        /// </summary>
-        public string NodeKey { get; set; }
-    }
-    */
 }

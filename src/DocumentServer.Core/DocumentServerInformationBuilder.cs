@@ -158,7 +158,9 @@ namespace SlugEnt.DocumentServer.Core
                         throw new ApplicationException("Error 9863:  Error in DocumentServerInformation object.  Cannot run without this object!");
 
                     if (_dsi.IsInitialized == true)
+                    {
                         break;
+                    }
 
                     Thread.Sleep(50);
                 }
@@ -166,6 +168,8 @@ namespace SlugEnt.DocumentServer.Core
                 if (!_dsi.IsInitialized)
                     throw new ApplicationException("Error 9844: Failed to succesfully initialize DocumentServerInformation object.  Cannot run without this object initialized.");
             }
+
+            _dsi.DisplayToLogInitialSettings();
         }
 
 
@@ -177,6 +181,7 @@ namespace SlugEnt.DocumentServer.Core
         {
             DocumentServerInformation dsi = Build();
             await dsi.Initialize;
+            _dsi.DisplayToLogInitialSettings();
 
             //AwaitInitialization();
             return dsi;
@@ -234,12 +239,12 @@ namespace SlugEnt.DocumentServer.Core
             // TODO preferabbly we will want to move this from configuration to DB settings table...
             if (_configuration == null)
             {
-                _logger.Warning("Using default RemoteSizeThreshold value of [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold + " ]");
+                _logger.Information("Using default RemoteSizeThreshold value of [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold / 1024 + " KB ]");
             }
             else
             {
-                _dsi.RuntimeSettings.RemoteDocumentSizeThreshold = _configuration.GetValue<int>("DocumentServer:RemoteSizeThreshold");
-                _logger.Warning("Using RemoteSizeThreshold from configuration [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold + " ]");
+                _dsi.RuntimeSettings.RemoteDocumentSizeThreshold = _configuration.GetValue<int>("DocumentServer:RemoteSizeThreshold") * 1024;
+                _logger.Information("Using RemoteSizeThreshold from configuration [ " + _dsi.RuntimeSettings.RemoteDocumentSizeThreshold / 1024 + " KB]");
             }
         }
     }

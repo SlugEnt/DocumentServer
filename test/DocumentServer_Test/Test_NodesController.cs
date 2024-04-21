@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using SlugEnt.DocumentServer.API.Controllers;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
@@ -37,8 +38,11 @@ public class Test_NodesController
         string storagePath = Path.Join("remote",
                                        "month",
                                        "day");
-        StorageNode    storageNode = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_A");
-        NodeController controller  = new NodeController(dse);
+        StorageNode storageNode = (StorageNode)sm.IDLookupDictionary.GetValueOrDefault("StorageNode_A");
+
+
+        MockLogger<NodeController> _logger    = Substitute.For<MockLogger<NodeController>>();
+        NodeController             controller = new NodeController(dse, _logger);
 
 
         //***  B) Setup
@@ -88,8 +92,9 @@ public class Test_NodesController
         };
         SupportMethods sm = new(smConfiguration);
         await sm.Initialize;
-        DocumentServerEngine dse        = sm.DocumentServerEngine;
-        NodeController       controller = new NodeController(dse);
+        DocumentServerEngine       dse        = sm.DocumentServerEngine;
+        MockLogger<NodeController> _logger    = Substitute.For<MockLogger<NodeController>>();
+        NodeController             controller = new NodeController(dse, _logger);
 
 
         //*** T - Test

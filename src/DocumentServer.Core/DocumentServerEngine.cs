@@ -51,6 +51,7 @@ public class DocumentServerEngine
         _nodeHttpClient            = nodeHttpClient;
         _nodeHttpClient.NodeKey    = _documentServerInformation.ServerHostInfo.NodeKey;
 
+        _logger.LogTrace("DocumentServerEngine Constructed");
         if (fileSystem != null)
             _fileSystem = fileSystem;
 
@@ -71,38 +72,6 @@ public class DocumentServerEngine
         // We now use the Document Cache
         Result<DocumentType> result = _documentServerInformation.GetCachedDocumentType(documentTypeId);
         return result;
-
-        // Retrieve the DocumentType
-        /*
-        DocumentType? docType = await _db.DocumentTypes
-                                         .Include(i => i.ActiveStorageNode1)
-                                         .Include(i => i.ActiveStorageNode2)
-                                         .SingleOrDefaultAsync(d => d.Id == documentTypeId);
-
-        if (docType == null)
-        {
-            string msg = "Unable to locate a DocumentType with the Id [ " + documentTypeId + " ]";
-            return Result.Fail(new Error(msg));
-        }
-
-        if (!docType.IsActive)
-        {
-            string msg = string.Format("Document type [ {0} ] - [ {1} ] is not Active.", docType.Id, docType.Name);
-            return Result.Fail(new Error(msg));
-        }
-
-
-        // TODO Need to implement logic to try 2nd active node.
-        if (docType.ActiveStorageNode1Id == null)
-        {
-            string msg = string.Format("The DocumentType requested does not have a storage node specified.  DocType [ " + docType.Id) + " ]";
-            _logger.LogError("DocumentType has an ActiveStorageNodeId that is null.  Must have a value.  {DocTypeId}", docType.Id);
-
-            return Result.Fail(new Error(msg));
-        }
-
-        return Result.Ok(docType);
-        */
     }
 
 
@@ -476,6 +445,7 @@ public class DocumentServerEngine
                 return preSaveResult;
 
             _db.Database.CommitTransaction();
+            _logger.LogDebug("Document Stored - {StoredDocumentId}", storedDocument.Id);
 
             Result<StoredDocument> finalResult = Result.Ok(storedDocument);
             return finalResult;
@@ -560,6 +530,7 @@ public class DocumentServerEngine
             Result<DestinationStorageNode> destinationNodeResult = ComputeDestinationStorageNode(documentType.ActiveStorageNode1Id, destinationStorageNodes, true);
             destinationNodeResult = ComputeDestinationStorageNode(documentType.ActiveStorageNode2Id, destinationStorageNodes, false);
 
+
             // At this point we should have AT least one node if not 2 for storage.  They will be listed by if they are on this host first, then other hosts 2nd.
             // If the first one is not on this host then neither is the 2nd.
             bool                                 storedLocally  = false;
@@ -591,6 +562,7 @@ public class DocumentServerEngine
                             }
                             else
                             {
+                                _logger.LogDebug("Document Stored on Internal Storage");
                                 storedLocally                   = true;
                                 destinationStorageNode.WasSaved = true;
                                 nodesStoredOn++;
@@ -602,7 +574,12 @@ public class DocumentServerEngine
                             // Is a remote store....
                             // If first pass then we adhere to size limits
                             if (loopPass == 1 && file.Length > _documentServerInformation.RuntimeSettings.RemoteDocumentSizeThreshold)
+                            {
+                                _logger.LogDebug("Document is larger {FileSize} than {RemoteDocumentSizeThreshold}",
+                                                 file.Length,
+                                                 _documentServerInformation.RuntimeSettings.RemoteDocumentSizeThreshold);
                                 continue;
+                            }
 
                             RemoteDocumentStorageDto remoteDocumentStorageDto = new()
                             {
@@ -632,6 +609,8 @@ public class DocumentServerEngine
                 loopPass++;
                 if (loopPass > 2 && nodesStoredOn == 0)
                 {
+                    _logger.LogError("Failed to stored document on any nodes!");
+
                     // TODO this does not have the source errors attached.
                     Result failedResult =
                         Result.Fail(new
@@ -701,6 +680,13 @@ public class DocumentServerEngine
     }
 
 
+    /// <summary>
+    /// Determines the Destination Storage Node
+    /// </summary>
+    /// <param name="nodeId"></param>
+    /// <param name="destinationStorageNodes"></param>
+    /// <param name="isPrimaryNode"></param>
+    /// <returns></returns>
     internal Result<DestinationStorageNode> ComputeDestinationStorageNode(int? nodeId,
                                                                           List<DestinationStorageNode> destinationStorageNodes,
                                                                           bool isPrimaryNode)
@@ -712,7 +698,7 @@ public class DocumentServerEngine
         Result<StorageNode>    storageNodeResult      = _documentServerInformation.GetCachedStorageNode((int)nodeId);
         if (storageNodeResult.IsFailed)
         {
-            _logger.LogError("StoreDocumentNew | " + storageNodeResult.ToString());
+            _logger.LogError("Failed to retrieve Storage Node from DSI Cache | " + storageNodeResult.ToString());
             return Result.Fail(storageNodeResult.Errors);
         }
 
@@ -723,6 +709,19 @@ public class DocumentServerEngine
 
         if (storageNodeResult.Value.ServerHostId == _documentServerInformation.ServerHostInfo.ServerHostId)
             destinationStorageNode.IsOnThisHost = true;
+
+
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            string msg = "Document is set to be stored on Node [ " + destinationStorageNode.StorageNode.Id + " ]. ";
+            if (destinationStorageNode.IsPrimaryDocTypeStorage)
+                msg += "Node is Primary.";
+            if (destinationStorageNode.IsOnThisHost)
+                msg += "  That node is on the this host!";
+            else
+                msg += "  That node is a remote node - " + destinationStorageNode.StorageNode.ServerHost.NameDNS;
+            _logger.LogDebug(msg);
+        }
 
         destinationStorageNodes.Add(destinationStorageNode);
         return Result.Ok(destinationStorageNode);
@@ -741,6 +740,8 @@ public class DocumentServerEngine
     {
         try
         {
+            _logger.LogDebug("StoreFileFromRemoteNode Started");
+
             // Ensure file has been sent
             if (remoteDto.File == null)
                 return Result.Fail(new Error("File was null."));
@@ -771,6 +772,15 @@ public class DocumentServerEngine
 
             string fullFileName    = Path.Join(result.Value, remoteDto.FileName);
             Result storeFileResult = await StoreFileOnStorageMediaAsync(fullFileName, remoteDto.File);
+            if (storeFileResult.IsSuccess)
+                _logger.LogDebug("Remote Document Stored Successfully");
+            else
+                _logger.LogError("Failed to store remote document on local node!  {FileName} | {StorageNode} | {StoragePath} | {Error}",
+                                 remoteDto.FileName,
+                                 remoteDto.StorageNodeId,
+                                 remoteDto.StoragePath,
+                                 result.ToString());
+
             return storeFileResult;
         }
         catch (Exception e)

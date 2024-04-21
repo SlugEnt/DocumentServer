@@ -33,6 +33,9 @@ public class DocumentsController : ControllerBase
     /// </summary>
     /// <param name="id"></param>
     /// <returns></returns>
+    [HttpGet("/IsAlive")]
+    public async Task<ActionResult> IsAlive() { return Ok(); }
+
 
     // GET api/<DocumentsController>/5
     [HttpGet("{id}/stream")]

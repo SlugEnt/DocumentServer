@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "ConsoleTesting": {
+      "commandName": "Project"
+    },
+    "RemoteServers": {
+      "commandName": "Project",
+      "commandLineArgs": "--api-key abc --source-folder \"T:\\ProgrammingTesting\\DocServerConsoleTest\" --output-folder \"T:\\ProgrammingTesting\\DocServerConsoleTest\\output\"",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "AppSettingSensitiveFolder": "D:\\A_Dev\\AppSettings"
+      }
+    }
+  }
+}

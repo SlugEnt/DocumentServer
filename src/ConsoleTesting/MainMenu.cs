@@ -35,11 +35,11 @@ public partial class MainMenu
     /// <summary>
     /// The Id of the application we are writing too.
     /// </summary>
-    public int ApplicationId { get; set; } = 3; // Default to Testing app.
+    public int ApplicationId { get; set; } = 1; // Default to Testing app.
 
     //public int RootObjectId { get; set; } = 2; // Testing App Root Obj Id
 
-    public int DocumentTypeId { get; set; } = 3; // Testing Document Type Id
+    public int DocumentTypeId { get; set; } = 1; // Testing Document Type Id
 
     public int ThreadSleepTimeMs { get; set; } = 750; // Thread sleep time between upload/download cycles.
 
@@ -59,9 +59,6 @@ public partial class MainMenu
         _documentServerHttpClient.BaseAddress = new Uri(_configuration["DocumentServer:Host"]);
         _documentServerHttpClient.ApiKey      = _configuration["DocumentServer:ApiKey"];
 
-        //_documentServerHttpClient.BaseAddress = new Uri(@"http://testdummy3.slug.local:35676/api"]);
-
-
         _options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -79,9 +76,12 @@ public partial class MainMenu
 
         //Console.WriteLine(" ( 2 ) Set Root Object Id [ {0} ]", RootObjectId);
         Console.WriteLine(" ( 3 ) Set Document Type Id  [ {0} ]", DocumentTypeId);
+        Console.WriteLine();
+        Console.WriteLine("   [ " + SourceFolder + " ]  |  Set Which Documents to use during Y - Load Testing");
         Console.WriteLine(" ( 5 ) Small Docs            ");
         Console.WriteLine(" ( 6 ) Big  Docs            ");
         Console.WriteLine(" ( 7 ) All Docs            ");
+        Console.WriteLine();
         Console.WriteLine(" ( 9 ) Thread Sleep Time Ms  [ {0} ]", ThreadSleepTimeMs);
 
         Console.WriteLine(" ( U ) To Upload a the Keyboard Document");
@@ -209,7 +209,7 @@ public partial class MainMenu
 
                     // Load Test
                     case ConsoleKey.Y:
-                        LargeTest();
+                        await LargeTest();
 
                         break;
 
@@ -279,7 +279,8 @@ public partial class MainMenu
     internal async Task LargeTest()
     {
         // Create the Output folder:
-        Directory.CreateDirectory(DownloadFolder);
+        if (!Directory.Exists(DownloadFolder))
+            Directory.CreateDirectory(DownloadFolder);
 
         try
         {
@@ -308,7 +309,7 @@ public partial class MainMenu
                     TransferDocumentDto tdo = new()
                     {
                         // This indicates the MDOS Invoice Document Type Id is 3.
-                        DocumentTypeId = 3,
+                        DocumentTypeId = this.DocumentTypeId,
 
                         // This can be anything you want.  I just set to file name.
                         Description = xyz.Name,

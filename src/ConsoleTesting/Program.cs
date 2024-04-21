@@ -20,7 +20,7 @@ public class Program
     private static ILogger _logger;
 
 
-    public static async Task Main(string sourceFolder = @"T:\ProgrammingTesting\ConsoleTest",
+    public static async Task Main(string sourceFolder = "",
                                   string applicationToken = "abc",
                                   string apiKey = "",
                                   string outputFolder = @"T:\")
@@ -62,10 +62,17 @@ public class Program
         string sensitiveSettingFile = Path.Join(sensitiveAppSettings, sensitiveFileName);
         DisplayAppSettingStatus(sensitiveSettingFile);
 
+        // We also have the ConsoleTesting AppSensitive file
+        string sensitiveFileName2    = "SlugEnt.DocumentServer.ConsoleTesting_AppSettingsSensitive.json";
+        string sensitiveSettingFile2 = Path.Join(sensitiveAppSettings, sensitiveFileName2);
+        DisplayAppSettingStatus(sensitiveSettingFile2);
+
 
         // Add our custom AppSettings.JSON files
         IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(appSettingEnvFile, true, true)
-                                                                     .AddJsonFile(sensitiveSettingFile, true, true).Build();
+                                                                     .AddJsonFile(sensitiveSettingFile, true, true)
+                                                                     .AddJsonFile(sensitiveSettingFile2, true, true)
+                                                                     .Build();
 
 
         using IHost host = Host.CreateDefaultBuilder()
@@ -88,7 +95,7 @@ public class Program
                                                                   .LogTo(Console.WriteLine)
                                                                   .EnableDetailedErrors();
 #endif
-                                                                  ;
+                                                              ;
                                                           })
                                                           .AddTransient<MainMenu>()
                                                           .AddTransient<DocumentServerEngine>()
@@ -97,10 +104,6 @@ public class Program
                                                               DocumentServerInformationBuilder dsiBuilder =
                                                                   new DocumentServerInformationBuilder(_logger).UseConfiguration(configuration);
                                                               return dsiBuilder.Build();
-                                                              /*
-                                                          IConfiguration x = dsi.GetService<IConfiguration>();
-                                                          return DocumentServerInformation.Create(x);
-                                                              */
                                                           })
                                                           .AddHttpClient<AccessDocumentServerHttpClient>().ConfigurePrimaryHttpMessageHandler(() =>
                                                           {
@@ -121,7 +124,7 @@ public class Program
         mainMenu.BaseFolder       = sourceFolder;
         mainMenu.ApplicationToken = applicationToken;
         mainMenu.ApiKey           = apiKey;
-        mainMenu.DownloadFolder   = Path.Join(sourceFolder, "downloaded", outputFolder);
+        mainMenu.DownloadFolder   = outputFolder;
         await mainMenu.Start();
         Log.CloseAndFlush();
 #pragma warning restore

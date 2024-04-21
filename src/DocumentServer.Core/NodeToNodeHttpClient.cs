@@ -105,6 +105,7 @@ public sealed class NodeToNodeHttpClient : IDisposable
             // TODO fix this to be set via config http or https
             string query = "http://" + nodeAddress + "/api/node/storedocument";
 
+
             // Load the File data to form.
             MultipartFormDataContent form = new();
             MemoryStream             ms   = new();
@@ -122,16 +123,18 @@ public sealed class NodeToNodeHttpClient : IDisposable
             _httpClient.DefaultRequestHeaders.Add(ApiConstants.NodeKeyHeaderName, _NodeKey);
 
 
+            _logger.LogDebug("Document Being Sent to Remote Node - {RemoteHost}", nodeAddress);
             using (HttpResponseMessage httpResponse = await _httpClient.PostAsync(query, form))
             {
                 responseContent = await httpResponse.Content.ReadAsStringAsync();
                 httpResponse.EnsureSuccessStatusCode();
+                _logger.LogDebug("Document Successully sent to Remote Node");
                 return Result.Ok();
             }
         }
         catch (Exception e)
         {
-            string msg = "NodeController:  SendDocument -->  Error sending douxment to remote server.  Server Returned [ " + responseContent + " ]";
+            string msg = "NodeController:  SendDocument -->  Error sending document to remote server.  Server Returned [ " + responseContent + " ]";
             if (_logger != null)
                 _logger.LogError(msg + e.ToString());
 
