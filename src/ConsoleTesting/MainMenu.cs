@@ -76,6 +76,7 @@ public partial class MainMenu
 
         //Console.WriteLine(" ( 2 ) Set Root Object Id [ {0} ]", RootObjectId);
         Console.WriteLine(" ( 3 ) Set Document Type Id  [ {0} ]", DocumentTypeId);
+        Console.WriteLine(" ( 4 ) Send IsAlive");
         Console.WriteLine();
         Console.WriteLine("   [ " + SourceFolder + " ]  |  Set Which Documents to use during Y - Load Testing");
         Console.WriteLine(" ( 5 ) Small Docs            ");
@@ -134,6 +135,10 @@ public partial class MainMenu
 
                 switch (keyInfo.Key)
                 {
+                    case ConsoleKey.D4:
+                        Result<long> resultD4 = await _documentServerHttpClient.AskIfAlive();
+                        break;
+
                     case ConsoleKey.D5:
                         SourceFolder = Path.Join(BaseFolder, "SmallDocs");
                         break;

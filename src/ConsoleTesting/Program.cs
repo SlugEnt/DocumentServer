@@ -19,11 +19,22 @@ public class Program
 {
     private static ILogger _logger;
 
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sourceFolder">Folder that contains source documents that can be used for testing.  It should also contain the document folders for the Y test.</param>
+    /// <param name="appToken">Token for the application that is used to test with</param>
+    /// <param name="apiKey">The API key</param>
+    /// <param name="outputFolder">Where downloaded files are stored.</param>
+    /// <param name="doctype">Document Type ID to be used for testing</param>
+    /// <param name="appId">Application Id that corresponds to the DocTypeId to be used for testing</param>
+    /// <returns></returns>
     public static async Task Main(string sourceFolder = "",
-                                  string applicationToken = "abc",
+                                  string appToken = "abc",
                                   string apiKey = "",
-                                  string outputFolder = @"T:\")
+                                  string outputFolder = @"T:\",
+                                  int doctype = 0,
+                                  int appId = 0)
     {
 #if DEBUG
         Log.Logger = new LoggerConfiguration().MinimumLevel.Debug()
@@ -55,6 +66,8 @@ public class Program
         string  appSettingEnvFile  = Path.Join(appRoot, appSettingFileName);
         DisplayAppSettingStatus(appSettingEnvFile);
 
+        string appSettingEnvFile2 = Path.Join(versionPath, appSettingFileName);
+        DisplayAppSettingStatus(appSettingEnvFile2);
 
         // Load the Sensitive AppSettings.JSON file.
         //string sensitiveFileName    = Assembly.GetExecutingAssembly().GetName().Name + "_AppSettingsSensitive.json";
@@ -70,6 +83,7 @@ public class Program
 
         // Add our custom AppSettings.JSON files
         IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(appSettingEnvFile, true, true)
+                                                                        .AddJsonFile(appSettingEnvFile2, true, true)
                                                                      .AddJsonFile(sensitiveSettingFile, true, true)
                                                                      .AddJsonFile(sensitiveSettingFile2, true, true)
                                                                      .Build();
@@ -122,9 +136,12 @@ public class Program
         host.RunAsync();
         MainMenu mainMenu = host.Services.GetRequiredService<MainMenu>();
         mainMenu.BaseFolder       = sourceFolder;
-        mainMenu.ApplicationToken = applicationToken;
+        mainMenu.ApplicationToken = appToken;
         mainMenu.ApiKey           = apiKey;
         mainMenu.DownloadFolder   = outputFolder;
+        if (doctype > 0 ) mainMenu.DocumentTypeId = doctype;
+        if (appId > 0 ) mainMenu.ApplicationId = appId;
+
         await mainMenu.Start();
         Log.CloseAndFlush();
 #pragma warning restore

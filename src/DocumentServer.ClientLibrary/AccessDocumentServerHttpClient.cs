@@ -1,5 +1,6 @@
 ﻿using SlugEnt.DocumentServer.Core;
 using SlugEnt.FluentResults;
+using SlugEnt.FluentResults.Extensions.AspNetCore;
 using System.Text.Json;
 
 
@@ -57,6 +58,36 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
     {
         get { return _httpClient.BaseAddress; }
         set { _httpClient.BaseAddress = value; }
+    }
+
+    /// <summary>
+    /// Determines if the remote node is alive.
+    /// </summary>
+    /// <param name="nodeAddress"></param>
+    /// <returns></returns>
+    public async Task<Result> AskIfAlive()
+    {
+        string responseContent = "";
+        try
+        {
+            // TODO fix this to be set via config http or https
+            string query = "documents/IsAlive";
+
+            //            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Add(ApiConstants.ApiKeyHeaderName, _apiKey);
+            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(query, HttpCompletionOption.ResponseHeadersRead))
+            {
+                responseContent = await httpResponse.Content.ReadAsStringAsync();
+                httpResponse.EnsureSuccessStatusCode();
+
+                //_logger.LogInformation("Alive Message Received!");
+                return Result.Ok();
+            }
+        }
+        catch (Exception e)
+        {
+            return Result.Fail(new Error("Error asking remote if they are alive").CausedBy(e));
+        }
     }
 
 
