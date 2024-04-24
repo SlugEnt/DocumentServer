@@ -359,3 +359,7 @@ src/DocumentServer.API/appsettings.Development.json
 src/DocumentServer.API/appsettings.json
 
 src/DocumentServer.API/Properties/launchSettings.json
+/src/ConsoleTesting/appsettings.Development.json
+/src/DocumentServer.API/appsettings.Development.json
+/src/DocumentServer.API/appsettings.json
+/src/ConsoleTesting/Properties/launchSettings.json
