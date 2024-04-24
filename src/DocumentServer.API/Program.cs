@@ -205,6 +205,7 @@ public class Program
 #if SWAGGER
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+
 #endif
 
 
