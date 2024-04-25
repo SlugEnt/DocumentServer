@@ -133,25 +133,33 @@ public class DocumentServerEngine
         {
             // Verify the Application Token is correct.
             if (!_documentServerInformation.CachedApplicationTokenLookup.TryGetValue(appToken, out Application application))
-                return Result.Fail("Invalid Application Token provided.");
-
+            {
+                string msg = "Invalid Application Token provided.";
+                _logger.LogError(msg);
+                return Result.Fail(msg);
+            }
 
             var storedDocument = await _db.StoredDocuments.Where(sd => sd.Id == id).Select(s => new
             {
                 StoredDocument = s,
                 ApplicationId  = s.DocumentType.ApplicationId
             }).FirstOrDefaultAsync();
-            _logger.LogDebug("Retrieved StoredDocument Id: {0}", id);
-
-            // Lookup storage Node Info
-
-
             if (storedDocument == null)
-                return Result.Fail("Unable to find a Stored Document with that Id");
+            {
+                string msg = "Unanble to locate a StoredDocument with Id [ " + id + " ] in the database";
+                _logger.LogError(msg);
+                return Result.Fail(msg);
+            }
 
+            _logger.LogInformation("Retrieved StoredDocument Id: {0}", id);
+
+            // Validate matching app token
             if (storedDocument.ApplicationId != application.Id)
-                return Result.Fail("Application Token provided does not match the application Id of the Stored Document requested.  Access Denied");
-
+            {
+                string msg = "Application Token provided does not match the application Id of the Stored Document requested.  Access Denied";
+                _logger.LogError(msg);
+                return Result.Fail(msg);
+            }
 
             StoredDocument thisStoredDocument = storedDocument.StoredDocument;
 
@@ -182,7 +190,10 @@ public class DocumentServerEngine
                                                    thisStoredDocument.StorageFolder,
                                                    thisStoredDocument.FileName);
             if (!resultRetrieveDocument.IsSuccess)
+            {
+                _logger.LogError(resultRetrieveDocument.ToString());
                 return resultRetrieveDocument;
+            }
 
 
             StoredDocument sd = storedDocument.StoredDocument;
@@ -196,7 +207,8 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            _logger.LogError("GetStoredDocumentFileBytesAsync:  DocumentId [{DocumentId} ]Exception:  {Error}", id, ex.Message);
+            string msg = String.Format("GetStoredDocumentAsync:  StoredDocumentId [{DocumentId} ]  --> Exception:  {Error}", id, ex.Message);
+            _logger.LogError(msg);
             return Result.Fail(new Error("Unable to read document from library.").CausedBy(ex));
         }
     }
@@ -218,6 +230,7 @@ public class DocumentServerEngine
         if (fromNodeID == null)
             return Result.Fail("Cannot retrieve a document from a null Storage Node");
 
+        string path = "";
         try
         {
             // Lookup the Node's path
@@ -226,10 +239,10 @@ public class DocumentServerEngine
                 return Result.Fail("Unable to locate the Storage Node with Id " + fromNodeID + " from the local Cache");
 
 
-            string path = Path.Join(_documentServerInformation.ServerHostInfo.Path,
-                                    storageNode.NodePath,
-                                    documentPath,
-                                    filenameWithExtension);
+            path = Path.Join(_documentServerInformation.ServerHostInfo.Path,
+                             storageNode.NodePath,
+                             documentPath,
+                             filenameWithExtension);
 
             returnedDocumentInfo.FileInBytes = _fileSystem.File.ReadAllBytes(path);
             returnedDocumentInfo.Size        = returnedDocumentInfo.FileInBytes.Length;
@@ -237,7 +250,7 @@ public class DocumentServerEngine
         }
         catch (Exception ex)
         {
-            return Result.Fail(new Error("Failed to retrieve the document from File System. ").CausedBy(ex));
+            return Result.Fail(new Error("Failed to retrieve the document from File System.  FileName: [ " + path + " ]").CausedBy(ex));
         }
     }
 

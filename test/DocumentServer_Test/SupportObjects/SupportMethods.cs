@@ -35,6 +35,7 @@ public class SupportMethods
     private readonly MockLogger<DocumentServerEngine>      _logger     = Substitute.For<MockLogger<DocumentServerEngine>>();
     private readonly UniqueKeys                            _uniqueKeys = new("");
     private readonly MockLogger<DocumentServerInformation> _logDSI     = Substitute.For<MockLogger<DocumentServerInformation>>();
+    private readonly MockLogger<NodeToNodeHttpClient>      _logN2N     = Substitute.For<MockLogger<NodeToNodeHttpClient>>();
     private static   ILogger                               serilog;
     private readonly SupportMethodsConfiguration           _smConfiguration;
 
@@ -150,6 +151,7 @@ public class SupportMethods
 
             DocumentServerInformation = await dsiBuilder.BuildAndAwaitInitialization();
 
+            NodeHttpClient = new NodeToNodeHttpClient(new HttpClient(), _logN2N);
 
             DocumentServerEngine = new DocumentServerEngine(_logger,
                                                             DB,
@@ -172,7 +174,7 @@ public class SupportMethods
     }
 
 
-    public static NodeToNodeHttpClient NodeHttpClient { get; private set; } = new NodeToNodeHttpClient(new HttpClient());
+    public NodeToNodeHttpClient NodeHttpClient { get; private set; }
 
 
     /// <summary>
