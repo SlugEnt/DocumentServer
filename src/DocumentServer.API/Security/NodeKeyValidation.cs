@@ -24,22 +24,22 @@ public class NodeKeyValidation : INodeKeyValidation
     {
         if (string.IsNullOrWhiteSpace(hostNodeKey))
         {
-#if DEBUG
-            _logger.LogInformation("Client did not provide a NodeKey value.");
-#endif
+            _logger.LogWarning("Client did not provide a NodeKey value.");
             return false;
         }
 
         string nodeKey = _dsi.ServerHostInfo.NodeKey;
 
-        //string? nodeKey = _configuration.GetValue<string>("DocumentServer:NodeKey");
-        string logMsg = "Client Sent NodeKey: [ " + hostNodeKey + " ]";
-#if DEBUG
-        logMsg += "  |  Our NodeKey:  [ " + nodeKey + " ]";
-#endif
-        _logger.LogInformation(logMsg);
         if (nodeKey == null || nodeKey != hostNodeKey)
+        {
+            string logMsg = "Client Sent NodeKey: [ " + hostNodeKey + " ]";
+#if DEBUG
+            logMsg += "  |  Our NodeKey:  [ " + nodeKey + " ]";
+#endif
+            _logger.LogWarning(logMsg);
+
             return false;
+        }
 
         return true;
     }

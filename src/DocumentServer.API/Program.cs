@@ -11,12 +11,7 @@ using SlugEnt.DocumentServer.API.Security;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.DocumentServer.Db;
 using SlugEnt.ResourceHealthChecker;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Serilog.Sinks.File;
 using ILogger = Serilog.ILogger;
-using Microsoft.CodeAnalysis.Elfie.Serialization;
 
 namespace SlugEnt.DocumentServer.Api;
 
@@ -197,7 +192,6 @@ public class Program
         builder.Services.AddTransient<IApiKeyValidation, ApiKeyValidation>();
         builder.Services.AddTransient<INodeKeyValidation, NodeKeyValidation>();
         builder.Services.AddControllers();
-        builder.Services.AddProblemDetails();
         builder.Services.AddHttpLogging(options => { });
 
 
@@ -238,6 +232,7 @@ public class Program
         builder.Services.AddSingleton<IAuthorizationHandler, ApiKeyHandler>();
         builder.Services.AddSingleton<IAuthorizationHandler, NodeKeyHandler>();
 
+        builder.Services.AddProblemDetails();
 
 #if DEBUG
         IPAddress address = IPAddress.Parse("127.0.0.1");
@@ -252,6 +247,11 @@ public class Program
 #else
         builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 1024 * 1024 * 100; });
 #endif
+
+
+        // *******************************************************************************
+        // Build App
+        // *******************************************************************************
         WebApplication app = builder.Build();
 
         app.UseRouting();
@@ -408,4 +408,9 @@ public class Program
         builder.Configuration.AddJsonFile(path, true);
         appSettingsFiles.Add(path);
     }
+
+
+#region "Hellang Middleware"
+
+#endregion
 }

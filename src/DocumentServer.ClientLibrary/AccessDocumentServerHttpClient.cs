@@ -60,6 +60,7 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         set { _httpClient.BaseAddress = value; }
     }
 
+
     /// <summary>
     /// Determines if the remote node is alive.
     /// </summary>
@@ -101,9 +102,9 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
                                                              string saveFileName,
                                                              string appToken)
     {
+        string qry = "documents/" + documentId;
         try
         {
-            string qry = "documents/" + documentId;
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add(ApiConstants.ApiKeyHeaderName, _apiKey);
             _httpClient.DefaultRequestHeaders.Add(ApiConstants.AppTokenHeaderName, appToken);
@@ -123,7 +124,11 @@ public sealed class AccessDocumentServerHttpClient : IDisposable
         }
         catch (Exception exception)
         {
-            _logger.LogError("Something wong:  {Error}", exception);
+            _logger.LogError("Error Connecting to DocumentServer API:  {Url} | AppToken: {AppToken}... | ApiKey: {ApiKey} | {Error}",
+                             (BaseAddress + qry),
+                             appToken.Substring(0, 2),
+                             _apiKey.Substring(0, 3),
+                             exception);
             return Result.Fail(new ExceptionalError(exception));
         }
     }

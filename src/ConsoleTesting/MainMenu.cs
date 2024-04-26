@@ -19,7 +19,7 @@ public partial class MainMenu
     private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
     private readonly ILogger                        _logger;
     private readonly JsonSerializerOptions          _options;
-    private          long                           lastDocSaved = 0;
+    private          long                           _lastDocSaved = 0;
     private          IConfiguration                 _configuration;
     private readonly string                         _appToken = "abc";
     private          Faker                          _faker;
@@ -71,25 +71,31 @@ public partial class MainMenu
 
     internal async Task Display()
     {
+        Console.WriteLine();
+        Console.WriteLine();
+        Console.WriteLine("  ====================================================================================================================");
         Console.WriteLine("Press:  ");
-        Console.WriteLine(" ( 1 ) Set Application Id    [ {0} ]", ApplicationId);
-
-        //Console.WriteLine(" ( 2 ) Set Root Object Id [ {0} ]", RootObjectId);
-        Console.WriteLine(" ( 3 ) Set Document Type Id  [ {0} ]", DocumentTypeId);
+        Console.WriteLine(" ( A ) Set Application Id    [ {0} ]", ApplicationId);
+        Console.WriteLine(" ( B ) Set Application Token [ {0} ]", ApplicationToken);
+        Console.WriteLine(" ( C ) Set Document Type Id  [ {0} ]", DocumentTypeId);
+        Console.WriteLine("    Last Stored Document Id  [ {0} ]", _lastDocSaved);
+        Console.WriteLine("    Base Folder:             [ {0} ]", BaseFolder);
+        Console.WriteLine(" Y Load Test Source Folder   [ {0} ]", SourceFolder);
+        Console.WriteLine();
         Console.WriteLine(" ( 4 ) Send IsAlive");
         Console.WriteLine();
-        Console.WriteLine("   [ " + SourceFolder + " ]  |  Set Which Documents to use during Y - Load Testing");
+
+
         Console.WriteLine(" ( 5 ) Small Docs            ");
         Console.WriteLine(" ( 6 ) Big  Docs            ");
         Console.WriteLine(" ( 7 ) All Docs            ");
         Console.WriteLine();
         Console.WriteLine(" ( 9 ) Thread Sleep Time Ms  [ {0} ]", ThreadSleepTimeMs);
-
-        Console.WriteLine(" ( U ) To Upload a the Keyboard Document");
-        Console.WriteLine(" ( R ) (Broken - needs updated ClientLibrary with fix) To Retrieve a file");
         Console.WriteLine(" ( Y ) Load Test of Uploads and Download");
-
-        Console.WriteLine(" ( T ) Testing");
+        Console.WriteLine();
+        Console.WriteLine(" ( R ) Download a Stored Document by StoredDocument Id or the last document uploaded");
+        Console.WriteLine(" ( U ) To Upload a file from this PC");
+        Console.WriteLine();
         Console.WriteLine(" ( Z ) To Seed the database");
     }
 
@@ -158,17 +164,44 @@ public partial class MainMenu
                         ThreadSleepTimeMs = threadInt;
                         break;
 
+                    case ConsoleKey.A:
+                        Console.WriteLine("Enter the Application Id to use:  ");
+                        string newApplicationId = Console.ReadLine();
+                        if (int.TryParse(newApplicationId, out int newApplicationIdInt))
+                            ApplicationId = newApplicationIdInt;
+                        break;
+
+                    case ConsoleKey.B:
+                        Console.WriteLine("Enter the Application Token that corresponds to the Application Id:  ");
+                        ApplicationToken = Console.ReadLine();
+                        break;
+
+                    case ConsoleKey.C:
+                        Console.WriteLine("Enter the Document Type Id to use (Note: Must belong to the Application Chosen):  ");
+                        string newDocumentId = Console.ReadLine();
+                        if (int.TryParse(newDocumentId, out int newDocumentIdInt))
+                            DocumentTypeId = newDocumentIdInt;
+                        break;
+
                     case ConsoleKey.S:
                         DisplayStats();
                         break;
 
                     // Upload / Save Document
                     case ConsoleKey.U:
-                        System.IO.FileInfo fileToSave = new(Path.Combine(SourceFolder, "keyboard-order-document.pdf"));
+                        Console.WriteLine("Enter complete path where file you wish to upload is at.  Empty value will use the Source Folder as the source directory.");
+                        string folder = Console.ReadLine();
+                        if (folder == string.Empty)
+                            folder = SourceFolder;
+
+                        Console.WriteLine("Enter Filename to upload");
+                        string fileName = Console.ReadLine();
+
+                        System.IO.FileInfo fileToSave = new(Path.Combine(folder, fileName));
                         TransferDocumentDto transferDocumentDto = new()
                         {
                             DocumentTypeId = DocumentTypeId,
-                            Description    = "Keyboard Order Document",
+                            Description    = fileName,
                             FileExtension  = fileToSave.Extension,
                             RootObjectId   = _faker.Random.String2(6, 12),
                         };
@@ -178,7 +211,7 @@ public partial class MainMenu
                         if (result.IsSuccess)
                         {
                             Console.WriteLine("Document Stored   |   ID = " + result.Value);
-                            lastDocSaved = result.Value;
+                            _lastDocSaved = result.Value;
                         }
                         else
                             Console.WriteLine("Document failed to be stored due to errors:  ");
@@ -192,10 +225,10 @@ public partial class MainMenu
                     // Retrieve Document
                     case ConsoleKey.R:
                         string tmpFileNameR = Guid.NewGuid().ToString();
-                        string pathR        = Path.Join(SourceFolder, "downloaded", tmpFileNameR);
+                        string pathR        = Path.Join(DownloadFolder, tmpFileNameR);
 
                         string prompt =
-                            "Enter the Document number to retrieve.  Or 0 to retrieve last document Uploaded (must be during this session):";
+                            "Enter the Stored Document Id Number to retrieve.  Or 0 to retrieve last document Uploaded (must be during this session):";
                         Console.WriteLine(prompt);
                         string inputId = Console.ReadLine();
 
@@ -203,57 +236,20 @@ public partial class MainMenu
                             break;
 
                         if (inputDocId == 0)
-                            inputDocId = lastDocSaved;
+                            inputDocId = _lastDocSaved;
+
                         Result getDocResult = await _documentServerHttpClient.GetDocumentAndSaveToFileSystem(inputDocId, pathR, ApplicationToken);
                         if (getDocResult.IsSuccess)
-                            Console.WriteLine("Downloaded and saved the file - {0}", tmpFileNameR);
+                            Console.WriteLine("Downloaded and saved the file - {0}", pathR);
                         else
                             Console.WriteLine("Failed to retrieve document - Error: {0}", getDocResult.ToString());
                         break;
 
 
-                    // Load Test
+                    // Load Test.  Upload and download many documents as fast as possible.
                     case ConsoleKey.Y:
                         await LargeTest();
 
-                        break;
-
-                    case ConsoleKey.G:
-                        Stopwatch sw        = Stopwatch.StartNew();
-                        long      totalSize = 0;
-                        int       i         = 0;
-
-                        //lastDocSaved = 108;
-                        string fileNameG = "";
-                        for (i = 0; i < 1; i++)
-                        {
-                            Result<ReturnedDocumentInfo> getResult = await _documentServerHttpClient.GetDocumentAsync(lastDocSaved, _appToken);
-                            if (getResult.IsSuccess)
-                            {
-                                ReturnedDocumentInfo returnedDocumentInfo = getResult.Value;
-                                string               extension            = returnedDocumentInfo.Extension != string.Empty ? "." + returnedDocumentInfo.Extension : string.Empty;
-                                fileNameG = Guid.NewGuid().ToString() + extension;
-
-                                totalSize += (long)returnedDocumentInfo.Size;
-
-                                fileNameG = Path.Join($"T:\\temp", fileNameG);
-                                await File.WriteAllBytesAsync(fileNameG, returnedDocumentInfo.FileInBytes);
-                                File.Delete(fileNameG);
-                            }
-                            else
-                            {
-                                Console.WriteLine("GetDocument failed to retrieve the document:  Error: {0}", getResult.ToString());
-                            }
-                        }
-
-                        sw.Stop();
-                        long totalMB = totalSize / (1024 * 1024);
-                        Console.WriteLine("Downloaded File {0} times.  Total Time: {1}  Total MB: {2}",
-                                          i,
-                                          sw.ElapsedMilliseconds / 1000,
-                                          totalMB);
-
-                        Console.WriteLine("SUCCESS:  File Saved as : {0}", fileNameG);
                         break;
 
                     case ConsoleKey.Z:
@@ -280,7 +276,10 @@ public partial class MainMenu
     }
 
 
-
+    /// <summary>
+    /// Large test cycle that uploads a bunch of documents and then downloads them.  As fast as possible
+    /// </summary>
+    /// <returns></returns>
     internal async Task LargeTest()
     {
         // Create the Output folder:
@@ -351,7 +350,7 @@ public partial class MainMenu
                         // This is the Document Id of the document.  Use this to retrieve it in future.
                         Console.WriteLine("Document Stored   |   ID = " + resultUp.Value);
                         uploadedDocIds.Add(resultUp.Value);
-                        lastDocSaved = resultUp.Value;
+                        _lastDocSaved = resultUp.Value;
                     }
                     else
                     {

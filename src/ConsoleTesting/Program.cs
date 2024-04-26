@@ -19,6 +19,7 @@ public class Program
 {
     private static ILogger _logger;
 
+
     /// <summary>
     /// 
     /// </summary>
@@ -83,7 +84,7 @@ public class Program
 
         // Add our custom AppSettings.JSON files
         IConfigurationRoot configuration = new ConfigurationBuilder().AddJsonFile(appSettingEnvFile, true, true)
-                                                                        .AddJsonFile(appSettingEnvFile2, true, true)
+                                                                     .AddJsonFile(appSettingEnvFile2, true, true)
                                                                      .AddJsonFile(sensitiveSettingFile, true, true)
                                                                      .AddJsonFile(sensitiveSettingFile2, true, true)
                                                                      .Build();
@@ -136,11 +137,14 @@ public class Program
         host.RunAsync();
         MainMenu mainMenu = host.Services.GetRequiredService<MainMenu>();
         mainMenu.BaseFolder       = sourceFolder;
+        mainMenu.SourceFolder     = sourceFolder;
         mainMenu.ApplicationToken = appToken;
         mainMenu.ApiKey           = apiKey;
         mainMenu.DownloadFolder   = outputFolder;
-        if (doctype > 0 ) mainMenu.DocumentTypeId = doctype;
-        if (appId > 0 ) mainMenu.ApplicationId = appId;
+        if (doctype > 0)
+            mainMenu.DocumentTypeId = doctype;
+        if (appId > 0)
+            mainMenu.ApplicationId = appId;
 
         await mainMenu.Start();
         Log.CloseAndFlush();

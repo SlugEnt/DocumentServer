@@ -1,5 +1,6 @@
 ﻿using DocumentServer.Controllers;
 using Microsoft.AspNetCore.Mvc;
+using NSubstitute;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.DocumentServer.Core;
 using SlugEnt.FluentResults;
@@ -24,10 +25,10 @@ public class Test_DocumentsController
         await sm.Initialize;
         DocumentServerEngine dse = sm.DocumentServerEngine;
 
-        int    expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
-        string expectedRootObjectId = "x";
-
-        DocumentsController controller = new DocumentsController(dse);
+        int                             expectedDocTypeId    = sm.DocumentType_Test_Worm_A;
+        string                          expectedRootObjectId = "x";
+        MockLogger<DocumentsController> dcMockLogger         = Substitute.For<MockLogger<DocumentsController>>();
+        DocumentsController             controller           = new DocumentsController(dse, dcMockLogger);
 
         Result<TransferDocumentDto> genFileResult = sm.TFX_GenerateUploadFile(sm,
                                                                               "ab",

@@ -13,14 +13,20 @@ namespace DocumentServer.Controllers;
 [ApiController]
 public class DocumentsController : ControllerBase
 {
-    private readonly DocumentServerEngine _docEngine;
+    private readonly DocumentServerEngine         _docEngine;
+    private readonly ILogger<DocumentsController> _logger;
 
 
     /// <summary>
     ///     Public constructor
     /// </summary>
     /// <param name="db"></param>
-    public DocumentsController(DocumentServerEngine documentServerEngine) { _docEngine = documentServerEngine; }
+    public DocumentsController(DocumentServerEngine documentServerEngine,
+                               ILogger<DocumentsController> logger)
+    {
+        _logger    = logger;
+        _docEngine = documentServerEngine;
+    }
 
 
     // DELETE api/<DocumentsController>/5
@@ -49,7 +55,10 @@ public class DocumentsController : ControllerBase
 
         Result<ReturnedDocumentInfo> result = await _docEngine.GetStoredDocumentAsync(id, appToken);
         if (result.IsFailed)
+        {
+            _logger.LogError("Failed to Retrieve Document: " + id + " | Error: " + result.ToString());
             return BadRequest(result.ToString());
+        }
 
 
         // Send the file.
@@ -77,64 +86,14 @@ public class DocumentsController : ControllerBase
         Result<ReturnedDocumentInfo> result = await _docEngine.GetStoredDocumentAsync(id,
                                                                                       appToken);
         if (result.IsFailed)
-            return BadRequest(result.ToString());
-
-
-        // Build Return Object
-        /*
-        TransferDocumentContainer tdc = result.Value;
-        DocumentContainer documentContainer = new()
         {
-            DocumentInfo = new ReturnedDocumentInfo()
-            {
-                Extension   = tdc.TransferDocument.FileExtension,
-                Size        = tdc.FileSize,
-                FileInBytes = tdc.FileInBytes,
-                Description = tdc.TransferDocument.Description,
-            },
-        };
-        */
+            _logger.LogError("Failed to Retrieve Document: " + id + " | Error: " + result.ToString());
+            return BadRequest(result.ToString());
+        }
+
         // Send the file.
         return Ok(result.Value);
     }
-
-
-
-    // POST api/<DocumentsController>
-    /// <summary>
-    ///     Places a document to be stored in to the DocumentServer
-    /// </summary>
-    /// <param name="transferDocumentDto">
-    ///     The TransferDocumentDto that contains a document and the documents information to be
-    ///     stored.
-    /// </param>
-    /// <returns>On Success:  Returns Document ID.  On Failure returns error message</returns>
-/*    [HttpPost(Name = "PostStoredDocument")]
-    [Authorize(Policy = "ApiKeyPolicy")]
-    public async Task<ActionResult<long>> PostStoredDocument([FromForm] DocumentContainer documentContainer,
-                                                             [FromHeader] string appToken)
-    {
-        try
-        {
-            TransferDocumentContainer txfDocumentContainer = new()
-            {
-                TransferDocument = documentContainer.Info,
-                FileInFormFile   = documentContainer.File,
-            };
-
-            Result<StoredDocument> result = await _docEngine.StoreDocumentFirstTimeAsync(txfDocumentContainer, appToken);
-            if (result.IsSuccess)
-                return Ok(result.Value.Id);
-
-
-            return Problem(result.ToString());
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-*/
 
 
 
@@ -165,11 +124,4 @@ public class DocumentsController : ControllerBase
             return BadRequest(ex.Message + "  |  ");
         }
     }
-
-
-    // PUT api/<DocumentsController>/5
-    /*[HttpPut("{id}")]
-    public void Put(int id,
-                    [FromBody] string value) { }
-    */
 }
