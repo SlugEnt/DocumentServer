@@ -2,6 +2,7 @@
 @page "/documenttypes/crud/{mode}/{recordId:int}"
 @rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
+@using Radzen.Blazor.Rendering
 @using SlugEnt.DocumentServer.Core
 @using SlugEnt.DocumentServer.Models.Entities
 @using SlugEnt.DocumentServer.Models.Enums
@@ -11,30 +12,36 @@
 
 @inherits AbstractCRUDComponent
 
-
+@inject NotificationService notificationService
 @inject DocServerDbContext DB
-@inject EntityRules __EntityRules
+@inject DocServerDbContext DB2
+@inject EntityRules __entityRules
 
 
 <h1>@_pageTitle</h1>
 <hr/>
 <RadzenRow Gap="1rem">
     <RadzenColumn Size="12" SizeSM="6">
-        @if (_errMsg != string.Empty)
-        {
-            <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
-        }
-        @if (_successMsg != string.Empty)
-        {
-            <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
-        }
+
+
+        <RadzenStack>
+            @if (_errMsg != string.Empty)
+            {
+                _errMsg = _errMsg;
+                <RadzenAlert Shade="Shade.Lighter" Variant="Variant.Flat" Size="AlertSize.Small" AlertStyle="AlertStyle.Danger" Visible="@_errVisible" Text="@_errMsg"></RadzenAlert>
+            }
+            @if (_successMsg != string.Empty)
+            {
+                <RadzenAlert AllowClose="false" AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Lighter" Text="@_successMsg"></RadzenAlert>
+            }
+        </RadzenStack>
 
         <RadzenStack>
 
             <RadzenFormField Text="Name" Variant="@radDisplay" Style="width: 100%; max-width: 500px">
                 <RadzenTextBox @bind-Value="@_documentType.Name" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-            
+
 
             <RadzenFormField Text="Description" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_documentType.Description" ReadOnly="@_canEdit"/>
@@ -47,12 +54,12 @@
 
 
             <RadzenFormField Text="Application Associated With" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@_applications"@bind-Value="@_documentType.ApplicationId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" Change="@AppChanged"/>
+                <RadzenDropDown Data="@_applications" @bind-Value="@_documentType.ApplicationId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled" Change="@AppChanged"/>
             </RadzenFormField>
 
 
             <RadzenFormField Text="Primary Root Object Associationh" Variant="@radDisplay" Style="max-width: 200px">
-                <RadzenDropDown Data="@_rootObjects"@bind-Value="@_documentType.RootObjectId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+                <RadzenDropDown Data="@_rootObjects" @bind-Value="@_documentType.RootObjectId" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
             </RadzenFormField>
 
 
@@ -70,6 +77,17 @@
             <RadzenFormField Text="Primary Storage Node" Variant="@radDisplay" Style="max-width: 260px">
                 <RadzenDropDown Data="@_storageNodes" @bind-Value="@_documentType.ActiveStorageNode1Id" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
             </RadzenFormField>
+
+
+            <RadzenFormField Text="Secondary Storage Node" Variant="@radDisplay" Style="max-width: 260px">
+                <RadzenDropDown Data="@_storageNodes" @bind-Value="@_documentType.ActiveStorageNode2Id" TextProperty="Name" ValueProperty="Id" Style="" Name="DropDownBindValue" ReadOnly="@_canEdit" Disabled="@_isDisabled"/>
+            </RadzenFormField>
+
+            <div >
+                <RadzenCheckBox @bind-Value=@_documentType.IsActive TriState="false" TValue="bool" ReadOnly="@_canEdit"/>
+                <RadzenLabel Text="Is Active" Component="CheckBox2" Style="margin-left: 8px; vertical-align: top;"/>
+            </div>
+
 
 
         </RadzenStack>
@@ -125,11 +143,13 @@
     /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
     protected override async Task OnInitializedAsync()
     {
-        if (_isInitializeed)
+        if (_isInitialized)
             return;
 
+        _isInitialized = true;
+
         await base.OnInitializedAsync();
-        _isInitializeed = true;
+        
     }
 
 
@@ -139,12 +159,14 @@
     /// <returns></returns>
     protected override async Task PostSetParametersAsync()
     {
+
         // Load list of Applications only once and only for Create mode
         if (_isCreateMode)
         {
-            _applications = DB.Applications;
-            _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == true);
-            _rootObjects  = DB.RootObjects.Where(ro => ro.IsActive == true);
+            _applications = DB.Applications.AsNoTracking();
+            _storageNodes = DB.StorageNodes.Where(sn => sn.IsActive == true).AsNoTracking();
+            _rootObjects  = DB.RootObjects.Where(ro => ro.IsActive == true).AsNoTracking();
+            return;
         }
         else
         {
@@ -153,9 +175,9 @@
             if (retrieveRecord)
             {
                 DocumentType existingEntity = DB.DocumentTypes.SingleOrDefault(dt => dt.Id == recordId);
-                DB.RootObjects.Where(ro => ro.Id == existingEntity.RootObjectId);
-                DB.StorageNodes.Where(sn => sn.Id == existingEntity.ActiveStorageNode1Id);
-                DB.Applications.Where(ap => ap.Id == existingEntity.ApplicationId);
+                DB.RootObjects.Where(ro => ro.Id == existingEntity.RootObjectId).AsNoTracking();
+                DB.StorageNodes.Where(sn => sn.Id == existingEntity.ActiveStorageNode1Id).AsNoTracking();
+                DB.Applications.Where(ap => ap.Id == existingEntity.ApplicationId).AsNoTracking();
 
                 if (existingEntity == null)
                 {
@@ -170,21 +192,31 @@
     }
 
 
-    public void AppChanged() { _rootObjects = DB.RootObjects.Where(ro => ro.ApplicationId == _documentType.ApplicationId); }
+    public void AppChanged() { _rootObjects = DB.RootObjects.Where(ro => ro.ApplicationId == _documentType.ApplicationId).AsNoTracking(); }
 
 
     /// <summary>
     ///     Creates a new RootObject
     /// </summary>
     /// <returns></returns>
-    public async Task AddEntity()
+    //public async Task AddEntity() {
+    public void AddEntity()
     {
-        EntityRules    entityRules   = new(DB);
-        Result<string> saveResult = await entityRules.SaveDocumentTypeAsync(_documentType);
-        if (saveResult.IsSuccess)
-            ReturnToList();
-        else
-            _errMsg = saveResult.ToString();
+        try
+        {
+
+            //EntityRules r = 
+            //EntityRules    entityRules = new(DB2);
+            Result<string> saveResult  = __entityRules.SaveDocumentType(_documentType);
+            if (saveResult.IsSuccess)
+                ReturnToList();
+            else
+                _errMsg = saveResult.ToString();
+        }
+        catch (Exception e)
+        {
+            _errMsg = e.Message;
+        }
     }
 
 

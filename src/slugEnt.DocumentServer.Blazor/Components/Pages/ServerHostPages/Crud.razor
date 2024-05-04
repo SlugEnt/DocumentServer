@@ -40,10 +40,11 @@
             <RadzenFormField Text="Path to Data Folder on Server" Variant="@radDisplay" Style="width: 100%">
                 <RadzenTextBox @bind-Value="@_serverHost.Path" ReadOnly="@_canEdit"/>
             </RadzenFormField>
-            <RadzenFormField Text="Is Active" Variant="@radDisplay" style="width: 100%">
-                <RadzenCheckBox @bind-Value=@_serverHost.IsActive TriState="false" TValue="bool" ReadOnly="@_canEdit" />
-            </RadzenFormField>
-            
+
+            <div >
+                <RadzenCheckBox @bind-Value=@_serverHost.IsActive TriState="false" TValue="bool" ReadOnly="@_canEdit"/>
+                <RadzenLabel Text="Is Active" Component="CheckBox2" Style="margin-left: 8px; vertical-align: top;"/>
+            </div>
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="1rem" Class="rz-mt-8 rz-mb-4">
@@ -93,11 +94,11 @@
     /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
     protected override async Task OnInitializedAsync()
     {
-        if (_isInitializeed)
+        if (_isInitialized)
             return;
 
 
-        _isInitializeed = true;
+        _isInitialized = true;
 
         await base.OnInitializedAsync();
     }
@@ -109,6 +110,9 @@
     /// <returns></returns>
     protected override async Task PostSetParametersAsync()
     {
+        if (_isCreateMode)
+            return;
+
         bool retrieveRecord = _serverHost == null || _serverHost.Id != recordId ? true : false;
 
         if (!retrieveRecord)

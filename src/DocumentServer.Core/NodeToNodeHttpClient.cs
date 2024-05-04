@@ -68,16 +68,18 @@ public sealed class NodeToNodeHttpClient : IDisposable
     /// </summary>
     /// <param name="nodeAddress"></param>
     /// <returns></returns>
-    public async Task<Result> AskIfAlive(string nodeAddress)
+    public async Task<Result> AskIfAlive(Uri nodeAddress)
     {
         try
         {
+            Uri uri = new Uri(nodeAddress, "api/node/alive");
+
             // TODO fix this to be set via config http or https
-            string query = "http://" + nodeAddress + "/api/node/alive";
+            //string query = nodeAddress + "/api/node/alive";
 
 //            _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add(ApiConstants.NodeKeyHeaderName, NodeKey);
-            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(query, HttpCompletionOption.ResponseHeadersRead))
+            using (HttpResponseMessage httpResponse = await _httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead))
             {
                 httpResponse.EnsureSuccessStatusCode();
 
@@ -92,7 +94,13 @@ public sealed class NodeToNodeHttpClient : IDisposable
     }
 
 
-    public async Task<Result> SendDocument(string nodeAddress,
+    /// <summary>
+    /// Sends the document to the remote node.  
+    /// </summary>
+    /// <param name="nodeAddress">Full http/https plus address plus port of the remote node to send document to:</param>
+    /// <param name="remoteDocumentStorageDto"></param>
+    /// <returns></returns>
+    public async Task<Result> SendDocument(Uri nodeAddress,
                                            RemoteDocumentStorageDto remoteDocumentStorageDto)
     {
         HttpResponseMessage? response;
@@ -100,12 +108,11 @@ public sealed class NodeToNodeHttpClient : IDisposable
 
         _httpClient.DefaultRequestHeaders.Clear();
 
+        Uri uri = new(nodeAddress, "api/node/storedocument");
+
+        //string query = nodeAddress + "/api/node/storedocument";
         try
         {
-            // TODO fix this to be set via config http or https
-            string query = "http://" + nodeAddress + "/api/node/storedocument";
-
-
             // Load the File data to form.
             MultipartFormDataContent form = new();
             MemoryStream             ms   = new();
@@ -124,7 +131,7 @@ public sealed class NodeToNodeHttpClient : IDisposable
 
 
             _logger.LogDebug("Document Being Sent to Remote Node - {RemoteHost}", nodeAddress);
-            using (HttpResponseMessage httpResponse = await _httpClient.PostAsync(query, form))
+            using (HttpResponseMessage httpResponse = await _httpClient.PostAsync(uri, form))
             {
                 responseContent = await httpResponse.Content.ReadAsStringAsync();
                 httpResponse.EnsureSuccessStatusCode();
@@ -134,7 +141,7 @@ public sealed class NodeToNodeHttpClient : IDisposable
         }
         catch (Exception e)
         {
-            string msg = "NodeController:  SendDocument -->  Error sending document to remote server.  Server Returned [ " + responseContent + " ]";
+            string msg = "Node2NodeHttpClient:  SendDocument -->  Error sending document to remote server. URL [ " + uri + " ].   Server Returned [ " + responseContent + " ]";
             if (_logger != null)
                 _logger.LogError(msg + e.ToString());
 

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Radzen;
+using Radzen.Blazor;
 using Serilog;
 using SlugEnt.DocumentServer.Blazor.Components;
 using SlugEnt.DocumentServer.Core;
@@ -86,14 +87,7 @@ public class Program
         builder.Services.AddRadzenComponents();
         builder.Services.AddScoped<DialogService>();
         builder.Services.AddScoped<TooltipService>();
-        builder.Services.AddScoped<EntityRules>();
-/*        builder.Services.AddScoped<DocumentServerEngine>();
-        builder.Services.AddSingleton<DocumentServerInformation>(dsi =>
-        {
-            IConfiguration x = dsi.GetService<IConfiguration>();
-            return DocumentServerInformation.Create(x);
-        });
-*/
+        builder.Services.AddTransient<EntityRules>();
 
         // WSH End 
         // Add services to the container.

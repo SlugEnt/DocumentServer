@@ -30,7 +30,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (_isInitializeed)
+        if (_isInitialized)
             return;
 
 
@@ -38,7 +38,7 @@
         _rootObjects  = DB.RootObjects;
 
         await base.OnInitializedAsync();
-        _isInitializeed = true;
+        _isInitialized = true;
     }
 
 

@@ -602,7 +602,8 @@ public class DocumentServerEngine
                                 StoragePath   = storedDocument.StorageFolder,
                             };
 
-                            string url          = destinationStorageNode.StorageNode.ServerHost.FQDN + ":" + _documentServerInformation.RemoteNodePort;
+
+                            Uri    url          = ComputeRemoteNodeAddress(destinationStorageNode.StorageNode.ServerHost);
                             Result remoteResult = await _nodeHttpClient.SendDocument(url, remoteDocumentStorageDto);
                             if (remoteResult.IsFailed)
                             {
@@ -676,6 +677,22 @@ public class DocumentServerEngine
             throw;
         }
     }
+
+
+
+    /// <summary>
+    /// Computes the Remote Node Address using the provided ServerHost.
+    /// </summary>
+    /// <param name="serverHost"></param>
+    /// <returns></returns>
+    public Uri ComputeRemoteNodeAddress(ServerHost serverHost)
+    {
+        string https = serverHost.IsHttps == true ? "https" : "http";
+        string url   = https + "://" + serverHost.FQDN + ":" + _documentServerInformation.RemoteNodePort;
+        Uri    uri   = new(url);
+        return uri;
+    }
+
 
 
     /// <summary>

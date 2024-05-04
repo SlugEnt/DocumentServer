@@ -38,8 +38,41 @@ namespace SlugEnt.DocumentServer.EntityManager
 
                 VitalInfo vitalInfo = await _db.VitalInfos.SingleOrDefaultAsync(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
                 vitalInfo.LastUpdateUtc = DateTime.UtcNow;
+                _db.Update(vitalInfo);
 
                 int rowsUpdated = await _db.SaveChangesAsync();
+                if (rowsUpdated > 0)
+                    return Result.Ok();
+
+                return Result.Fail("The database report it did not update any rows of data.  Expecting at least 1 to indicate success.");
+            }
+            catch (Exception exception)
+            {
+                return Result.Fail(new Error("Failed to save the Application to Database").CausedBy(exception));
+            }
+        }
+
+
+        /// <summary>
+        /// Saves a Document Type as Non ASync
+        /// </summary>
+        /// <param name="documentType"></param>
+        /// <returns></returns>
+        public Result SaveDocumentType(DocumentType documentType)
+        {
+            try
+            {
+                if (documentType.Id > 0) { }
+                else
+                {
+                    _db.Add(documentType);
+                }
+
+                VitalInfo vitalInfo = _db.VitalInfos.SingleOrDefault(v => v.Id == VitalInfo.VI_LASTKEYENTITY_UPDATED);
+                vitalInfo.LastUpdateUtc = DateTime.UtcNow;
+                _db.Update(vitalInfo);
+
+                int rowsUpdated = _db.SaveChanges();
                 if (rowsUpdated > 0)
                     return Result.Ok();
 

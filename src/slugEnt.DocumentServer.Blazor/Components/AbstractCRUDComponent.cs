@@ -14,7 +14,7 @@ public abstract class AbstractCRUDComponent : ComponentBase
     protected bool    _isDeleteMode;
     protected bool    _isDisabled; // These are fields that can only be edited during creation.  They are not editable in edit mode.
     protected bool    _isEditMode;
-    protected bool    _isInitializeed = false;
+    protected bool    _isInitialized = false;
     protected bool    _isReadOnly;
     protected bool    _isViewOnly;
     protected string  _pageTitle    = "";

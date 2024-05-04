@@ -31,5 +31,10 @@ namespace SlugEnt.DocumentServer.Models.Entities
         /// Path on actual server to get to root of the Data.
         /// </summary>
         public string Path { get; set; }
+
+        /// <summary>
+        ///  If true, all communication with server is over HTTPS.
+        /// </summary>
+        public bool IsHttps { get; set; }
     }
 }

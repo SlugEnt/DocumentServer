@@ -88,10 +88,10 @@
     /// <returns>A <see cref="T:System.Threading.Tasks.Task" /> representing any asynchronous operation.</returns>
     protected override async Task OnInitializedAsync()
     {
-        if (_isInitializeed)
+        if (_isInitialized)
             return;
 
-        _isInitializeed = true;
+        _isInitialized = true;
 
         await base.OnInitializedAsync();
     }

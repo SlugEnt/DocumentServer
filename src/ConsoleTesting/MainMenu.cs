@@ -2,7 +2,9 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Bogus;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SlugEnt.DocumentServer.ClientLibrary;
 using SlugEnt.FluentResults;
@@ -16,21 +18,24 @@ namespace ConsoleTesting;
 public partial class MainMenu
 {
     private readonly DocServerDbContext             _db;
-    private readonly AccessDocumentServerHttpClient _documentServerHttpClient;
-    private readonly ILogger                        _logger;
-    private readonly JsonSerializerOptions          _options;
-    private          long                           _lastDocSaved = 0;
-    private          IConfiguration                 _configuration;
-    private readonly string                         _appToken = "abc";
-    private          Faker                          _faker;
-    private const    long                           MEGABYTE = (1024 * 1024);
-    private const    long                           GIGABYTE = (MEGABYTE * 1024);
+    private          AccessDocumentServerHttpClient _documentServerHttpClient;
+    private          IServiceProvider               _serviceProvider;
+
+    private readonly ILogger               _logger;
+    private readonly JsonSerializerOptions _options;
+    private          long                  _lastDocSaved = 0;
+    private          IConfiguration        _configuration;
+    private readonly string                _appToken = "abc";
+    private          Faker                 _faker;
+    private const    long                  MEGABYTE = (1024 * 1024);
+    private const    long                  GIGABYTE = (MEGABYTE * 1024);
 
     public string BaseFolder { get; set; }
     public string SourceFolder { get; set; }
     public string ApplicationToken { get; set; }
     public string ApiKey { get; set; }
     public string DownloadFolder { get; set; }
+    public Uri UrlAddress { get; set; }
 
     /// <summary>
     /// The Id of the application we are writing too.
@@ -45,19 +50,19 @@ public partial class MainMenu
 
 
     public MainMenu(ILogger<MainMenu> logger,
-                    IHttpClientFactory httpClientFactory,
+                    IServiceProvider serviceProvider,
                     IConfiguration configuration,
                     AccessDocumentServerHttpClient documentServerHttpClient)
     {
-        _logger        = logger;
-        _configuration = configuration;
+        _logger          = logger;
+        _configuration   = configuration;
+        _serviceProvider = serviceProvider;
+        _faker           = new Faker();
 
-        _faker = new Faker();
 
-        // Testing only
-        _documentServerHttpClient             = documentServerHttpClient;
-        _documentServerHttpClient.BaseAddress = new Uri(_configuration["DocumentServer:Host"]);
-        _documentServerHttpClient.ApiKey      = _configuration["DocumentServer:ApiKey"];
+        UrlAddress = new Uri(_configuration["DocumentServer:Host"]);
+
+        SetupHttpClient();
 
         _options = new JsonSerializerOptions
         {
@@ -68,6 +73,17 @@ public partial class MainMenu
     }
 
 
+    internal void SetupHttpClient(string apiKey,
+                                  string host)
+    {
+        _documentServerHttpClient             = _serviceProvider.GetRequiredService<AccessDocumentServerHttpClient>();
+        _documentServerHttpClient.BaseAddress = UrlAddress;
+        _documentServerHttpClient.ApiKey      = _configuration["DocumentServer:ApiKey"];
+    }
+
+
+    internal void SetupHttpClient() { SetupHttpClient(_configuration["DocumentServer:ApiKey"], new Uri(_configuration["DocumentServer:Host"]).ToString()); }
+
 
     internal async Task Display()
     {
@@ -75,12 +91,15 @@ public partial class MainMenu
         Console.WriteLine();
         Console.WriteLine("  ====================================================================================================================");
         Console.WriteLine("Press:  ");
-        Console.WriteLine(" ( A ) Set Application Id    [ {0} ]", ApplicationId);
-        Console.WriteLine(" ( B ) Set Application Token [ {0} ]", ApplicationToken);
-        Console.WriteLine(" ( C ) Set Document Type Id  [ {0} ]", DocumentTypeId);
-        Console.WriteLine("    Last Stored Document Id  [ {0} ]", _lastDocSaved);
-        Console.WriteLine("    Base Folder:             [ {0} ]", BaseFolder);
-        Console.WriteLine(" Y Load Test Source Folder   [ {0} ]", SourceFolder);
+        Console.WriteLine(" ( A ) Set Api Key            [ {0} ]", ApiKey);
+        Console.WriteLine(" ( H ) Set DocServer Host url [ {0} ]", _documentServerHttpClient.BaseAddress);
+        Console.WriteLine(" ( B ) Set Application Id     [ {0} ]", ApplicationId);
+        Console.WriteLine(" ( C ) Set Application Token  [ {0} ]", ApplicationToken);
+        Console.WriteLine(" ( D ) Set Document Type Id   [ {0} ]", DocumentTypeId);
+        Console.WriteLine();
+        Console.WriteLine("    Last Stored Document Id   [ {0} ]", _lastDocSaved);
+        Console.WriteLine("    Base Folder:              [ {0} ]", BaseFolder);
+        Console.WriteLine(" Y Load Test Source Folder    [ {0} ]", SourceFolder);
         Console.WriteLine();
         Console.WriteLine(" ( 4 ) Send IsAlive");
         Console.WriteLine();
@@ -164,19 +183,36 @@ public partial class MainMenu
                         ThreadSleepTimeMs = threadInt;
                         break;
 
+
                     case ConsoleKey.A:
+                        Console.WriteLine("Enter the API Key to use:  ");
+                        string newApiKey = Console.ReadLine();
+                        ApiKey = newApiKey;
+                        SetupHttpClient(ApiKey, UrlAddress.ToString());
+                        break;
+
+                    case ConsoleKey.H:
+                        Console.WriteLine("Enter the Url of the Host Document Server to use:  ");
+                        string newHost = Console.ReadLine();
+                        Uri    uriHost = new Uri(newHost);
+                        UrlAddress = uriHost;
+                        SetupHttpClient(ApiKey, UrlAddress.ToString());
+                        break;
+
+
+                    case ConsoleKey.B:
                         Console.WriteLine("Enter the Application Id to use:  ");
                         string newApplicationId = Console.ReadLine();
                         if (int.TryParse(newApplicationId, out int newApplicationIdInt))
                             ApplicationId = newApplicationIdInt;
                         break;
 
-                    case ConsoleKey.B:
+                    case ConsoleKey.C:
                         Console.WriteLine("Enter the Application Token that corresponds to the Application Id:  ");
                         ApplicationToken = Console.ReadLine();
                         break;
 
-                    case ConsoleKey.C:
+                    case ConsoleKey.D:
                         Console.WriteLine("Enter the Document Type Id to use (Note: Must belong to the Application Chosen):  ");
                         string newDocumentId = Console.ReadLine();
                         if (int.TryParse(newDocumentId, out int newDocumentIdInt))

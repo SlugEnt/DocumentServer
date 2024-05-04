@@ -534,7 +534,7 @@ public class Test_MultiNodeStorage
 
 
         //*** T. Test
-        string nodeAddress   = "localhost:" + SecondAPI.Port;
+        Uri    nodeAddress   = new("http://localhost:" + SecondAPI.Port);
         Result isAliveResult = await nodeHttpClient.AskIfAlive(nodeAddress);
 
         //*** Z. Validate
